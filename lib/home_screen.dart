@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
+import  'Leaves/dashbord_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -23,14 +24,13 @@ class HomeScreen extends StatelessWidget {
       'Hello, Explore',
       style: TextStyle(
         fontSize: 16,
-        color: Colors.blue,
         fontWeight: FontWeight.w500,
       ),
     ),
     IconButton(
       icon: const Icon(
         Icons.logout_outlined,
-        color: Colors.blue,
+        //color: Colors.blue,
       ),
       onPressed: () {
         Navigator.pushReplacement(
@@ -59,6 +59,10 @@ class HomeScreen extends StatelessWidget {
               _menuCard(
                 title: 'LEAVES',
                 onTap: () {
+                  Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => DashboardScreen()),
+                );
                   print('Leaves clicked');
                 },
                 
@@ -68,10 +72,6 @@ class HomeScreen extends StatelessWidget {
               _menuCard(
                 title: 'SCHEDULE',
                 onTap: () {
-                  Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => LoginScreen()),
-                );
                 print('Schedule clicked');
                 },
               ),

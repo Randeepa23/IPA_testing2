@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -51,13 +53,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 120),
 
                 // Login Text
-                const Text(
+                Text(
                   'Login',
-                  style: TextStyle(
+                  style: GoogleFonts.actor(
                     fontSize: 32,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+
 
                 const SizedBox(height: 20),
 
@@ -66,8 +69,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: _usernameController,
                   decoration: InputDecoration(
                     labelText: 'Username',
+                        contentPadding: EdgeInsets.symmetric(
+                        vertical: 12, // 👈 increase/decrease height
+                        horizontal: 10,
+                  ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(32),
                     ),
                   ),
                 ),
@@ -80,8 +87,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
                     labelText: 'Password',
+                  contentPadding: EdgeInsets.symmetric(
+                        vertical: 12, // 👈 increase/decrease height
+                        horizontal: 10,
+                  ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(32),
                     ),
                     suffixIcon: IconButton(
                       icon: Icon(
