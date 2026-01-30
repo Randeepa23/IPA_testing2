@@ -3,33 +3,33 @@ name: Flutter iOS Build
 on:
   push:
     branches:
-      - main  # Trigger build on every push to main branch
-  workflow_dispatch:  # Allow manual trigger from GitHub UI
+      - main
+  workflow_dispatch: # Manual trigger option
 
 jobs:
   build-ios:
     runs-on: macos-latest
 
     steps:
-      # Step 1: Checkout the repo
+      # 1. Checkout
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 2: Setup Flutter
+      # 2. Set up Flutter
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.38.8"
 
-      # Step 3: Install dependencies
+      # 3. Install dependencies
       - name: Install Flutter dependencies
         run: flutter pub get
 
-      # Step 4: Build iOS app (without code signing)
+      # 4. Build iOS app (no codesign)
       - name: Build iOS App
         run: flutter build ios --release --no-codesign
 
-      # Step 5: Ensure output directory exists and copy app
+      # 5. Archive the built app
       - name: Archive iOS App
         run: |
           mkdir -p output
@@ -40,13 +40,15 @@ jobs:
             exit 1
           fi
 
-      # Step 6: List contents of output (optional debugging)
+      # 6. List output (optional)
       - name: List archived files
         run: ls -la output
 
-      # Step 7: Upload artifact to GitHub
+      # 7. Upload artifact (using v4)
       - name: Upload iOS build artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ios-build
           path: output/
+          # 'overwrite' can be added if you want to replace existing artifacts
+          # overwrite: true
