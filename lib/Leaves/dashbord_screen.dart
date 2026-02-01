@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'leave_form.dart';
 import '../users/user_screen.dart';
+import 'dart:ui';
+
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -59,138 +61,171 @@ class DashboardScreen extends StatelessWidget {
     },
   ];
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Stack(
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    backgroundColor: Colors.white,
+
+    // ✅ Remove SafeArea top gap (keep only scroll)
+    body: SafeArea(top: false, bottom: false, child: SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
-            // SOLID BLUE HEADER WITH GRADIENT
-            Container(
-              height: 300,
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,      // start from top
-                  end: Alignment.center,     // end at bottom
-                  colors: [
-                    Color.fromARGB(255, 51, 144, 219), // Light blue at top
-                    Color.fromARGB(255, 11, 63, 139), // Dark blue at bottom
-                  ],
-                ),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(24),
-                  bottomRight: Radius.circular(24),
-                ),
-              ),
-            ),
-
-
-          //MAIN CONTENT
-          SafeArea(
-            bottom: false,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-
-                  //HEADER ICONS
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Icon(Icons.notifications, color: Colors.white),
-                      Row(
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.pop(context);
-                            },
-                            child: const Icon(Icons.logout_outlined, color: Colors.white),
-                          ),
-                          const SizedBox(width: 10),
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const UserScreen(),
-                                ),
-                              );
-                            },
-                            child: const CircleAvatar(
-                              radius: 14,
-                              backgroundColor: Colors.white,
-                              child: Icon(Icons.person,size: 16, color: Colors.blue,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+          // ✅ HEADER (blue + blur + floating card) ALSO SCROLLS
+          Stack(
+            children: [
+              // BLUE BACKGROUND
+              Container(
+                width: double.infinity,
+                height: 300,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.center,
+                    colors: [
+                      Color.fromARGB(255, 51, 144, 219),
+                      Color.fromARGB(255, 11, 63, 139),
                     ],
                   ),
-
-                  const SizedBox(height: 16),
-
-                  //WELCOME TEXT
-                  Text(
-                    'Welcome Back, Explore!',
-                    style: GoogleFonts.poppins(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(24),
+                    bottomRight: Radius.circular(24),
                   ),
-                  Text(
-                    'Apply your leaves...',
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      color: Colors.white70,
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  //LEAVE BALANCE (CLOSE TO TOP)
-                  _leaveBalanceCard(),
-
-                  const SizedBox(height: 20),
-
-                  //QUICK ACTION
-                  Text(
-                    'Quick Action',
-                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 10),
-                  _quickActions(context),
-
-                  const SizedBox(height: 20),
-
-                  //RECENT REQUESTS
-                  Text(
-                    'Recent Requests',
-                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 10),
-
-                  ...recentLeaves.map(
-                    (leave) => _leaveStatus(
-                      leave['type'],
-                      leave['date'],
-                      leave['days'],
-                      leave['status'],
-                      leave['color'],
-                    ),
-                  ),
-                ],
+                ),
               ),
+
+              //BLUR AT BOTTOM
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(24),
+                    bottomRight: Radius.circular(24),
+                  ),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                    child: Container(
+                      height: 45,
+                      color: Colors.white.withOpacity(0.06),
+                    ),
+                  ),
+                ),
+              ),
+
+              //CONTENT INSIDE HEADER
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  MediaQuery.of(context).padding.top + 16,
+                  16,
+                  0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // HEADER ICONS
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Icon(Icons.notifications, color: Colors.white),
+                        Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () => Navigator.pop(context),
+                              child: const Icon(Icons.logout_outlined, color: Colors.white),
+                            ),
+                            const SizedBox(width: 10),
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const UserScreen(),
+                                  ),
+                                );
+                              },
+                              child: const CircleAvatar(
+                                radius: 14,
+                                backgroundColor: Colors.white,
+                                child: Icon(Icons.person, size: 16, color: Colors.blue),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    Text(
+                      'Welcome Back, Explore!',
+                      style: GoogleFonts.poppins(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      'Apply your leaves...',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: Colors.white70,
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Floating card
+                    _leaveBalanceCard(),
+
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          //REST CONTENT
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Quick Action',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 10),
+                _quickActions(context),
+
+                const SizedBox(height: 20),
+
+                Text(
+                  'Recent Requests',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 10),
+
+                ...recentLeaves.map(
+                  (leave) => _leaveStatus(
+                    leave['type'],
+                    leave['date'],
+                    leave['days'],
+                    leave['status'],
+                    leave['color'],
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
-    );
-  }
+    ),
+  )
+ );
+}
 
   //Leave Balance Card
   Widget _leaveBalanceCard() {
