@@ -56,7 +56,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _infoCard(
               padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
               children: const [
-                _LeaveBar(title: 'Annual Leaves', used: 8, total: 20),
+                _LeaveBar(title: 'Annual Leaves', used: 10, total: 20),
                 SizedBox(height: 12),
                 _LeaveBar(title: 'Casual Leaves', used: 3, total: 10),
                 SizedBox(height: 12),

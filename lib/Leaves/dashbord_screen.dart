@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'leave_form.dart';
 import '../users/user_screen.dart';
+import 'leave_request_screen.dart';
 import 'dart:ui';
 
 
@@ -312,8 +313,10 @@ Widget _quickActions(BuildContext context) {
         icon: Icons.cabin,
         label: 'Request',
         onTap: () {
-          // Open request screen
-          print('Request tapped');
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const LeaveRequestScreen()),
+          );
         },
       ),
     ],

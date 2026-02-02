@@ -28,11 +28,11 @@ class _LoginScreenState extends State<LoginScreen> {
     final w = size.width;
     final h = size.height;
 
-    // ✅ responsive values
+    //responsive values
     final horizontalPad = w > 600 ? 32.0 : 24.0;
     final logoWidth = (w * 0.65).clamp(200.0, 320.0);
     final topGap = (h * 0.05).clamp(18.0, 40.0);
-    final sectionGap = (h * 0.03).clamp(16.0, 28.0);
+    final sectionGap = (h * 0.01).clamp(14.0, 28.0);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -49,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       SizedBox(height: topGap),
 
-                      // ✅ Logo
+                      //Logo
                       Center(
                         child: Image.asset(
                           'assets/ExploreHoldingLogo.png',
@@ -60,7 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                       SizedBox(height: sectionGap),
 
-                      // ✅ App Name
+                      //App Name
                       Center(
                         child: Text(
                           'Explore Holding',
@@ -101,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                       const SizedBox(height: 16),
 
-                      // ✅ Password Field
+                      //Password Field
                       TextField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
@@ -126,10 +126,34 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
+                      SizedBox(height: 8),
+
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () {
+                            // TODO: Navigate to Forgot Password screen
+                            // Navigator.push(context, MaterialPageRoute(builder: (_) => ForgotPasswordScreen()));
+                          },
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(50, 30),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: const Text(
+                            'Forgot Password?',
+                            style: TextStyle(
+                              color: Color.fromARGB(255, 216, 108, 108),
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
 
                       SizedBox(height: sectionGap),
 
-                      // ✅ Login Button
+                      //Login Button
                       Center(
                         child: SizedBox(
                           width: (w * 0.45).clamp(150.0, 220.0),
