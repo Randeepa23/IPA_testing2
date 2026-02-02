@@ -15,6 +15,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final blue = Colors.blue[800]!;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
         child: Column(
@@ -71,7 +72,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _profileCard(Color blue) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         gradient: LinearGradient(

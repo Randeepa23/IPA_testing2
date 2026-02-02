@@ -65,8 +65,6 @@ class DashboardScreen extends StatelessWidget {
 Widget build(BuildContext context) {
   return Scaffold(
     backgroundColor: Colors.white,
-
-    // ✅ Remove SafeArea top gap (keep only scroll)
     body: SafeArea(top: false, bottom: false, child: SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,26 +88,6 @@ Widget build(BuildContext context) {
                   borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(24),
                     bottomRight: Radius.circular(24),
-                  ),
-                ),
-              ),
-
-              //BLUR AT BOTTOM
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(24),
-                    bottomRight: Radius.circular(24),
-                  ),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                    child: Container(
-                      height: 45,
-                      color: Colors.white.withOpacity(0.06),
-                    ),
                   ),
                 ),
               ),

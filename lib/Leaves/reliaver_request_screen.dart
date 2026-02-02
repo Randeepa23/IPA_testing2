@@ -51,6 +51,7 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
     final blue = Colors.blue[800] ?? Colors.blue;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
         child: Column(

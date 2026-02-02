@@ -130,7 +130,9 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
     final blue = Colors.blue[800] ?? Colors.blue;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
+      backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, size: 18),
