@@ -365,55 +365,65 @@ class _LeaveRequestCard extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          // ✅ DETAILS AREA STYLE (UPDATED to match your UI)
-          _detailRow("Leave type", _shortLeaveType(data["leaveType"] ?? "")),
-          const SizedBox(height: 8),
-          _detailRow("From date", data["from"] ?? ""),
-          const SizedBox(height: 8),
-          _detailRow("To date", data["to"] ?? ""),
-
-          const SizedBox(height: 12),
-
-          // ✅ Total Days bar (blue)
           Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFEAF4FF),
+              color: const Color(0xFFF8FAFF),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFD6E9FF)),
+              border: Border.all(color: const Color(0xFFE1E6EF)),
             ),
-            child: Row(
+            child: Column(
               children: [
-                const Text(
-                  "Total Days:",
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF1E88E5),
+                _detailRow("Leave type", data["leaveType"]),
+                const SizedBox(height: 8),
+                _detailRow("From date", data["from"]),
+                const SizedBox(height: 8),
+                _detailRow("To date", data["to"]),
+
+                const SizedBox(height: 10),
+
+                // total days blue bar
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAF1FF),
+                    borderRadius: BorderRadius.circular(999),
                   ),
-                ),
-                const Spacer(),
-                Text(
-                  "${data["days"] ?? 0} days",
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF1E2A3A),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          "Total Days:",
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF1E2A3A),
+                          ),
+                        ),
+                      ),
+                      Text(
+                        "${data["days"]}",
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF1E2A3A),
+                        ),
+                      )
+                    ],
                   ),
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 10),
-
-          // ✅ Reason (UNCHANGED)
+          const SizedBox(height: 12),
+          //Reason (UNCHANGED)
           _boxField("Reason", data["reason"] ?? ""),
 
           const SizedBox(height: 10),
 
-          // ✅ Covering Officer (UNCHANGED)
+          //Covering Officer (UNCHANGED)
           if (covering != null) ...[
             _boxField(
               "Covering Officer",
@@ -422,7 +432,7 @@ class _LeaveRequestCard extends StatelessWidget {
             const SizedBox(height: 10),
           ],
 
-          // ✅ Attachment row (KEEP, optional)
+          //Attachment row (KEEP, optional)
           if (attachment != null && attachment.toString().trim().isNotEmpty) ...[
             _attachmentRow(attachment.toString()),
             const SizedBox(height: 10),
@@ -438,7 +448,7 @@ class _LeaveRequestCard extends StatelessWidget {
             const SizedBox(height: 10),
           ],
 
-          // ✅ Buttons (UNCHANGED)
+          //Buttons (UNCHANGED)
           Row(
             children: [
               Expanded(
@@ -477,7 +487,7 @@ class _LeaveRequestCard extends StatelessWidget {
     );
   }
 
-  // ✅ NEW detail row style (label left, value right) — like your UI
+  //NEW detail row style (label left, value right) — like your UI
   Widget _detailRow(String label, String value) {
     return Row(
       children: [
@@ -511,7 +521,7 @@ class _LeaveRequestCard extends StatelessWidget {
     );
   }
 
-  // ✅ SAME box style (Reason / Covering)
+  //SAME box style (Reason / Covering)
   Widget _boxField(String label, String value) {
     return Container(
       width: double.infinity,
@@ -547,7 +557,7 @@ class _LeaveRequestCard extends StatelessWidget {
     );
   }
 
-  // ✅ SAME attachment row (kept)
+  // SAME attachment row (kept)
   Widget _attachmentRow(String fileName) {
     return Container(
       width: double.infinity,
@@ -581,16 +591,6 @@ class _LeaveRequestCard extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  // ✅ Optional: show "Annual" instead of "Annual Leave"
-  String _shortLeaveType(String type) {
-    final t = type.toLowerCase();
-    if (t.contains("annual")) return "Annual";
-    if (t.contains("casual")) return "Casual";
-    if (t.contains("sick")) return "Sick";
-    if (t.contains("medical")) return "Medical";
-    return type.toString();
   }
 }
 
