@@ -223,7 +223,7 @@ Future<void> _showRejectDialog(BuildContext context, Map<String, dynamic> r) asy
       final w = MediaQuery.of(ctx).size.width;
 
       // KEEP SAME WIDTH AS REJECT
-      final dialogW = (w * 0.90).clamp(300.0, 520.0);
+      final dialogW = (w * 0.90).clamp(300.0, 420.0);
 
       return Stack(
         children: [
