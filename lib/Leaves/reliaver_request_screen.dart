@@ -6,7 +6,6 @@ class RelieverRequestView extends StatefulWidget {
   @override
   State<RelieverRequestView> createState() => _RelieverRequestViewState();
 }
-
 class _RelieverRequestViewState extends State<RelieverRequestView> {
   //Demo list (replace with backend list)
   final List<Map<String, dynamic>> requests = [
@@ -51,6 +50,7 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
     final blue = Colors.blue[800] ?? Colors.blue;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
         child: Column(

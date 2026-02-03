@@ -75,6 +75,7 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
     final filtered = _filteredList(allRequests);
 
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
         child: Column(

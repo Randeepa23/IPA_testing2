@@ -31,7 +31,9 @@ class _UserScreenState extends State<UserScreen> {
     final blue = Colors.blue[800]!;
 
     return Scaffold(
-      appBar: AppBar(
+      backgroundColor: Colors.white,
+        appBar: AppBar(
+            backgroundColor: Colors.white,
        title: Text(
   getAppBarTitle(),
   style: const TextStyle(
