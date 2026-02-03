@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
-
+import 'create_new_password.dart';
+import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -17,179 +17,224 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
 
   @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final w = size.width;
+    final h = size.height;
+
+    //responsive values
+    final horizontalPad = w > 600 ? 32.0 : 24.0;
+    final logoWidth = (w * 0.65).clamp(200.0, 320.0);
+    final topGap = (h * 0.05).clamp(18.0, 40.0);
+    final sectionGap = (h * 0.01).clamp(14.0, 28.0);
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 40),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPad),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: topGap),
 
-                // Logo
-                Center(
-                  child: Image.asset(
-                    'assets/ExploreHoldingLogo.png',
-                    width: 300,
-                  ),
-                ),
-
-                const SizedBox(height: 50),
-
-                // App Name
-                const Center(
-                  child: Text(
-                    'Explore Holding',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 120),
-
-                // Login Text
-                Text(
-                  'Login',
-                  style: GoogleFonts.actor(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-
-
-                const SizedBox(height: 20),
-
-                // Username Field
-                TextField(
-                  controller: _usernameController,
-                  decoration: InputDecoration(
-                    labelText: 'Username',
-                        contentPadding: EdgeInsets.symmetric(
-                        vertical: 12, // 👈 increase/decrease height
-                        horizontal: 10,
-                  ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(32),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // Password Field
-                TextField(
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                  contentPadding: EdgeInsets.symmetric(
-                        vertical: 12, // 👈 increase/decrease height
-                        horizontal: 10,
-                  ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(32),
-                    ),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_off
-                            : Icons.visibility,
+                      //Logo
+                      Center(
+                        child: Image.asset(
+                          'assets/ExploreHoldingLogo.png',
+                          width: logoWidth,
+                          fit: BoxFit.contain,
+                        ),
                       ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
-                    ),
-                  ),
-                ),
 
-                const SizedBox(height: 40),
+                      SizedBox(height: sectionGap),
 
-                // Login Button
-                Center(
-                  child: SizedBox(
-                    width: 150,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        final username =
-                            _usernameController.text.trim();
-                        final password =
-                            _passwordController.text.trim();
-
-                        if (username == 'admin' && password == '1234') {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  const HomeScreen(),
-                            ),
-                          );
-                        } else {
-                          ScaffoldMessenger.of(context)
-                              .showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                  'Invalid username or password'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            const Color(0xFF0060A6),
+                      //App Name
+                      Center(
+                        child: Text(
+                          'Explore Holding',
+                          style: TextStyle(
+                            fontSize: (w * 0.08).clamp(24.0, 34.0),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                      child: const Text(
+
+                      SizedBox(height: 120),
+
+                      //Login Text
+                      Text(
                         'Login',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
+                        style: GoogleFonts.actor(
+                          fontSize: (w * 0.08).clamp(24.0, 32.0),
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ),
+
+                      SizedBox(height: sectionGap),
+
+                      //Username Field
+                      TextField(
+                        controller: _usernameController,
+                        decoration: InputDecoration(
+                          labelText: 'Username',
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                            horizontal: 14,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(32),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      //Password Field
+                      TextField(
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        decoration: InputDecoration(
+                          labelText: 'Password',
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                            horizontal: 14,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(32),
+                          ),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 8),
+
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () {
+                            // TODO: Navigate to Forgot Password screen
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => CreateNewPasswordScreen()));
+                          },
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(50, 30),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: const Text(
+                            'Forgot Password?',
+                            style: TextStyle(
+                              color: Color.fromARGB(255, 216, 108, 108),
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(height: sectionGap),
+
+                      //Login Button
+                      Center(
+                        child: SizedBox(
+                          width: (w * 0.45).clamp(150.0, 220.0),
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              final username = _usernameController.text.trim();
+                              final password = _passwordController.text.trim();
+
+                              if (username == 'admin' && password == '1234') {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const HomeScreen()),
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Invalid username or password'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF0060A6),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: const Text(
+                              'Login',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const Spacer(),
+
+                      // ✅ Footer stays bottom on big screens, scrolls on small
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 14),
+                        child: Row(
+                          children: const [
+                            Expanded(
+                              child: Divider(
+                                color: Color(0xFF0060A6),
+                                thickness: 1,
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8),
+                              child: Text(
+                                'Need Help',
+                                style: TextStyle(
+                                  color: Color(0xFF0060A6),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Divider(
+                                color: Color(0xFF0060A6),
+                                thickness: 1,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-
-                const SizedBox(height: 75),
-
-                // Footer
-                Row(
-                  children: const [
-                    Expanded(
-                      child: Divider(
-                        color: Color(0xFF0060A6),
-                        thickness: 1,
-                      ),
-                    ),
-                    Padding(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 8),
-                      child: Text(
-                        'Need Help',
-                        style: TextStyle(
-                          color: Color(0xFF0060A6),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Divider(
-                        color: Color(0xFF0060A6),
-                        thickness: 1,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );

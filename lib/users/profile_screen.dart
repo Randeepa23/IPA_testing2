@@ -15,6 +15,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final blue = Colors.blue[800]!;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
         child: Column(
@@ -71,7 +72,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _profileCard(Color blue) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         gradient: LinearGradient(
@@ -90,15 +91,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Row(
         children: [
           // Avatar (LEFT)
+
           Container(
-            width: 70,
-            height: 70,
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
+              image: const DecorationImage(
+                image: AssetImage('assets/profile.png'),
+                fit: BoxFit.cover,
+              ),
             ),
-            child: const Icon(Icons.person, size: 40, color: Colors.blue),
           ),
+
+          // Container(
+          //   width: 70,
+          //   height: 70,
+          //   decoration: BoxDecoration(
+          //     color: Colors.white,
+          //     borderRadius: BorderRadius.circular(14),
+          //   ),
+          //   clipBehavior: Clip.antiAlias,
+          //   child: Image.network(
+          //     'https://unsplash.com/s/photos/profile',
+          //     fit: BoxFit.cover,
+          //     errorBuilder: (_, __, ___) {
+          //       return const Icon(Icons.person, size: 40, color: Colors.blue);
+          //     },
+          //   ),
+          // ),
+
+
           const SizedBox(width: 12),
 
           // Name + Details (RIGHT)
