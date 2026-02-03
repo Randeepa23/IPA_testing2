@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'create_new_password.dart';
 import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -133,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: TextButton(
                           onPressed: () {
                             // TODO: Navigate to Forgot Password screen
-                            // Navigator.push(context, MaterialPageRoute(builder: (_) => ForgotPasswordScreen()));
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => CreateNewPasswordScreen()));
                           },
                           style: TextButton.styleFrom(
                             padding: EdgeInsets.zero,

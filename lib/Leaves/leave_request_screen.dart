@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 
 class LeaveRequestScreen extends StatefulWidget {
   const LeaveRequestScreen({super.key});
@@ -38,7 +39,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         "name": "Kasun Silva",
         "note": "I confirm coverage. All bookings managed."
       },
-      "attachmentName": null, // ✅ NOT available
+      "attachmentName": null, // NOT available
     },
   ];
 
@@ -51,8 +52,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Leave Request"),
         backgroundColor: Colors.white,
+        title: const Text("Leave Request"),
         foregroundColor: Colors.black,
         elevation: 0.6,
       ),
@@ -75,224 +76,250 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   }
 
   // ====================== REJECT POPUP (comment required) ======================
-  Future<void> _showRejectDialog(BuildContext context, Map<String, dynamic> r) async {
-    final controller = TextEditingController();
-    final formKey = GlobalKey<FormState>();
+Future<void> _showRejectDialog(BuildContext context, Map<String, dynamic> r) async {
+  final controller = TextEditingController();
+  final formKey = GlobalKey<FormState>();
 
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) {
-        final w = MediaQuery.of(ctx).size.width;
-        final dialogW = (w * 0.92).clamp(280.0, 420.0);
+  await showDialog(
+    context: context,
+    barrierDismissible: false,
+    barrierColor: Colors.black.withOpacity(0.15), // optional dim
+    builder: (ctx) {
+      final w = MediaQuery.of(ctx).size.width;
+      final dialogW = (w * 0.92).clamp(280.0, 420.0);
 
-        return Dialog(
-          insetPadding: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          child: SizedBox(
-            width: dialogW,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-              child: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+      return Stack(
+        children: [
+          // BACKGROUND BLUR ONLY
+          BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+            child: Container(color: Colors.transparent),
+          ),
+
+          // YOUR EXISTING DIALOG (UNCHANGED)
+          Center(
+            child: Dialog(
+              insetPadding: const EdgeInsets.all(16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              child: SizedBox(
+                width: dialogW,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                  child: Form(
+                    key: formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.error_outline, color: Colors.red),
-                        const SizedBox(width: 10),
-                        const Expanded(
-                          child: Text(
-                            "Reject Leave Request",
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                          ),
+                        Row(
+                          children: [
+                            const Icon(Icons.error_outline, color: Colors.red),
+                            const SizedBox(width: 10),
+                            const Expanded(
+                              child: Text(
+                                "Reject Leave Request",
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              icon: const Icon(Icons.close),
+                            ),
+                          ],
                         ),
-                        IconButton(
-                          onPressed: () => Navigator.pop(ctx),
-                          icon: const Icon(Icons.close),
+                        const SizedBox(height: 4),
+                        const Text(
+                          "This action cannot be undone.",
+                          style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
+                        ),
+
+                        const SizedBox(height: 12),
+                        const Text(
+                          "Your Comment",
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 8),
+
+                        TextFormField(
+                          controller: controller,
+                          maxLines: 3,
+                          decoration: InputDecoration(
+                            hintText: "Peak season - unable to approve...",
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) {
+                              return "Comment is required for reject";
+                            }
+                            return null;
+                          },
+                        ),
+
+                        const SizedBox(height: 12),
+                        const Text(
+                          "Are you sure you want to reject this leave request?",
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => Navigator.pop(ctx),
+                                style: OutlinedButton.styleFrom(
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                                child: const Text("Cancel"),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  if (!formKey.currentState!.validate()) return;
+
+                                  final comment = controller.text.trim();
+
+                                  Navigator.pop(ctx);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text("Rejected with comment: $comment")),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFD32F2F),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                                child: const Text("Reject", style: TextStyle(color: Colors.white)),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      "This action cannot be undone.",
-                      style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
-                    ),
-
-                    const SizedBox(height: 12),
-                    const Text(
-                      "Your Comment",
-                      style: TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(height: 8),
-
-                    TextFormField(
-                      controller: controller,
-                      maxLines: 3,
-                      decoration: InputDecoration(
-                        hintText: "Peak season - unable to approve...",
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty) {
-                          return "Comment is required for reject";
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 12),
-                    const Text(
-                      "Are you sure you want to reject this leave request?",
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            style: OutlinedButton.styleFrom(
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            child: const Text("Cancel"),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              if (!formKey.currentState!.validate()) return;
-
-                              final comment = controller.text.trim();
-
-                              // ✅ TODO: call your API here (Reject)
-                              // ex: rejectLeave(r['id'], comment);
-
-                              Navigator.pop(ctx);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text("Rejected with comment: $comment")),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFD32F2F),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            child: const Text("Reject", style: TextStyle(color: Colors.white)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
           ),
-        );
-      },
-    );
-  }
+        ],
+      );
+    },
+  );
+}
+
+
+
 
   // ====================== APPROVE POPUP (no comment) ======================
   Future<void> _showApproveDialog(BuildContext context, Map<String, dynamic> r) async {
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) {
-        final w = MediaQuery.of(ctx).size.width;
-        final dialogW = (w * 0.92).clamp(280.0, 420.0);
+  await showDialog(
+    context: context,
+    barrierDismissible: false,
+    barrierColor: Colors.black.withOpacity(0.15), // dim (optional)
+    builder: (ctx) {
+      final w = MediaQuery.of(ctx).size.width;
 
-        return Dialog(
-          insetPadding: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          child: SizedBox(
-            width: dialogW,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+      // KEEP SAME WIDTH AS REJECT
+      final dialogW = (w * 0.90).clamp(300.0, 520.0);
+
+      return Stack(
+        children: [
+          //BLUR BACKGROUND
+          BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+            child: Container(color: Colors.transparent),
+          ),
+
+          Center(
+            child: Dialog(
+              insetPadding: const EdgeInsets.all(16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              child: SizedBox(
+                width: dialogW, //width controlled here
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.check_circle_outline, color: Colors.green),
-                      const SizedBox(width: 10),
-                      const Expanded(
-                        child: Text(
-                          "Approve Leave Request",
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                        ),
+                      Row(
+                        children: [
+                          const Icon(Icons.check_circle_outline, color: Colors.green),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Text(
+                              "Approve Leave Request",
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
                       ),
-                      IconButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        icon: const Icon(Icons.close),
+                      const SizedBox(height: 4),
+                      const Text(
+                        "Please confirm approval.",
+                        style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
+                      ),
+
+                      const SizedBox(height: 14),
+                      Text(
+                        "Approve leave for ${r['employeeName']}?",
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              style: OutlinedButton.styleFrom(
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              child: const Text("Cancel"),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.pop(ctx);
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("Approved successfully")),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF2E7D32),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              child: const Text("Approve", style: TextStyle(color: Colors.white)),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    "Please confirm approval.",
-                    style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
-                  ),
-
-                  const SizedBox(height: 14),
-                  Text(
-                    "Approve leave for ${r['employeeName']}?",
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(ctx),
-                          style: OutlinedButton.styleFrom(
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          child: const Text("Cancel"),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            // ✅ TODO: call your API here (Approve)
-                            // ex: approveLeave(r['id']);
-
-                            Navigator.pop(ctx);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Approved successfully")),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2E7D32),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          child: const Text("Approve", style: TextStyle(color: Colors.white)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
             ),
           ),
-        );
-      },
-    );
-  }
+        ],
+      );
+    },
+  );
+ }
 }
 
 // ====================== CARD UI ======================
-
 class _LeaveRequestCard extends StatelessWidget {
   final Map<String, dynamic> data;
   final VoidCallback onReject;

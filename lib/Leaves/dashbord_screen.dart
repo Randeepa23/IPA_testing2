@@ -303,7 +303,7 @@ Widget _quickActions(BuildContext context) {
       // ),
       _QuickAction(
         icon: Icons.person,
-        label: 'Reliever',
+        label: 'Reliever Request',
         onTap: () {
           // Open reliever info
           print('Reliever tapped');
