@@ -3,7 +3,10 @@ import 'login_screen.dart';
 import 'Leaves/dashbord_screen.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+
+  final String username;
+  const HomeScreen({Key? key, required this.username}) : super(key: key);
+
 
   @override
   Widget build(BuildContext context) {
@@ -21,8 +24,8 @@ class HomeScreen extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Hello, Explore',
+                   Text(
+                    'Hello, $username',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
@@ -72,7 +75,7 @@ class HomeScreen extends StatelessWidget {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                        MaterialPageRoute(builder: (_) =>  DashboardScreen(username: username,)),
                       );
                     },
                   ),

@@ -596,7 +596,6 @@ void _showSubmitConfirmation() {
   }
 
   // ---------------- UI HELPERS (UI ONLY) ----------------
-
   Widget _sectionTitle(String text) {
     return Text(
       text,
