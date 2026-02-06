@@ -1,7 +1,6 @@
-// import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-// import 'package:http/http.dart' as http;
+import 'package:test_app/Services/api_service.dart';
 import 'create_new_password.dart';
 import 'home_screen.dart';
 
@@ -25,37 +24,43 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-        // Future<void> _loginApi() async {
-        //   final username = _usernameController.text.trim();
-        //   final password = _passwordController.text.trim();
 
-        //   // Android Emulator uses 10.0.2.2 instead of localhost
-        //   const url = "http://10.0.2.2/explore_api/login.php";
 
-        //   try {
-        //     final res = await http.post(
-        //       Uri.parse(url),
-        //       headers: {"Content-Type": "application/json"},
-        //       body: jsonEncode({"username": username, "password": password}),
-        //     );
+    Future<void> _loginApi() async {
+      final username = _usernameController.text.trim();
+      final password = _passwordController.text.trim();
 
-        //     if (res.statusCode == 200) {
-        //       Navigator.pushReplacement(
-        //         context,
-        //         MaterialPageRoute(builder: (_) => HomeScreen(username: username)),
-        //       );
-        //     } else {
-        //       final data = jsonDecode(res.body);
-        //       ScaffoldMessenger.of(context).showSnackBar(
-        //         SnackBar(content: Text(data["message"] ?? "Login failed")),
-        //       );
-        //     }
-        //   } catch (e) {
-        //     ScaffoldMessenger.of(context).showSnackBar(
-        //       SnackBar(content: Text("Error: $e")),
-        //     );
-        //   }
-        // }
+      if (username.isEmpty || password.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Enter username or password")),
+        );
+        return;
+      }
+
+      try {
+        // Call the login API and wait for response from server
+        // Sends username + password to login.php
+        // API returns JSON like: { success: true, user: {...} }
+        final data = await ApiService.login(username: username, password: password);
+
+        if (data["success"] == true) {
+          final apiUsername = data["user"]["username"];
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => HomeScreen(username: apiUsername)),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data["message"] ?? "Login failed")),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e")),
+        );
+      }
+    }
 
 
   @override
@@ -195,24 +200,25 @@ class _LoginScreenState extends State<LoginScreen> {
                           width: (w * 0.45).clamp(150.0, 220.0),
                           height: 48,
                           child: ElevatedButton(
-                             onPressed: () {
-                              final username = _usernameController.text.trim();
-                              final password = _passwordController.text.trim();
+                            onPressed: _loginApi,
+                            // () {
+                            //   final username = _usernameController.text.trim();
+                            //   final password = _passwordController.text.trim();
 
-                              if (username == 'admin' && password == '1234') {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => HomeScreen(username: username)),
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Invalid username or password'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              }
-                            },
+                            //   if (username == 'admin' && password == '1234') {
+                            //     Navigator.pushReplacement(
+                            //       context,
+                            //       MaterialPageRoute(builder: (context) => HomeScreen(username: username)),
+                            //     );
+                            //   } else {
+                            //     ScaffoldMessenger.of(context).showSnackBar(
+                            //       const SnackBar(
+                            //         content: Text('Invalid username or password'),
+                            //         backgroundColor: Colors.red,
+                            //       ),
+                            //     );
+                            //   }
+                            // },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF0060A6),
                               shape: RoundedRectangleBorder(
