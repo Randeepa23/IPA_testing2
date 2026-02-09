@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:test_app/Leaves/dashbord_screen.dart';
 import 'login_screen.dart';
-import 'Leaves/dashbord_screen.dart';
+// import 'Leaves/dashbord_screen.dart';
 
 class HomeScreen extends StatelessWidget {
 
-  final String username;
-  const HomeScreen({Key? key, required this.username}) : super(key: key);
+    final String username;
+    final Map<String, dynamic> user;
+    final String name; 
+    const HomeScreen({Key? key, required this.name, required this.username, required this.user}) : super(key: key);
 
 
   @override
@@ -25,7 +28,7 @@ class HomeScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                    Text(
-                    'Hello, $username',
+                    'Hello, $name',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
@@ -73,9 +76,10 @@ class HomeScreen extends StatelessWidget {
                     imagePath: 'assets/leaves.png', //your image
                     label: "Apply Leaves",
                     onTap: () {
+                      print("Leaves clicked");
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) =>  DashboardScreen(username: username,)),
+                        MaterialPageRoute(builder: (_) => DashboardScreen(username: username , user: user)),
                       );
                     },
                   ),

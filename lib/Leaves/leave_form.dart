@@ -4,7 +4,9 @@ import 'package:dotted_border/dotted_border.dart';
 import 'dart:ui';
 
 class LeaveFormScreen extends StatefulWidget {
-  const LeaveFormScreen({super.key});
+  final Map<String, dynamic> user;
+  
+  const LeaveFormScreen({super.key, required this.user});
 
   @override
   _LeaveFormScreenState createState() => _LeaveFormScreenState();
@@ -34,14 +36,6 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
   // Example leave types
   final leaveTypes = ['Annual Leave', 'Sick Leave', 'Casual Leave'];
 
-  // Example dataset
-  final Map<String, String> employeeData = {
-    'name': 'Induru Udantha',
-    'employeeNo': 'EMP12345',
-    'department': 'Tour Operations',
-    'contact': '+94771234567',
-  };
-
   // ===== MASTER MEMBER DATA WITH AVAILABILITY =====
   final List<Map<String, dynamic>> allMembers = [
     {
@@ -64,14 +58,17 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
   String? selectedMember;
   bool noMemberConfirmed = false;
 
-  @override
-  void initState() {
-    super.initState();
-    nameController.text = employeeData['name']!;
-    employeeController.text = employeeData['employeeNo']!;
-    departmentController.text = employeeData['department']!;
-    contactController.text = employeeData['contact']!;
-  }
+@override
+void initState() {
+  super.initState();
+  debugPrint("FORM USER DATA: ${widget.user}");
+
+  nameController.text = widget.user['name'] ?? '';
+  employeeController.text = widget.user['employeeNo'] ?? '';
+  departmentController.text = widget.user['department'] ?? '';
+  contactController.text = widget.user['contact'] ?? '';
+}
+
 
 void _showSubmitConfirmation() {
   final blue = Colors.blue[800] ?? Colors.blue;
