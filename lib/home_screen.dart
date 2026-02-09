@@ -79,7 +79,7 @@ class HomeScreen extends StatelessWidget {
                       print("Leaves clicked");
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => DashboardScreen(username: username , user: user)),
+                        MaterialPageRoute(builder: (_) => DashboardScreen(username: username, user: user)),
                       );
                     },
                   ),

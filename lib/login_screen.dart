@@ -49,12 +49,10 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => HomeScreen(
-                      name: user['name'] ?? '',
-                      username: username,
-                      user: user,
-                      )
-                ),
-            );
+              name: user['name'] ?? '',
+              user: user,
+              username: username)),
+      );
     } else {
       //show backend message
       ScaffoldMessenger.of(context).showSnackBar(

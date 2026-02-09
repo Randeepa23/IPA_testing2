@@ -69,4 +69,17 @@ static const String baseUrl = "http://10.0.2.2/test-1/api";
       throw Exception("Failed to load leave balance");
     }
 
+    static Future<Map<String, dynamic>> applyLeave({
+    required Map<String, dynamic> body,
+  }) async {
+    final response = await http.post(
+      Uri.parse("$baseUrl/apply_leave.php"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(body),
+    );
+
+    return jsonDecode(response.body);
+  }
+
+
 }
