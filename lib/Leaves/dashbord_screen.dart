@@ -10,9 +10,9 @@ import './../users/employees_screen.dart';
 class DashboardScreen extends StatelessWidget {
 
   final String username;
-  const DashboardScreen({Key? key, required this.username}) : super(key: key);
+  final Map<String, dynamic> user;
+  const DashboardScreen({Key? key, required this.username, required this.user}) : super(key: key);
 
-  
   //Dummy Recent Leave Data
   final List<Map<String, dynamic>> recentLeaves = const [
     {
@@ -161,7 +161,12 @@ Widget build(BuildContext context) {
                     const SizedBox(height: 24),
 
                     // Floating card
-                    _leaveBalanceCard(),
+                    _leaveBalanceCard({
+                      "annual_days": "8",
+                      "sick_days": "3",
+                      "casual_days": "1",
+                    }),
+
 
                     const SizedBox(height: 16),
                   ],
@@ -211,34 +216,46 @@ Widget build(BuildContext context) {
 }
 
   //Leave Balance Card
-  Widget _leaveBalanceCard() {
-    return Card(
-      
-      elevation: 8,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Leave Balance Overview',
-              style: GoogleFonts.poppins(
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
+  Widget _leaveBalanceCard(Map<String, dynamic> balance) {
+  final annualRemaining = double.parse(balance["annual_days"]);
+  final sickRemaining = double.parse(balance["sick_days"]);
+  final casualRemaining = double.parse(balance["casual_days"]);
+
+  const annualTotal = 20.0;
+  const sickTotal = 10.0;
+  const casualTotal = 5.0;
+
+  final annualUsed = annualTotal - annualRemaining;
+  final sickUsed = sickTotal - sickRemaining;
+  final casualUsed = casualTotal - casualRemaining;
+
+  return Card(
+    elevation: 8,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Leave Balance Overview',
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
             ),
-            const SizedBox(height: 10),
-            _progressRow('Annual Leave', 12, 20),
-            _progressRow('Sick Leave', 7, 10),
-            _progressRow('Casual Leave', 3, 5),
-          ],
-        ),
+          ),
+          const SizedBox(height: 10),
+
+          _progressRow('Annual Leave', annualUsed.toInt(), annualTotal.toInt()),
+          _progressRow('Sick Leave', sickUsed.toInt(), sickTotal.toInt()),
+          _progressRow('Casual Leave', casualUsed.toInt(), casualTotal.toInt()),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   //Progress Row
   Widget _progressRow(String type, int used, int total) {
@@ -285,7 +302,8 @@ Widget _quickActions(BuildContext context) {
           // Navigate to your Leave Form Screen
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const LeaveFormScreen()),
+            MaterialPageRoute(builder: (context) => LeaveFormScreen(user: user)),
+
           );
         },
       ),
