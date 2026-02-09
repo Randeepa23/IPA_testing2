@@ -4,11 +4,15 @@ import 'leave_form.dart';
 import '../users/user_screen.dart';
 import 'leave_request_screen.dart';
 import 'dart:ui';
+import './../users/employees_screen.dart';
 
 
 class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
 
+  final String username;
+  const DashboardScreen({Key? key, required this.username}) : super(key: key);
+
+  
   //Dummy Recent Leave Data
   final List<Map<String, dynamic>> recentLeaves = const [
     {
@@ -70,7 +74,7 @@ Widget build(BuildContext context) {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ✅ HEADER (blue + blur + floating card) ALSO SCROLLS
+          // HEADER (blue + blur + floating card) ALSO SCROLLS
           Stack(
             children: [
               // BLUE BACKGROUND
@@ -139,7 +143,7 @@ Widget build(BuildContext context) {
                     const SizedBox(height: 16),
 
                     Text(
-                      'Welcome Back, Explore!',
+                      'Welcome Back, $username !',
                       style: GoogleFonts.poppins(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
@@ -305,8 +309,10 @@ Widget _quickActions(BuildContext context) {
         icon: Icons.person,
         label: 'Reliever Request',
         onTap: () {
-          // Open reliever info
-          print('Reliever tapped');
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const EmployeesScreen()),
+          );
         },
       ),
       _QuickAction(

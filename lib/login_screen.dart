@@ -1,5 +1,7 @@
+// import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+// import 'package:http/http.dart' as http;
 import 'create_new_password.dart';
 import 'home_screen.dart';
 
@@ -22,6 +24,39 @@ class _LoginScreenState extends State<LoginScreen> {
     _passwordController.dispose();
     super.dispose();
   }
+
+        // Future<void> _loginApi() async {
+        //   final username = _usernameController.text.trim();
+        //   final password = _passwordController.text.trim();
+
+        //   // Android Emulator uses 10.0.2.2 instead of localhost
+        //   const url = "http://10.0.2.2/explore_api/login.php";
+
+        //   try {
+        //     final res = await http.post(
+        //       Uri.parse(url),
+        //       headers: {"Content-Type": "application/json"},
+        //       body: jsonEncode({"username": username, "password": password}),
+        //     );
+
+        //     if (res.statusCode == 200) {
+        //       Navigator.pushReplacement(
+        //         context,
+        //         MaterialPageRoute(builder: (_) => HomeScreen(username: username)),
+        //       );
+        //     } else {
+        //       final data = jsonDecode(res.body);
+        //       ScaffoldMessenger.of(context).showSnackBar(
+        //         SnackBar(content: Text(data["message"] ?? "Login failed")),
+        //       );
+        //     }
+        //   } catch (e) {
+        //     ScaffoldMessenger.of(context).showSnackBar(
+        //       SnackBar(content: Text("Error: $e")),
+        //     );
+        //   }
+        // }
+
 
   @override
   Widget build(BuildContext context) {
@@ -160,14 +195,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           width: (w * 0.45).clamp(150.0, 220.0),
                           height: 48,
                           child: ElevatedButton(
-                            onPressed: () {
+                             onPressed: () {
                               final username = _usernameController.text.trim();
                               final password = _passwordController.text.trim();
 
                               if (username == 'admin' && password == '1234') {
                                 Navigator.pushReplacement(
                                   context,
-                                  MaterialPageRoute(builder: (context) => const HomeScreen()),
+                                  MaterialPageRoute(builder: (context) => HomeScreen(username: username)),
                                 );
                               } else {
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -199,7 +234,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                       const Spacer(),
 
-                      // ✅ Footer stays bottom on big screens, scrolls on small
+                      //Footer stays bottom on big screens, scrolls on small
                       Padding(
                         padding: const EdgeInsets.only(bottom: 14),
                         child: Row(
