@@ -36,6 +36,7 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
   // Example leave types
   final leaveTypes = ['Annual Leave', 'Sick Leave', 'Casual Leave'];
 
+
   // ===== MASTER MEMBER DATA WITH AVAILABILITY =====
   final List<Map<String, dynamic>> allMembers = [
     {
@@ -62,7 +63,7 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
 void initState() {
   super.initState();
   debugPrint("FORM USER DATA: ${widget.user}");
-
+  
   nameController.text = widget.user['name'] ?? '';
   employeeController.text = widget.user['employeeNo'] ?? '';
   departmentController.text = widget.user['department'] ?? '';

@@ -9,9 +9,9 @@ import './../users/employees_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
 
-  final String username;
   final Map<String, dynamic> user;
-  const DashboardScreen({Key? key, required this.username, required this.user}) : super(key: key);
+    final String username;
+  const DashboardScreen({Key? key, required this.user, required this.username}) : super(key: key);
 
   //Dummy Recent Leave Data
   final List<Map<String, dynamic>> recentLeaves = const [
