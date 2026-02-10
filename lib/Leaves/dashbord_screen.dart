@@ -68,6 +68,10 @@ class DashboardScreen extends StatelessWidget {
 
 @override
 Widget build(BuildContext context) {
+
+  // final lastName = user["lastName"] ?? ""; 
+  final firstName = user["firstName"] ?? "";
+
   return Scaffold(
     backgroundColor: Colors.white,
     body: SafeArea(top: false, bottom: false, child: SingleChildScrollView(
@@ -143,7 +147,7 @@ Widget build(BuildContext context) {
                     const SizedBox(height: 16),
 
                     Text(
-                      'Welcome Back, $username !',
+                      'Welcome Back, $firstName !',
                       style: GoogleFonts.poppins(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
