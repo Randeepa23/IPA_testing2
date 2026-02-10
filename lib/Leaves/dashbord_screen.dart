@@ -10,8 +10,8 @@ import './../users/employees_screen.dart';
 class DashboardScreen extends StatelessWidget {
 
   final Map<String, dynamic> user;
-    final String username;
-  const DashboardScreen({Key? key, required this.user, required this.username}) : super(key: key);
+
+  const DashboardScreen({Key? key, required this.user,}) : super(key: key);
 
   //Dummy Recent Leave Data
   final List<Map<String, dynamic>> recentLeaves = const [
@@ -129,7 +129,7 @@ Widget build(BuildContext context) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const UserScreen(),
+                                    builder: (context) => UserScreen(user: user),
                                   ),
                                 );
                               },
