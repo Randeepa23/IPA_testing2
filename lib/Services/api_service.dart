@@ -91,5 +91,28 @@ static const String baseUrl = "http://10.0.2.2/test-1/api";
     return jsonDecode(response.body);
   }
 
+    static Future<Map<String, dynamic>> getLeaveBalance({
+    required String employeeId,
+    }) async {
+      final url = Uri.parse("$baseUrl/get_leave_balance.php");
+
+      final res = await http.post(
+        url,
+        headers: {"Content-Type": "application/json", "Accept": "application/json"},
+        body: jsonEncode({"employeeId": employeeId}),
+      );
+
+      debugPrint("LEAVE URL: $url");
+      debugPrint("LEAVE STATUS: ${res.statusCode}");
+      debugPrint("LEAVE BODY: '${res.body}'");
+
+      if (res.body.trim().isEmpty) {
+        throw Exception("Server returned EMPTY response (check PHP / URL).");
+      }
+
+      final decoded = jsonDecode(res.body);
+      return Map<String, dynamic>.from(decoded);
+    }
+
 
 }
