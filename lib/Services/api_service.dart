@@ -62,35 +62,6 @@ static const String baseUrl = "http://10.0.2.2/test-1/api";
       }
 
 
-
-      static Future<Map<String, dynamic>> fetchLeaveBalance({
-      required int employeeId,
-      }) async {
-      final res = await http.get(
-        Uri.parse("$baseUrl/get_leave_balance.php?employee_id=$employeeId&year=2026"),
-      );
-
-      final decoded = jsonDecode(res.body);
-
-      if (decoded["success"] == true) {
-        return decoded["data"];
-      }
-
-      throw Exception("Failed to load leave balance");
-    }
-
-    static Future<Map<String, dynamic>> applyLeave({
-    required Map<String, dynamic> body,
-  }) async {
-    final response = await http.post(
-      Uri.parse("$baseUrl/apply_leave.php"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode(body),
-    );
-
-    return jsonDecode(response.body);
-  }
-
     static Future<Map<String, dynamic>> getLeaveBalance({
     required String employeeId,
     }) async {
@@ -113,6 +84,44 @@ static const String baseUrl = "http://10.0.2.2/test-1/api";
       final decoded = jsonDecode(res.body);
       return Map<String, dynamic>.from(decoded);
     }
+
+  static Future<Map<String, dynamic>> applyLeaveRequest({
+    required String employeeId,
+    required int leavePolicyId,
+    required String startDate, // yyyy-MM-dd
+    required String endDate,   // yyyy-MM-dd
+    required double numberOfDays,
+    required String reason,
+    String? overseeMemberId, // nullable
+    required bool isSpecialRequest,
+    String? address,
+  }) async {
+    final url = Uri.parse("$baseUrl/apply_leave_request.php");
+
+    final body = {
+      "employeeId": employeeId,
+      "leavePolicyId": leavePolicyId,
+      "startDate": startDate,
+      "endDate": endDate,
+      "numberOfDays": numberOfDays,
+      "reason": reason,
+      "overseeMemberId": overseeMemberId ?? "",
+      "isSpecialRequest": isSpecialRequest ? 1 : 0,
+      "address": address ?? "",
+    };
+
+    final res = await http.post(
+      url,
+      headers: {"Content-Type": "application/json", "Accept": "application/json"},
+      body: jsonEncode(body),
+    );
+
+    if (res.body.trim().isEmpty) {
+      throw Exception("EMPTY response");
+    }
+
+    return Map<String, dynamic>.from(jsonDecode(res.body));
+  }
 
 
 }
