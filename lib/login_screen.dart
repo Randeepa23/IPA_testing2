@@ -26,45 +26,49 @@ class _LoginScreenState extends State<LoginScreen> {
 
 
 
-   Future<void> _loginApi() async {
-  final username = _usernameController.text.trim();
-  final password = _passwordController.text.trim();
+    Future<void> _loginApi() async {
+      final email = _usernameController.text.trim();
+      final password = _passwordController.text.trim();
 
-  if (username.isEmpty || password.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Enter username and password")),
-    );
-    return;
-  }
+      if (email.isEmpty || password.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Enter email and password")),
+        );
+        return;
+      }
 
-  try {
-    final data = await ApiService.login(username: username, password: password);
+      try {
+        final data = await ApiService.login(email: email, password: password);
 
-    if (data["success"] == true) {
-      final user = Map<String, dynamic>.from(data["user"]);
+        debugPrint("LOGIN DATA: $data");
 
-      //show the real user data
-      debugPrint("LOGGED USER: $user");
+        if (data["success"] == true) {
+          final user = Map<String, dynamic>.from(data["user"]);
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => HomeScreen(
-              name: user['name'] ?? '',
-              user: user,
-              username: username)),
-      );
-    } else {
-      //show backend message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Server: ${data["message"] ?? "Login failed"}")),
-      );
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => HomeScreen(
+                name: user["name"] ?? "",
+                user: user,
+                username: user["email"] ?? email,
+              ),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data["message"] ?? "Login failed")),
+          );
+        }
+      } catch (e) {
+        debugPrint("LOGIN ERROR: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Login Error: $e")),
+        );
+      }
     }
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("App Error: $e")),
-    );
-  }
-}
+
+
 
 
 

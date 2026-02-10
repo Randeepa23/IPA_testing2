@@ -1,7 +1,5 @@
 import java.util.Properties
 import java.io.FileInputStream
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import org.gradle.api.file.Directory
 
 plugins {
     id("com.android.application")
@@ -16,8 +14,6 @@ if (keystorePropertiesFile.exists()) {
     FileInputStream(keystorePropertiesFile).use { keystoreProperties.load(it) }
 }
 
-
-
 android {
     namespace = "com.example.test_app"
     compileSdk = flutter.compileSdkVersion
@@ -29,20 +25,24 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        jvmTarget = "17"
     }
 
+    // ✅ MUST be inside android { }
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.test_app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+
+        // ✅ Fix NDK error (minSdk 1/too low)
         minSdk = flutter.minSdkVersion
+
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
-        signingConfigs {
+
+    signingConfigs {
+        // ✅ Only configure release signing if key.properties exists
+        if (keystorePropertiesFile.exists()) {
             create("release") {
                 keyAlias = keystoreProperties["keyAlias"] as String
                 keyPassword = keystoreProperties["keyPassword"] as String
@@ -50,15 +50,20 @@ android {
                 storePassword = keystoreProperties["storePassword"] as String
             }
         }
+    }
 
-            buildTypes {
-                release {
-                    signingConfig = signingConfigs.getByName("release")
-                    isMinifyEnabled = false
-                    isShrinkResources = false
-                }
+    buildTypes {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
             }
-
+            isMinifyEnabled = false
+            isShrinkResources = false
+        }
+        debug {
+            // keep default debug config
+        }
+    }
 }
 
 flutter {

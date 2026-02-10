@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class ApiService {
@@ -32,25 +33,34 @@ static const String baseUrl = "http://10.0.2.2/test-1/api";
   }
 
       //POST: login (use this in LoginScreen)
-        static Future<Map<String, dynamic>> login({
-          required String username,
-          required String password,
-        }) async {
-          final res = await http.post(
-            Uri.parse("$baseUrl/login.php"),
-            headers: {
-              "Content-Type": "application/json",
-              "Accept": "application/json",
-            },
-            body: jsonEncode({"username": username, "password": password}),
-          );
+      static Future<Map<String, dynamic>> login({
+        required String email,
+        required String password,
+      }) async {
+        final url = Uri.parse("$baseUrl/login.php");
 
-          // debugPrint("LOGIN STATUS: ${res.statusCode}");
-          // debugPrint("LOGIN BODY: ${res.body}");
+        final res = await http.post(
+          url,
+          headers: {"Content-Type": "application/json", "Accept": "application/json"},
+          body: jsonEncode({"email": email, "password": password}),
+        );
 
+        debugPrint("LOGIN URL: $url");
+        debugPrint("LOGIN STATUS: ${res.statusCode}");
+        debugPrint("LOGIN BODY: '${res.body}'");
+
+        if (res.body.trim().isEmpty) {
+          throw Exception("Server returned EMPTY response (check PHP / URL).");
+        }
+
+        try {
           final decoded = jsonDecode(res.body);
           return Map<String, dynamic>.from(decoded);
+        } catch (_) {
+          throw Exception("Server did not return JSON. Body: ${res.body}");
         }
+      }
+
 
 
       static Future<Map<String, dynamic>> fetchLeaveBalance({
@@ -80,6 +90,29 @@ static const String baseUrl = "http://10.0.2.2/test-1/api";
 
     return jsonDecode(response.body);
   }
+
+    static Future<Map<String, dynamic>> getLeaveBalance({
+    required String employeeId,
+    }) async {
+      final url = Uri.parse("$baseUrl/get_leave_balance.php");
+
+      final res = await http.post(
+        url,
+        headers: {"Content-Type": "application/json", "Accept": "application/json"},
+        body: jsonEncode({"employeeId": employeeId}),
+      );
+
+      debugPrint("LEAVE URL: $url");
+      debugPrint("LEAVE STATUS: ${res.statusCode}");
+      debugPrint("LEAVE BODY: '${res.body}'");
+
+      if (res.body.trim().isEmpty) {
+        throw Exception("Server returned EMPTY response (check PHP / URL).");
+      }
+
+      final decoded = jsonDecode(res.body);
+      return Map<String, dynamic>.from(decoded);
+    }
 
 
 }

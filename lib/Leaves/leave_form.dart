@@ -53,7 +53,7 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
     },
   ];
 
-  // Filtered members
+  //Filtered members
   List<Map<String, String>> availableMembers = [];
 
   String? selectedMember;
@@ -65,9 +65,9 @@ void initState() {
   debugPrint("FORM USER DATA: ${widget.user}");
   
   nameController.text = widget.user['name'] ?? '';
-  employeeController.text = widget.user['employeeNo'] ?? '';
+  employeeController.text = widget.user['employeeCode'] ?? '';
   departmentController.text = widget.user['department'] ?? '';
-  contactController.text = widget.user['contact'] ?? '';
+  contactController.text = widget.user['primaryContact'] ?? '';
 }
 
 

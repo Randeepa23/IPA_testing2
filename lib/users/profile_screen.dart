@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final Map<String, dynamic> user;
+  const ProfileScreen({super.key, required this.user});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -12,6 +13,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+
+    final u = widget.user;
+
     final blue = Colors.blue[800]!;
 
     return Scaffold(
@@ -22,31 +26,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             const SizedBox(height: 8),
 
-            _profileCard(blue),
+            _profileCard(blue, widget.user),
             const SizedBox(height: 16),
 
             _sectionTitle('Contact Information'),
             const SizedBox(height: 10),
+
+
             _infoCard(
-              children: const [
-                _InfoRow(icon: Icons.email_outlined, title: 'Email', value: 'nimal.perera@explorevacationslk'),
+              children: [
+                _InfoRow(
+                  icon: Icons.email_outlined,
+                  title: 'Email',
+                  value: (u["email"] ?? "-").toString(),
+                ),
                 _DividerLine(),
-                _InfoRow(icon: Icons.phone_outlined, title: 'Phone', value: '+94 776453668'),
+                _InfoRow(
+                  icon: Icons.phone_outlined,
+                  title: 'Phone',
+                  value: (u["primaryContact"] ?? "-").toString(),
+                ),
                 _DividerLine(),
-                _InfoRow(icon: Icons.apartment_outlined, title: 'Department', value: 'Explore Vacation Sri Lanka'),
+                _InfoRow(
+                  icon: Icons.apartment_outlined,
+                  title: 'Department',
+                  value: (u["department"] ?? "-").toString(),
+                ),
                 _DividerLine(),
-                _InfoRow(icon: Icons.location_on_outlined, title: 'Location', value: 'Seeduwa'),
+                _InfoRow(
+                  icon: Icons.calendar_month_outlined, 
+                  title: 'Date of Birth', 
+                  value: (u["dateOfBirth"] ?? "-").toString()),
+                 _DividerLine(),
+                _InfoRow(
+                  icon: Icons.location_on_outlined,
+                  title: 'Location',
+                  value: (u["workLocationName"] ?? "Seeduwa").toString(),
+                ),
               ],
             ),
+
 
             const SizedBox(height: 16),
             _sectionTitle('Employment Details'),
             const SizedBox(height: 10),
             _infoCard(
-              children: const [
-                _InfoRow(icon: Icons.person_outline, title: 'Reporting Manager', value: 'Nimal Perera'),
+              children: [
+                _InfoRow(
+                  icon: Icons.person_outline, 
+                  title: 'Reporting Manager', 
+                  value: (u["reportingManagerName"] ?? "-").toString(),
+                ),
                 _DividerLine(),
-                _InfoRow(icon: Icons.calendar_month_outlined, title: 'Join Date', value: '19/01/2026'),
+                _InfoRow(
+                  icon: Icons.calendar_month_outlined, 
+                  title: 'Join Date', 
+                  value: (u["dateOfJoining"] ?? "-").toString()),
               ],
             ),
 
@@ -69,99 +104,82 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _profileCard(Color blue) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: LinearGradient(
-          colors: [blue, Colors.blue[600]!],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+Widget _profileCard(Color blue, Map<String, dynamic> user) {
+
+  final name = (user["name"] ?? "").toString();
+  final department = (user["department"] ?? "").toString();
+  final employeeCode = (user["employeeCode"] ?? "").toString();
+
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(24),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(12),
+      gradient: LinearGradient(
+        colors: [blue, Colors.blue[600]!],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.10),
+          blurRadius: 14,
+          offset: const Offset(0, 6),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.10),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
+      ],
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            image: const DecorationImage(
+              image: AssetImage('assets/profile.png'),
+              fit: BoxFit.cover,
+            ),
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Avatar (LEFT)
+        ),
+        const SizedBox(width: 12),
 
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              image: const DecorationImage(
-                image: AssetImage('assets/profile.png'),
-                fit: BoxFit.cover,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name.isEmpty ? "Unknown" : name,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
               ),
-            ),
+              const SizedBox(height: 2),
+              Text(
+                department.isEmpty ? "No Department" : department,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                "Employee Code: ${employeeCode.isEmpty ? "-" : employeeCode}",
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.white70,
+                ),
+              ),
+            ],
           ),
+        ),
+      ],
+    ),
+  );
+}
 
-          // Container(
-          //   width: 70,
-          //   height: 70,
-          //   decoration: BoxDecoration(
-          //     color: Colors.white,
-          //     borderRadius: BorderRadius.circular(14),
-          //   ),
-          //   clipBehavior: Clip.antiAlias,
-          //   child: Image.network(
-          //     'https://unsplash.com/s/photos/profile',
-          //     fit: BoxFit.cover,
-          //     errorBuilder: (_, __, ___) {
-          //       return const Icon(Icons.person, size: 40, color: Colors.blue);
-          //     },
-          //   ),
-          // ),
-
-
-          const SizedBox(width: 12),
-
-          // Name + Details (RIGHT)
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  'Nimal Perera',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  'Senior Tour Coordinator',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                //SizedBox(height: 2),
-                Text(
-                  'Employee ID: EV2024001',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.white70,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _sectionTitle(String title) {
     return Row(
