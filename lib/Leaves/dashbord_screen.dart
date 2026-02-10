@@ -243,6 +243,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // Handles loading/error/success for the balance card
   Widget _leaveBalanceSection() {
+  
     if (loadingLeave) {
       return const Center(child: CircularProgressIndicator(color: Colors.white));
     }
@@ -294,6 +295,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final casualUsed = (casualTotal - casualRemaining).clamp(0, casualTotal);
 
     return Card(
+      //color: Colors.white,
       elevation: 8,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),

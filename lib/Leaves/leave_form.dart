@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:dotted_border/dotted_border.dart';
+import 'package:test_app/Services/api_service.dart';
 import 'dart:ui';
 
 class LeaveFormScreen extends StatefulWidget {
@@ -69,6 +70,70 @@ void initState() {
   departmentController.text = widget.user['department'] ?? '';
   contactController.text = widget.user['primaryContact'] ?? '';
 }
+
+Future<void> _submitForm() async {
+  if (!_formKey.currentState!.validate()) return;
+
+  if (availableMembers.isNotEmpty && selectedMember == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Select a team member')),
+    );
+    return;
+  }
+
+  if (availableMembers.isEmpty && !noMemberConfirmed) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Confirmation required')),
+    );
+    return;
+  }
+
+  if (fromDate == null || toDate == null || selectedLeaveType == null) return;
+
+  // ✅ map leave type name -> leave_policy_id
+  final leavePolicyId = _leaveTypeToId(selectedLeaveType!);
+
+  final start = DateFormat('yyyy-MM-dd').format(fromDate!);
+  final end = DateFormat('yyyy-MM-dd').format(toDate!);
+  final days = (toDate!.difference(fromDate!).inDays + 1).toDouble();
+
+  try {
+    final res = await ApiService.applyLeaveRequest(
+      employeeId: widget.user["employeeId"],
+      leavePolicyId: leavePolicyId,
+      startDate: start,
+      endDate: end,
+      numberOfDays: days,
+      reason: reasonController.text.trim(),
+      overseeMemberId: selectedMember, // null allowed
+      isSpecialRequest: noMemberConfirmed,
+      address: addressController.text.trim(),
+    );
+
+    if (res["success"] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(res["message"] ?? "Request submitted")),
+      );
+      Navigator.pop(context); // go back dashboard
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(res["message"] ?? "Failed")),
+      );
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error: $e")),
+    );
+  }
+}
+
+int _leaveTypeToId(String type) {
+  if (type == "Annual Leave") return 1;
+  if (type == "Sick Leave") return 2;
+  if (type == "Casual Leave") return 3;
+  return 0;
+}
+
 
 
 void _showSubmitConfirmation() {
@@ -659,25 +724,25 @@ void _showSubmitConfirmation() {
 
   // ---------------- YOUR EXISTING LOGIC (UNCHANGED) ----------------
 
-  void _submitForm() {
-    if (!_formKey.currentState!.validate()) return;
+  // void _submitForm() {
+  //   if (!_formKey.currentState!.validate()) return;
 
-    if (availableMembers.isNotEmpty && selectedMember == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select a team member')),
-      );
-      return;
-    }
+  //   if (availableMembers.isNotEmpty && selectedMember == null) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(content: Text('Select a team member')),
+  //     );
+  //     return;
+  //   }
 
-    if (availableMembers.isEmpty && !noMemberConfirmed) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Confirmation required')),
-      );
-      return;
-    }
+  //   if (availableMembers.isEmpty && !noMemberConfirmed) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(content: Text('Confirmation required')),
+  //     );
+  //     return;
+  //   }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Leave submitted successfully!')),
-    );
-  }
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     const SnackBar(content: Text('Leave submitted successfully!')),
+  //   );
+  // }
 }
