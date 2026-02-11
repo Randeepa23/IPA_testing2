@@ -136,9 +136,8 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
     }
 
     final name = getStr(["name", "employee_name"]);
-    final role = getStr(["role", "designation", "job_title"], fallback: "");
+    final role = getStr(["job_title_name", "designation", "job_title"], fallback: "");
     final empNo = getStr(["empNo", "employeeCode", "employee_code"], fallback: "-");
-
     final leaveType = getStr(["leaveType", "leave_type"]);
     final from = getStr(["from", "leave_start_date"]);
     final to = getStr(["to", "leave_end_date"]);
