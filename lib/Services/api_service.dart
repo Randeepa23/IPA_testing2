@@ -181,7 +181,24 @@ static Future<Map<String, dynamic>> cancelLeaveRequest({
   return Map<String, dynamic>.from(decoded);
 }
 
+static Future<Map<String, dynamic>> getRelieverRequests({
+  required String employeeId,
+}) async {
+  final url = Uri.parse("$baseUrl/get_reliever_requests.php");
 
+  final res = await http.post(
+    url,
+    headers: {"Content-Type": "application/json", "Accept": "application/json"},
+    body: jsonEncode({"employeeId": employeeId}),
+  );
+
+  if (res.body.trim().isEmpty) {
+    throw Exception("Server returned EMPTY response.");
+  }
+
+  final decoded = jsonDecode(res.body);
+  return Map<String, dynamic>.from(decoded);
+}
 
 
 }

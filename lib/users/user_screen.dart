@@ -93,7 +93,7 @@ class _UserScreenState extends State<UserScreen> {
               children: [
                 ProfileScreen(user: widget.user),// tab 0
                 LeaveHistoryScreen(user: widget.user), // tab 1
-                RelieverRequestView(),// tab 2
+                RelieverRequestView(user: widget.user),// tab 2
               ],
             ),
           ),
