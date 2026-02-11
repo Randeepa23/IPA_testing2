@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:test_app/Services/api_service.dart';
+import 'top_banner.dart';
+
 
 // ---------------- SCREEN ----------------
 
@@ -122,10 +124,22 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
 
       if (res["success"] == true) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(res["message"] ?? "Canceled")),
+
+        TopBanner.show(
+          context,
+          title: "Request canceled",
+          message: "Your pending leave request has been removed successfully.",
+          icon: Icons.cancel,
+
         );
-        _loadHistory();
+
+        _loadHistory(); // refresh list
+
+        // Remove item from UI immediately
+        setState(() {
+          allRequests.removeWhere((x) => x.leaveRequestId == r.leaveRequestId);
+        });
+
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(

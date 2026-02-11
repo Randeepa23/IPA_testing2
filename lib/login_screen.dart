@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:test_app/Services/api_service.dart';
 import 'create_new_password.dart';
 import 'home_screen.dart';
-
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
 
@@ -44,18 +43,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (data["success"] == true) {
           final user = Map<String, dynamic>.from(data["user"]);
+          final name = user["name"] ?? "User";
 
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
               builder: (_) => HomeScreen(
-                name: user["name"] ?? "",
+                name: name,
                 user: user,
                 username: user["email"] ?? email,
+                successMessage: "Login successful, $name!",
               ),
             ),
           );
-        } else {
+          } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(data["message"] ?? "Login failed")),
           );
@@ -67,10 +68,6 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     }
-
-
-
-
 
   @override
   Widget build(BuildContext context) {

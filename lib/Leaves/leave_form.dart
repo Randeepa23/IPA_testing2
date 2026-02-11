@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:test_app/Services/api_service.dart';
 import 'dart:ui';
+import 'top_banner.dart';
+
 
 class LeaveFormScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -111,10 +113,26 @@ Future<void> _submitForm() async {
     );
 
     if (res["success"] == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(res["message"] ?? "Request submitted")),
+      // show top banner
+      TopBanner.show(
+        context,
+        title: "Request send successful..",
+        message: "Are you sure you want to cancel this leave request? Your leave balance will be restored.",
+        icon: Icons.check_circle,
+        leftButtonText: "View request",
+        rightButtonText: "Ok",
+        onLeftTap: () {
+          // TODO: Navigate to LeaveHistoryScreen / LeaveRequestScreen
+          // Navigator.push(context, MaterialPageRoute(builder: (_) => LeaveHistoryScreen(user: widget.user)));
+        },
+        onRightTap: () {
+          // just close
+        },
       );
-      Navigator.pop(context); // go back dashboard
+      // OPTIONAL: close form after showing banner (slight delay)
+        Navigator.pop(context);
+      Future.delayed(const Duration(milliseconds: 1000), () {
+      });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(res["message"] ?? "Failed")),
