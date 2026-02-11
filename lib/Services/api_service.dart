@@ -124,4 +124,64 @@ static const String baseUrl = "http://10.0.2.2/test-1/api";
   }
 
 
+
+    static Future<Map<String, dynamic>> getRelievers({
+    required String employeeId,
+    required String departmentId,
+    required String fromDate,
+    required String toDate,
+  }) async {
+    final url = Uri.parse("$baseUrl/get_relievers.php");
+
+    final res = await http.post(
+      url,
+      headers: {"Content-Type": "application/json", "Accept": "application/json"},
+      body: jsonEncode({
+        "employeeId": employeeId,
+        "departmentId": departmentId,
+        "fromDate": fromDate,
+        "toDate": toDate,
+      }),
+    );
+
+    if (res.body.trim().isEmpty) throw Exception("EMPTY response");
+    return Map<String, dynamic>.from(jsonDecode(res.body));
+  }
+
+    static Future<Map<String, dynamic>> getLeaveHistory({required String employeeId}) async {
+    final url = Uri.parse("$baseUrl/get_leave_history.php");
+    final res = await http.post(url,
+      headers: {"Content-Type": "application/json", "Accept": "application/json"},
+      body: jsonEncode({"employeeId": employeeId}),
+    );
+    return Map<String, dynamic>.from(jsonDecode(res.body));
+  }
+
+static Future<Map<String, dynamic>> cancelLeaveRequest({
+  required String employeeId,
+  required int leaveRequestId,
+}) async {
+  final url = Uri.parse("$baseUrl/cancel_leave_request.php");
+
+  final res = await http.post(
+    url,
+    headers: {"Content-Type": "application/json", "Accept": "application/json"},
+    body: jsonEncode({"employeeId": employeeId, "leaveRequestId": leaveRequestId}),
+  );
+
+  debugPrint("CANCEL URL: $url");
+  debugPrint("CANCEL STATUS: ${res.statusCode}");
+  debugPrint("CANCEL BODY: '${res.body}'");
+
+  if (res.body.trim().isEmpty) {
+    throw Exception("Server returned EMPTY response (check PHP path / fatal error).");
+  }
+
+  final decoded = jsonDecode(res.body);
+  return Map<String, dynamic>.from(decoded);
+}
+
+
+
+
 }

@@ -197,7 +197,7 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
           ),
           const SizedBox(height: 8),
 
-          // ✅ note field (tap and type)
+          // note field (tap and type)
           TextField(
             controller: ctrl,
             maxLines: 3,

@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:test_app/Services/api_service.dart';
 import 'dart:ui';
+import 'top_banner.dart';
+
 
 class LeaveFormScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -90,7 +92,7 @@ Future<void> _submitForm() async {
 
   if (fromDate == null || toDate == null || selectedLeaveType == null) return;
 
-  // ✅ map leave type name -> leave_policy_id
+  // map leave type name -> leave_policy_id
   final leavePolicyId = _leaveTypeToId(selectedLeaveType!);
 
   final start = DateFormat('yyyy-MM-dd').format(fromDate!);
@@ -111,10 +113,26 @@ Future<void> _submitForm() async {
     );
 
     if (res["success"] == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(res["message"] ?? "Request submitted")),
+      // show top banner
+      TopBanner.show(
+        context,
+        title: "Request send successful..",
+        message: "Are you sure you want to cancel this leave request? Your leave balance will be restored.",
+        icon: Icons.check_circle,
+        leftButtonText: "View request",
+        rightButtonText: "Ok",
+        onLeftTap: () {
+          // TODO: Navigate to LeaveHistoryScreen / LeaveRequestScreen
+          // Navigator.push(context, MaterialPageRoute(builder: (_) => LeaveHistoryScreen(user: widget.user)));
+        },
+        onRightTap: () {
+          // just close
+        },
       );
-      Navigator.pop(context); // go back dashboard
+      // OPTIONAL: close form after showing banner (slight delay)
+        Navigator.pop(context);
+      Future.delayed(const Duration(milliseconds: 1000), () {
+      });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(res["message"] ?? "Failed")),
@@ -293,26 +311,52 @@ void _showSubmitConfirmation() {
 }
 
   // ===== DATE RANGE FILTER LOGIC =====
-  void _filterMembersByDate() {
-    if (fromDate == null || toDate == null) return;
+    Future<void> _loadRelievers() async {
+      if (fromDate == null || toDate == null) return;
 
-    setState(() {
-      availableMembers = allMembers.where((member) {
-        DateTime availableFrom = member['availableFrom'];
-        DateTime availableTo = member['availableTo'];
+      final employeeId = widget.user["employeeId"]?.toString() ?? "";
+      final deptId = widget.user["departmentId"]?.toString() ?? "";
 
-        // DATE OVERLAP CHECK
-        return !(toDate!.isBefore(availableFrom) ||
-            fromDate!.isAfter(availableTo));
-      }).map((m) => {
-            'id': m['id'].toString(),
-            'name': m['name'].toString(),
-          }).toList();
+      if (employeeId.isEmpty || deptId.isEmpty) return;
 
-      selectedMember = null;
-      noMemberConfirmed = false;
-    });
-  }
+      final from = DateFormat('yyyy-MM-dd').format(fromDate!);
+      final to = DateFormat('yyyy-MM-dd').format(toDate!);
+
+      try {
+        final res = await ApiService.getRelievers(
+          employeeId: employeeId,
+          departmentId: deptId,
+          fromDate: from,
+          toDate: to,
+        );
+
+        if (res["success"] == true) {
+          final list = List<Map<String, dynamic>>.from(res["members"] ?? []);
+
+          setState(() {
+            availableMembers = list
+                .map((m) => {
+                      "id": m["id"].toString(),
+                      "name": m["name"].toString(),
+                    })
+                .toList();
+
+            selectedMember = null;
+            noMemberConfirmed = false;
+          });
+        } else {
+          setState(() {
+            availableMembers = [];
+            selectedMember = null;
+          });
+        }
+      } catch (e) {
+        setState(() {
+          availableMembers = [];
+          selectedMember = null;
+        });
+      }
+    }
 
   @override
   Widget build(BuildContext context) {
@@ -404,7 +448,7 @@ void _showSubmitConfirmation() {
                         const SizedBox(height: 8),
                         _buildDatePicker('From date', fromDate, (date) {
                           fromDate = date;
-                          _filterMembersByDate();
+                          _loadRelievers();
                         }),
                       ],
                     ),
@@ -418,7 +462,7 @@ void _showSubmitConfirmation() {
                         const SizedBox(height: 8),
                         _buildDatePicker('To date', toDate, (date) {
                           toDate = date;
-                          _filterMembersByDate();
+                          _loadRelievers();
                         }),
                       ],
                     ),
@@ -721,28 +765,4 @@ void _showSubmitConfirmation() {
       },
     );
   }
-
-  // ---------------- YOUR EXISTING LOGIC (UNCHANGED) ----------------
-
-  // void _submitForm() {
-  //   if (!_formKey.currentState!.validate()) return;
-
-  //   if (availableMembers.isNotEmpty && selectedMember == null) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text('Select a team member')),
-  //     );
-  //     return;
-  //   }
-
-  //   if (availableMembers.isEmpty && !noMemberConfirmed) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text('Confirmation required')),
-  //     );
-  //     return;
-  //   }
-
-  //   ScaffoldMessenger.of(context).showSnackBar(
-  //     const SnackBar(content: Text('Leave submitted successfully!')),
-  //   );
-  // }
 }

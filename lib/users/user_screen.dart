@@ -92,7 +92,7 @@ class _UserScreenState extends State<UserScreen> {
               index: selectedTab,
               children: [
                 ProfileScreen(user: widget.user),// tab 0
-                LeaveHistoryScreen(), // tab 1
+                LeaveHistoryScreen(user: widget.user), // tab 1
                 RelieverRequestView(),// tab 2
               ],
             ),

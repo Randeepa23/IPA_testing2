@@ -1,14 +1,24 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
+import 'package:test_app/Services/api_service.dart';
+import 'top_banner.dart';
+
+
+// ---------------- SCREEN ----------------
+
 class LeaveHistoryScreen extends StatefulWidget {
-  const LeaveHistoryScreen({super.key});
+  final Map<String, dynamic> user;
+  const LeaveHistoryScreen({super.key, required this.user});
 
   @override
   State<LeaveHistoryScreen> createState() => _LeaveHistoryScreenState();
 }
 
-enum LeaveStatus { pending, approved, rejected, canceled }
+enum LeaveStatus { pending, approved, rejected }
 
 class LeaveRequest {
+  final int leaveRequestId;
   final String leaveType;
   final String reason;
   final String startDate;
@@ -19,6 +29,7 @@ class LeaveRequest {
   final String? managerComment;
 
   LeaveRequest({
+    required this.leaveRequestId,
     required this.leaveType,
     required this.reason,
     required this.startDate,
@@ -31,47 +42,122 @@ class LeaveRequest {
 }
 
 class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
-  int selectedTopTab = 1; // 0 profile, 1 history, 2 reliever
-  int selectedFilter = 0; // 0 all, 1 pending, 2 approved, 3 rejected
+  int selectedFilter = 0; // 0 all, 1 pending, 2 approved, 3 rejected, 4 canceled
 
-  // Dummy data (replace with API list)
-  final List<LeaveRequest> allRequests = [
-    LeaveRequest(
-      leaveType: 'Annual Leave',
-      reason: 'Family Vacation to Ella',
-      startDate: '12/12/2025',
-      endDate: '12/12/2025',
-      duration: '1 Days',
-      appliedOn: '12/12/2025',
-      status: LeaveStatus.pending,
-    ),
-    LeaveRequest(
-      leaveType: 'Annual Leave',
-      reason: 'Family Vacation to Ella',
-      startDate: '12/12/2025',
-      endDate: '12/12/2025',
-      duration: '1 Days',
-      appliedOn: '12/12/2025',
-      status: LeaveStatus.approved,
-      managerComment: 'Approved. Enjoy your time off!',
-    ),
-    LeaveRequest(
-      leaveType: 'Casual Leave',
-      reason: 'Personal work',
-      startDate: '20/12/2025',
-      endDate: '20/12/2025',
-      duration: '1 Days',
-      appliedOn: '18/12/2025',
-      status: LeaveStatus.rejected,
-      managerComment: 'Not possible on this date.',
-    ),
-  ];
+  bool loading = true;
+  String? error;
+  List<LeaveRequest> allRequests = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHistory();
+  }
+
+  LeaveStatus _parseStatus(String s) {
+    s = s.toUpperCase().trim();
+    if (s == "APPROVED") return LeaveStatus.approved;
+    if (s == "REJECTED") return LeaveStatus.rejected;
+    return LeaveStatus.pending;
+  }
+
+  Future<void> _loadHistory() async {
+    try {
+      setState(() {
+        loading = true;
+        error = null;
+      });
+
+      final employeeId = widget.user["employeeId"]?.toString() ?? "";
+      if (employeeId.isEmpty) {
+        setState(() {
+          loading = false;
+          error = "employeeId not found in login data";
+        });
+        return;
+      }
+
+      final res = await ApiService.getLeaveHistory(employeeId: employeeId);
+
+      if (res["success"] == true) {
+        final list = List<Map<String, dynamic>>.from(res["data"] ?? []);
+
+        setState(() {
+          allRequests = list.map((x) {
+            final id = int.tryParse(x["leave_request_id"]?.toString() ?? "") ?? 0;
+            final numDays = x["number_of_days"]?.toString() ?? "0";
+            return LeaveRequest(
+              leaveRequestId: id,
+              leaveType: (x["leave_type"] ?? "-").toString(),
+              reason: (x["reason"] ?? "-").toString(),
+              startDate: (x["leave_start_date"] ?? "-").toString(),
+              endDate: (x["leave_end_date"] ?? "-").toString(),
+              duration: "$numDays Days",
+              appliedOn: (x["requested_at"] ?? "-").toString(),
+              status: _parseStatus((x["status"] ?? "PENDING").toString()),
+              managerComment: x["manager_comment"]?.toString(),
+            );
+          }).toList();
+          loading = false;
+        });
+      } else {
+        setState(() {
+          loading = false;
+          error = res["message"]?.toString() ?? "Failed to load";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        loading = false;
+        error = e.toString();
+      });
+    }
+  }
+
+  Future<void> _cancelRequest(LeaveRequest r) async {
+    final employeeId = widget.user["employeeId"]?.toString() ?? "";
+    if (employeeId.isEmpty) return;
+
+    try {
+      final res = await ApiService.cancelLeaveRequest(
+        employeeId: employeeId,
+        leaveRequestId: r.leaveRequestId,
+      );
+
+      if (res["success"] == true) {
+        if (!mounted) return;
+
+        TopBanner.show(
+          context,
+          title: "Request canceled",
+          message: "Your pending leave request has been canceled successfully.",
+          icon: Icons.cancel,
+        );
+        _loadHistory(); // refresh list
+        
+        // Remove item from UI immediately
+        setState(() {
+          allRequests.removeWhere((x) => x.leaveRequestId == r.leaveRequestId);
+        });
+
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(res["message"] ?? "Failed")),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final blue = Colors.blue[800]!;
     final counts = _counts(allRequests);
-
     final filtered = _filteredList(allRequests);
 
     return Scaffold(
@@ -81,7 +167,34 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 8),
+            // --- state (loading/error) ---
+            if (loading) ...[
+              const SizedBox(height: 10),
+              const Center(child: CircularProgressIndicator()),
+              const SizedBox(height: 18),
+            ] else if (error != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3F3),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFFFD1D1)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Error: $error", style: const TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: _loadHistory,
+                      child: const Text("Retry"),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+            ],
 
             // Filter chips row
             SingleChildScrollView(
@@ -99,19 +212,24 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
               ),
             ),
 
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
+
+            if (!loading && error == null && filtered.isEmpty)
+              const Padding(
+                padding: EdgeInsets.only(top: 18),
+                child: Center(child: Text("No requests found")),
+              ),
 
             // Cards list
             ...filtered.map((r) => Padding(
                   padding: const EdgeInsets.only(bottom: 14),
-                  child: _leaveCard(r),
+                  child: _leaveCard(r, blue),
                 )),
           ],
         ),
       ),
     );
   }
-
 
   // ---------------- FILTER CHIPS ----------------
 
@@ -150,7 +268,7 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
 
   // ---------------- LEAVE CARD ----------------
 
-  Widget _leaveCard(LeaveRequest r) {
+  Widget _leaveCard(LeaveRequest r, Color blue) {
     final statusUi = _statusUI(r.status);
 
     return Container(
@@ -171,7 +289,7 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header row: Leave type + status + cancel button (only pending)
+          // Header row: Leave type + status
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -200,20 +318,23 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
                 ),
               ),
               const SizedBox(width: 10),
-              _statusPill(statusUi['text'] as String, statusUi['bg'] as Color, statusUi['fg'] as Color),
+              _statusPill(
+                statusUi['text'] as String,
+                statusUi['bg'] as Color,
+                statusUi['fg'] as Color,
+              ),
             ],
           ),
 
+          // Cancel button ONLY for pending
           if (r.status == LeaveStatus.pending) ...[
             const SizedBox(height: 10),
             Align(
               alignment: Alignment.centerRight,
               child: ElevatedButton(
-                onPressed: () {
-                  // TODO: Call cancel API
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Cancel Request tapped')),
-                  );
+                onPressed: () async {
+                  final ok = await _confirmCancel();
+                  if (ok == true) _cancelRequest(r);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFD64545),
@@ -277,6 +398,120 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
     );
   }
 
+Future<bool?> _confirmCancel() async {
+  return showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) {
+      return Dialog(
+        
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Padding(
+          
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              /// HEADER
+              Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.red),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      "Do you want to cancel this request",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 4),
+              const Text(
+                "This action cannot be undone",
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+
+              const SizedBox(height: 14),
+
+              /// MESSAGE BOX
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE8EDF5)),
+                ),
+                child: const Text(
+                  "Are you sure you want to cancel this leave request ?",
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              /// BUTTONS
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text("Cancel"),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(255, 192, 21, 21),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text(
+                        "Conform",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
   Widget _fieldBox({required IconData icon, required String label, required String value}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -336,8 +571,6 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
         return {'text': 'Approved', 'bg': const Color(0xFFCFF1D6), 'fg': const Color(0xFF0F6B2D)};
       case LeaveStatus.rejected:
         return {'text': 'Rejected', 'bg': const Color(0xFFFFD1D1), 'fg': const Color(0xFF9B1C1C)};
-      case LeaveStatus.canceled:
-        return {'text': 'Canceled', 'bg': const Color(0xFFF3B7B7), 'fg': const Color(0xFF7A1010)};
     }
   }
 
