@@ -90,7 +90,7 @@ Future<void> _submitForm() async {
 
   if (fromDate == null || toDate == null || selectedLeaveType == null) return;
 
-  // ✅ map leave type name -> leave_policy_id
+  // map leave type name -> leave_policy_id
   final leavePolicyId = _leaveTypeToId(selectedLeaveType!);
 
   final start = DateFormat('yyyy-MM-dd').format(fromDate!);
@@ -293,26 +293,52 @@ void _showSubmitConfirmation() {
 }
 
   // ===== DATE RANGE FILTER LOGIC =====
-  void _filterMembersByDate() {
-    if (fromDate == null || toDate == null) return;
+    Future<void> _loadRelievers() async {
+      if (fromDate == null || toDate == null) return;
 
-    setState(() {
-      availableMembers = allMembers.where((member) {
-        DateTime availableFrom = member['availableFrom'];
-        DateTime availableTo = member['availableTo'];
+      final employeeId = widget.user["employeeId"]?.toString() ?? "";
+      final deptId = widget.user["departmentId"]?.toString() ?? "";
 
-        // DATE OVERLAP CHECK
-        return !(toDate!.isBefore(availableFrom) ||
-            fromDate!.isAfter(availableTo));
-      }).map((m) => {
-            'id': m['id'].toString(),
-            'name': m['name'].toString(),
-          }).toList();
+      if (employeeId.isEmpty || deptId.isEmpty) return;
 
-      selectedMember = null;
-      noMemberConfirmed = false;
-    });
-  }
+      final from = DateFormat('yyyy-MM-dd').format(fromDate!);
+      final to = DateFormat('yyyy-MM-dd').format(toDate!);
+
+      try {
+        final res = await ApiService.getRelievers(
+          employeeId: employeeId,
+          departmentId: deptId,
+          fromDate: from,
+          toDate: to,
+        );
+
+        if (res["success"] == true) {
+          final list = List<Map<String, dynamic>>.from(res["members"] ?? []);
+
+          setState(() {
+            availableMembers = list
+                .map((m) => {
+                      "id": m["id"].toString(),
+                      "name": m["name"].toString(),
+                    })
+                .toList();
+
+            selectedMember = null;
+            noMemberConfirmed = false;
+          });
+        } else {
+          setState(() {
+            availableMembers = [];
+            selectedMember = null;
+          });
+        }
+      } catch (e) {
+        setState(() {
+          availableMembers = [];
+          selectedMember = null;
+        });
+      }
+    }
 
   @override
   Widget build(BuildContext context) {
@@ -404,7 +430,7 @@ void _showSubmitConfirmation() {
                         const SizedBox(height: 8),
                         _buildDatePicker('From date', fromDate, (date) {
                           fromDate = date;
-                          _filterMembersByDate();
+                          _loadRelievers();
                         }),
                       ],
                     ),
@@ -418,7 +444,7 @@ void _showSubmitConfirmation() {
                         const SizedBox(height: 8),
                         _buildDatePicker('To date', toDate, (date) {
                           toDate = date;
-                          _filterMembersByDate();
+                          _loadRelievers();
                         }),
                       ],
                     ),
@@ -721,28 +747,4 @@ void _showSubmitConfirmation() {
       },
     );
   }
-
-  // ---------------- YOUR EXISTING LOGIC (UNCHANGED) ----------------
-
-  // void _submitForm() {
-  //   if (!_formKey.currentState!.validate()) return;
-
-  //   if (availableMembers.isNotEmpty && selectedMember == null) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text('Select a team member')),
-  //     );
-  //     return;
-  //   }
-
-  //   if (availableMembers.isEmpty && !noMemberConfirmed) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text('Confirmation required')),
-  //     );
-  //     return;
-  //   }
-
-  //   ScaffoldMessenger.of(context).showSnackBar(
-  //     const SnackBar(content: Text('Leave submitted successfully!')),
-  //   );
-  // }
 }

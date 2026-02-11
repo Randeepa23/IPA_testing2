@@ -124,4 +124,29 @@ static const String baseUrl = "http://10.0.2.2/test-1/api";
   }
 
 
+
+    static Future<Map<String, dynamic>> getRelievers({
+    required String employeeId,
+    required String departmentId,
+    required String fromDate,
+    required String toDate,
+  }) async {
+    final url = Uri.parse("$baseUrl/get_relievers.php");
+
+    final res = await http.post(
+      url,
+      headers: {"Content-Type": "application/json", "Accept": "application/json"},
+      body: jsonEncode({
+        "employeeId": employeeId,
+        "departmentId": departmentId,
+        "fromDate": fromDate,
+        "toDate": toDate,
+      }),
+    );
+
+    if (res.body.trim().isEmpty) throw Exception("EMPTY response");
+    return Map<String, dynamic>.from(jsonDecode(res.body));
+  }
+
+
 }
