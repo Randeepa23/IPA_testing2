@@ -1,46 +1,75 @@
 import 'package:flutter/material.dart';
+import 'package:test_app/Services/api_service.dart';
 
 class RelieverRequestView extends StatefulWidget {
-  const RelieverRequestView({super.key});
+  final Map<String, dynamic> user;
+  const RelieverRequestView({super.key, required this.user});
 
   @override
   State<RelieverRequestView> createState() => _RelieverRequestViewState();
 }
-class _RelieverRequestViewState extends State<RelieverRequestView> {
-  //Demo list (replace with backend list)
-  final List<Map<String, dynamic>> requests = [
-    {
-      "name": "Nimal Perera",
-      "role": "Tour Manager",
-      "empNo": "EV2024001",
-      "leaveType": "Annual",
-      "from": "2026-03-15",
-      "to": "2026-03-16",
-      "days": "1 days",
-      "applyOn": "12/12/2025",
-      "status": "Awaiting Your Response",
-      "noteController": TextEditingController(),
-    },
-    {
-      "name": "Sanduni Perera",
-      "role": "Tour Manager",
-      "empNo": "EV2024001",
-      "leaveType": "Annual",
-      "from": "2026-03-15",
-      "to": "2026-03-16",
-      "days": "1 days",
-      "applyOn": "12/12/2025",
-      "status": "Awaiting Your Response",
-      "noteController": TextEditingController(),
-    },
-  ];
 
-  int selectedTopTab = 2; // for your top button highlight
+class _RelieverRequestViewState extends State<RelieverRequestView> {
+  List<Map<String, dynamic>> requests = [];
+  bool loading = false;
+  String? errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRelieverRequests();
+  }
+
+  Future<void> _loadRelieverRequests() async {
+    try {
+      setState(() {
+        loading = true;
+        errorText = null;
+      });
+
+      final employeeId = widget.user["employeeId"]?.toString() ?? "";
+      if (employeeId.isEmpty) {
+        setState(() {
+          loading = false;
+          errorText = "employeeId not found in login data";
+        });
+        return;
+      }
+
+      final res = await ApiService.getRelieverRequests(employeeId: employeeId);
+
+      if (res["success"] == true) {
+        final raw = res["requests"] ?? res["data"] ?? [];
+        final list = List<Map<String, dynamic>>.from(raw);
+
+        // add controller per item
+        for (final r in list) {
+          r["noteController"] = TextEditingController(text: "");
+        }
+
+        setState(() {
+          requests = list;
+          loading = false;
+        });
+      } else {
+        setState(() {
+          loading = false;
+          errorText = (res["message"] ?? "Failed to load").toString();
+        });
+      }
+    } catch (e) {
+      setState(() {
+        loading = false;
+        errorText = e.toString();
+      });
+    }
+  }
 
   @override
   void dispose() {
     for (final r in requests) {
-      (r["noteController"] as TextEditingController).dispose();
+      final c = r["noteController"];
+      if (c is TextEditingController) c.dispose();
     }
     super.dispose();
   }
@@ -56,11 +85,34 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
         child: Column(
           children: [
             const SizedBox(height: 8),
-            // ✅ list cards
-            ...requests.map((r) => Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: _requestCard(r, blue),
-                )),
+
+            // ✅ YOU ASKED WHERE TO ADD THIS -> THIS IS THE CORRECT PLACE
+            if (loading)
+              const Padding(
+                padding: EdgeInsets.only(top: 30),
+                child: CircularProgressIndicator(),
+              )
+            else if (errorText != null)
+              Column(
+                children: [
+                  Text(errorText!, style: const TextStyle(color: Colors.red)),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: _loadRelieverRequests,
+                    child: const Text("Retry"),
+                  ),
+                ],
+              )
+            else if (requests.isEmpty)
+              const Padding(
+                padding: EdgeInsets.only(top: 30),
+                child: Text("No reliever requests"),
+              )
+            else
+              ...requests.map((r) => Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: _requestCard(r, blue),
+                  )),
           ],
         ),
       ),
@@ -70,7 +122,29 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
   // ---------------- CARD UI ----------------
 
   Widget _requestCard(Map<String, dynamic> r, Color blue) {
-    final ctrl = r["noteController"] as TextEditingController;
+    final ctrl = (r["noteController"] is TextEditingController)
+        ? r["noteController"] as TextEditingController
+        : TextEditingController();
+
+    // ✅ Safe reads (works with different API key names)
+    String getStr(List<String> keys, {String fallback = "-"}) {
+      for (final k in keys) {
+        final v = r[k];
+        if (v != null && v.toString().trim().isNotEmpty) return v.toString();
+      }
+      return fallback;
+    }
+
+    final name = getStr(["name", "employee_name"]);
+    final role = getStr(["role", "designation", "job_title"], fallback: "");
+    final empNo = getStr(["empNo", "employeeCode", "employee_code"], fallback: "-");
+
+    final leaveType = getStr(["leaveType", "leave_type"]);
+    final from = getStr(["from", "leave_start_date"]);
+    final to = getStr(["to", "leave_end_date"]);
+    final days = getStr(["days", "number_of_days"], fallback: "0");
+    final applyOn = getStr(["applyOn", "requested_at"], fallback: "-");
+    final status = getStr(["status"], fallback: "Awaiting Your Response");
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -107,7 +181,7 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      r["name"],
+                      name,
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w900,
@@ -116,7 +190,7 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      "${r["role"]}\nEmployee No: ${r["empNo"]}",
+                      "${role.isEmpty ? '' : role}\nEmployee No: $empNo",
                       style: const TextStyle(
                         fontSize: 10.8,
                         height: 1.2,
@@ -127,7 +201,7 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
                   ],
                 ),
               ),
-              _statusPill(r["status"], const Color(0xFFE7D48A), const Color(0xFF6B4F00)),
+              _statusPill(status, const Color(0xFFE7D48A), const Color(0xFF6B4F00)),
             ],
           ),
 
@@ -143,11 +217,11 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
             ),
             child: Column(
               children: [
-                _rowLine("Leave type", r["leaveType"]),
+                _rowLine("Leave type", leaveType),
                 const SizedBox(height: 8),
-                _rowLine("From date", r["from"]),
+                _rowLine("From date", from),
                 const SizedBox(height: 8),
-                _rowLine("To date", r["to"]),
+                _rowLine("To date", to),
                 const SizedBox(height: 10),
 
                 // total days blue bar
@@ -171,7 +245,7 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
                         ),
                       ),
                       Text(
-                        r["days"],
+                        days,
                         style: const TextStyle(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w900,
@@ -197,7 +271,6 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
           ),
           const SizedBox(height: 8),
 
-          // note field (tap and type)
           TextField(
             controller: ctrl,
             maxLines: 3,
@@ -224,8 +297,8 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
             children: [
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () {
-                    // TODO: decline API
+                  onPressed: () async {
+                    // TODO: connect decline API
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("Decline tapped")),
                     );
@@ -247,13 +320,15 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
               Expanded(
                 child: ElevatedButton(
                   onPressed: () => _showAcceptDialog(
-                    employeeName: r["name"],
+                    employeeName: name,
                     note: ctrl.text,
-                    onAccept: () {
-                      // ✅ put your accept API call here
+                    onAccept: () async {
+                      // TODO: connect accept API
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text("Accepted (Note: ${ctrl.text})")),
                       );
+                      // Optional refresh:
+                      // await _loadRelieverRequests();
                     },
                   ),
                   style: ElevatedButton.styleFrom(
@@ -274,7 +349,7 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
 
           const SizedBox(height: 10),
           Text(
-            "Apply on: ${r["applyOn"]}",
+            "Apply on: $applyOn",
             style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
@@ -321,8 +396,6 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
       ),
     );
   }
-
-  // ---------------- ACCEPT POPUP (LIKE YOUR IMAGE) ----------------
 
   void _showAcceptDialog({
     required String employeeName,
