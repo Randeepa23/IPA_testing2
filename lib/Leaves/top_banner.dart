@@ -19,7 +19,6 @@ static void show(
     hide();
 
     final overlay = Overlay.of(context);
-    if (overlay == null) return;
 
     _entry = OverlayEntry(
       builder: (_) => _TopBannerWidget(

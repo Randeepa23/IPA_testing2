@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:test_app/Services/api_service.dart';
 import 'top_banner.dart';
@@ -128,13 +130,11 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
         TopBanner.show(
           context,
           title: "Request canceled",
-          message: "Your pending leave request has been removed successfully.",
+          message: "Your pending leave request has been canceled successfully.",
           icon: Icons.cancel,
-
         );
-
         _loadHistory(); // refresh list
-
+        
         // Remove item from UI immediately
         setState(() {
           allRequests.removeWhere((x) => x.leaveRequestId == r.leaveRequestId);
@@ -398,19 +398,119 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
     );
   }
 
-  Future<bool?> _confirmCancel() async {
-    return showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Cancel request?"),
-        content: const Text("This will mark the request as CANCELED."),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("No")),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("Yes, Cancel")),
-        ],
-      ),
-    );
-  }
+Future<bool?> _confirmCancel() async {
+  return showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) {
+      return Dialog(
+        
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Padding(
+          
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              /// HEADER
+              Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.red),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      "Do you want to cancel this request",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 4),
+              const Text(
+                "This action cannot be undone",
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+
+              const SizedBox(height: 14),
+
+              /// MESSAGE BOX
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE8EDF5)),
+                ),
+                child: const Text(
+                  "Are you sure you want to cancel this leave request ?",
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              /// BUTTONS
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text("Cancel"),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(255, 192, 21, 21),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text(
+                        "Conform",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
 
   Widget _fieldBox({required IconData icon, required String label, required String value}) {
     return Container(
