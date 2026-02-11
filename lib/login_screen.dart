@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+// import 'package:google_fonts/google_fonts.dart';
 import 'package:test_app/Services/api_service.dart';
 import 'create_new_password.dart';
 import 'home_screen.dart';
@@ -16,6 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  String? _loginError; // message shown near the fields
   @override
   void dispose() {
     _usernameController.dispose();
@@ -29,10 +30,11 @@ class _LoginScreenState extends State<LoginScreen> {
       final email = _usernameController.text.trim();
       final password = _passwordController.text.trim();
 
+      // basic validation – show message near fields instead of snackbar
       if (email.isEmpty || password.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Enter email and password")),
-        );
+        setState(() {
+          _loginError = "Please enter username and password.";
+        });
         return;
       }
 
@@ -44,6 +46,11 @@ class _LoginScreenState extends State<LoginScreen> {
         if (data["success"] == true) {
           final user = Map<String, dynamic>.from(data["user"]);
           final name = user["name"] ?? "User";
+
+          // clear any previous error
+          setState(() {
+            _loginError = null;
+          });
 
           Navigator.pushReplacement(
             context,
@@ -57,15 +64,17 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           );
           } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data["message"] ?? "Login failed")),
-          );
+          // show server message (like wrong username/password) near fields
+          setState(() {
+            _loginError =
+                data["message"]?.toString() ?? "Invalid username or password. Please check and try again.";
+          });
         }
       } catch (e) {
         debugPrint("LOGIN ERROR: $e");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Login Error: $e")),
-        );
+        setState(() {
+          _loginError = "Unable to login right now. Please check your internet connection and try again.";
+        });
       }
     }
 
@@ -118,16 +127,16 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
 
-                      SizedBox(height: 120),
+                      SizedBox(height: 80),
 
                       //Login Text
-                      Text(
-                        'Login',
-                        style: GoogleFonts.actor(
-                          fontSize: (w * 0.08).clamp(24.0, 32.0),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      // Text(
+                      //   'Login',
+                      //   style: GoogleFonts.actor(
+                      //     fontSize: (w * 0.08).clamp(24.0, 32.0),
+                      //     fontWeight: FontWeight.w600,
+                      //   ),
+                      // ),
 
                       SizedBox(height: sectionGap),
 
@@ -135,35 +144,54 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextField(
                         controller: _usernameController,
                         decoration: InputDecoration(
-                          labelText: 'Username',
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 14,
-                            horizontal: 14,
-                          ),
+                          hintText: "Enter username",
+                          prefixIcon: const Icon(Icons.person_outline),
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 14),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(32),
+                            borderRadius: BorderRadius.circular(15),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            borderSide: const BorderSide(color: Colors.blue, width: 1.2),
                           ),
                         ),
                       ),
 
                       const SizedBox(height: 16),
 
-                      //Password Field
+                      /// Password
                       TextField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
+                        onChanged: (_) {
+                          if (_loginError != null) {
+                            setState(() {
+                              _loginError = null;
+                            });
+                          }
+                        },
                         decoration: InputDecoration(
-                          labelText: 'Password',
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 14,
-                            horizontal: 14,
-                          ),
+                          hintText: "Enter password",
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 14),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(32),
+                            borderRadius: BorderRadius.circular(15),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            borderSide: const BorderSide(color: Colors.blue, width: 1.2),
                           ),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
                             ),
                             onPressed: () {
                               setState(() {
@@ -173,7 +201,21 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 8),
+                      if (_loginError != null) ...[
+                        const SizedBox(height: 12),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            _loginError!,
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ] else
+                        const SizedBox(height: 8),
 
                       Align(
                         alignment: Alignment.centerRight,
@@ -239,6 +281,23 @@ class _LoginScreenState extends State<LoginScreen> {
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
                               ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const Spacer(),  
+                                     // Short notice so users understand the app
+                      Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 420),
+                          child: Text(
+                            'Please log in with your company username and password to access the Explore Holding ERP system.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade700,
+                              height: 1.4,
                             ),
                           ),
                         ),
