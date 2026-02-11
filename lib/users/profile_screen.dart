@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:test_app/Services/api_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -11,11 +12,57 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   int selectedTab = 0;
 
+  // Leave balance state
+  Map<String, dynamic>? leaveBalance;
+  bool loadingLeave = true;
+  String? leaveError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLeaveBalance();
+  }
+
+  Future<void> _loadLeaveBalance() async {
+    try {
+      setState(() {
+        loadingLeave = true;
+        leaveError = null;
+      });
+
+      final employeeId = widget.user["employeeId"]?.toString() ?? "";
+      if (employeeId.isEmpty) {
+        setState(() {
+          loadingLeave = false;
+          leaveError = "employeeId not found";
+        });
+        return;
+      }
+
+      final res = await ApiService.getLeaveBalance(employeeId: employeeId);
+
+      if (res["success"] == true) {
+        setState(() {
+          leaveBalance = Map<String, dynamic>.from(res["data"] ?? {});
+          loadingLeave = false;
+        });
+      } else {
+        setState(() {
+          loadingLeave = false;
+          leaveError = res["message"]?.toString() ?? "Failed to load leave balance";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        loadingLeave = false;
+        leaveError = e.toString();
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-
     final u = widget.user;
-
     final blue = Colors.blue[800]!;
 
     return Scaffold(
@@ -32,7 +79,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _sectionTitle('Contact Information'),
             const SizedBox(height: 10),
 
-
             _infoCard(
               children: [
                 _InfoRow(
@@ -40,24 +86,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   title: 'Email',
                   value: (u["email"] ?? "-").toString(),
                 ),
-                _DividerLine(),
+                const _DividerLine(),
                 _InfoRow(
                   icon: Icons.phone_outlined,
                   title: 'Phone',
                   value: (u["primaryContact"] ?? "-").toString(),
                 ),
-                _DividerLine(),
+                const _DividerLine(),
                 _InfoRow(
                   icon: Icons.apartment_outlined,
                   title: 'Department',
                   value: (u["department"] ?? "-").toString(),
                 ),
-                _DividerLine(),
+                const _DividerLine(),
                 _InfoRow(
-                  icon: Icons.calendar_month_outlined, 
-                  title: 'Date of Birth', 
-                  value: (u["dateOfBirth"] ?? "-").toString()),
-                 _DividerLine(),
+                  icon: Icons.calendar_month_outlined,
+                  title: 'Date of Birth',
+                  value: (u["dateOfBirth"] ?? "-").toString(),
+                ),
+                const _DividerLine(),
                 _InfoRow(
                   icon: Icons.location_on_outlined,
                   title: 'Location',
@@ -66,120 +113,172 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
 
-
             const SizedBox(height: 16),
             _sectionTitle('Employment Details'),
             const SizedBox(height: 10),
             _infoCard(
               children: [
                 _InfoRow(
-                  icon: Icons.person_outline, 
-                  title: 'Reporting Manager', 
+                  icon: Icons.person_outline,
+                  title: 'Reporting Manager',
                   value: (u["reportingManagerName"] ?? "-").toString(),
                 ),
-                _DividerLine(),
+                const _DividerLine(),
                 _InfoRow(
-                  icon: Icons.calendar_month_outlined, 
-                  title: 'Join Date', 
-                  value: (u["dateOfJoining"] ?? "-").toString()),
+                  icon: Icons.calendar_month_outlined,
+                  title: 'Join Date',
+                  value: (u["dateOfJoining"] ?? "-").toString(),
+                ),
               ],
             ),
 
             const SizedBox(height: 16),
             _sectionTitle('Leave Balance Summary'),
             const SizedBox(height: 10),
-            _infoCard(
-              padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-              children: const [
-                _LeaveBar(title: 'Annual Leaves', used: 8, total: 20),
-                SizedBox(height: 12),
-                _LeaveBar(title: 'Casual Leaves', used: 3, total: 10),
-                SizedBox(height: 12),
-                _LeaveBar(title: 'Medical Leaves', used: 2, total: 5),
-              ],
-            ),
+
+            // Dynamic Leave Balance Summary
+            _buildLeaveBalanceCard(),
           ],
         ),
       ),
     );
   }
 
-Widget _profileCard(Color blue, Map<String, dynamic> user) {
+  Widget _buildLeaveBalanceCard() {
+    if (loadingLeave) {
+      return _infoCard(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+        children: const [
+          Center(child: CircularProgressIndicator()),
+        ],
+      );
+    }
 
-  final name = (user["name"] ?? "").toString();
-  final department = (user["department"] ?? "").toString();
-  final employeeCode = (user["employeeCode"] ?? "").toString();
+    if (leaveError != null) {
+      return _infoCard(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+        children: [
+          Text("Leave error: $leaveError"),
+          const SizedBox(height: 10),
+          ElevatedButton(
+            onPressed: _loadLeaveBalance,
+            child: const Text("Retry"),
+          ),
+        ],
+      );
+    }
 
-  return Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(24),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(12),
-      gradient: LinearGradient(
-        colors: [blue, Colors.blue[600]!],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.10),
-          blurRadius: 14,
-          offset: const Offset(0, 6),
-        ),
-      ],
-    ),
-    child: Row(
+    if (leaveBalance == null || leaveBalance!.isEmpty) {
+      return _infoCard(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+        children: const [
+          Text("No leave data"),
+        ],
+      );
+    }
+
+    double d(dynamic v) => double.tryParse(v?.toString() ?? "0") ?? 0;
+
+    final annualRemaining = d(leaveBalance!["annual_days"]);
+    final sickRemaining = d(leaveBalance!["sick_days"]);
+    final casualRemaining = d(leaveBalance!["casual_days"]);
+
+    // Use totals from API if available; otherwise fallback
+    final annualTotal = d(leaveBalance!["annual_total"]) == 0 ? 20.0 : d(leaveBalance!["annual_total"]);
+    final sickTotal = d(leaveBalance!["sick_total"]) == 0 ? 10.0 : d(leaveBalance!["sick_total"]);
+    final casualTotal = d(leaveBalance!["casual_total"]) == 0 ? 5.0 : d(leaveBalance!["casual_total"]);
+
+    final annualUsed = (annualTotal - annualRemaining).clamp(0, annualTotal).toInt();
+    final sickUsed = (sickTotal - sickRemaining).clamp(0, sickTotal).toInt();
+    final casualUsed = (casualTotal - casualRemaining).clamp(0, casualTotal).toInt();
+
+    return _infoCard(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
       children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            image: const DecorationImage(
-              image: AssetImage('assets/profile.png'),
-              fit: BoxFit.cover,
+        _LeaveBar(title: 'Annual Leaves', used: annualUsed, total: annualTotal.toInt()),
+        const SizedBox(height: 12),
+        _LeaveBar(title: 'Medical Leaves', used: sickUsed, total: sickTotal.toInt()),
+        const SizedBox(height: 12),
+        _LeaveBar(title: 'Casual Leaves', used: casualUsed, total: casualTotal.toInt()),
+      ],
+    );
+  }
+
+  // ---------------- UI Widgets ----------------
+
+  Widget _profileCard(Color blue, Map<String, dynamic> user) {
+    final name = (user["name"] ?? "").toString();
+    final department = (user["department"] ?? "").toString();
+    final employeeCode = (user["employeeCode"] ?? "").toString();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          colors: [blue, Colors.blue[600]!],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.10),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              image: const DecorationImage(
+                image: AssetImage('assets/profile.png'),
+                fit: BoxFit.cover,
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: 12),
-
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name.isEmpty ? "Unknown" : name,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name.isEmpty ? "Unknown" : name,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                department.isEmpty ? "No Department" : department,
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  color: Colors.white70,
-                  fontWeight: FontWeight.w600,
+                const SizedBox(height: 2),
+                Text(
+                  department.isEmpty ? "No Department" : department,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              Text(
-                "Employee Code: ${employeeCode.isEmpty ? "-" : employeeCode}",
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.white70,
+                Text(
+                  "Employee Code: ${employeeCode.isEmpty ? "-" : employeeCode}",
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.white70,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
-    ),
-  );
-}
-
+        ],
+      ),
+    );
+  }
 
   Widget _sectionTitle(String title) {
     return Row(
@@ -304,7 +403,7 @@ class _LeaveBar extends StatelessWidget {
               ),
             ),
             Text(
-              '$remaining/$total',
+              '$used/$total',
               style: const TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w800,
