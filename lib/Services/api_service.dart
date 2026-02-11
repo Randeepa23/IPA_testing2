@@ -200,5 +200,24 @@ static Future<Map<String, dynamic>> getRelieverRequests({
   return Map<String, dynamic>.from(decoded);
 }
 
+//Create New Password API (use this in CreateNewPasswordScreen)
+static Future<Map<String, dynamic>> updatePassword({
+  required String email,
+  required String newPassword,
+}) async {
+  final url = Uri.parse("$baseUrl/create_new_password.php");
+
+  final res = await http.post(
+    url,
+    headers: {"Content-Type": "application/json"},
+    body: jsonEncode({
+      "email": email,
+      "newPassword": newPassword,
+    }),
+  );
+
+  return jsonDecode(res.body) as Map<String, dynamic>;
+}
+
 
 }
