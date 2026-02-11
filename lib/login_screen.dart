@@ -4,7 +4,9 @@ import 'package:test_app/Services/api_service.dart';
 import 'create_new_password.dart';
 import 'home_screen.dart';
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  final String? initialUsername;
+
+  const LoginScreen({Key? key, this.initialUsername}) : super(key: key);
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -17,6 +19,13 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
 
   String? _loginError; // message shown near the fields
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre‑fill username if provided (e.g. after password change)
+    _usernameController.text = widget.initialUsername ?? '';
+  }
   @override
   void dispose() {
     _usernameController.dispose();
@@ -52,17 +61,33 @@ class _LoginScreenState extends State<LoginScreen> {
             _loginError = null;
           });
 
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => HomeScreen(
-                name: name,
-                user: user,
-                username: user["email"] ?? email,
-                successMessage: "Login successful, $name!",
+          // Check if user is logging in with default HR password (first-time login)
+          if (password == "Test@123") {
+            // Redirect to create new password screen for first-time login
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CreateNewPasswordScreen(
+                  userEmail: email,
+                  userName: name,
+                  userData: user,
+                ),
               ),
-            ),
-          );
+            );
+          } else {
+            // Normal login - go to home screen
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => HomeScreen(
+                  name: name,
+                  user: user,
+                  username: user["email"] ?? email,
+                  successMessage: "Login successful, $name!",
+                ),
+              ),
+            );
+          }
           } else {
           // show server message (like wrong username/password) near fields
           setState(() {
