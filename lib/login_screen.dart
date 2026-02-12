@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 // import 'package:google_fonts/google_fonts.dart';
 import 'package:test_app/Services/api_service.dart';
 import 'create_new_password.dart';
+import 'forgot_password_screen.dart';
 import 'home_screen.dart';
 class LoginScreen extends StatefulWidget {
   final String? initialUsername;
@@ -19,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
 
   String? _loginError; // message shown near the fields
+  bool _isLoggingIn = false; // Show loading state while logging in
 
   @override
   void initState() {
@@ -48,6 +50,11 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       try {
+        // Start loading state
+        setState(() {
+          _isLoggingIn = true;
+        });
+
         final data = await ApiService.login(email: email, password: password);
 
         debugPrint("LOGIN DATA: $data");
@@ -60,6 +67,11 @@ class _LoginScreenState extends State<LoginScreen> {
           setState(() {
             _loginError = null;
           });
+
+          // Brief delay to show success, then navigate
+          await Future.delayed(const Duration(milliseconds: 900));
+
+          if (!mounted) return;
 
           // Check if user is logging in with default HR password (first-time login)
           if (password == "Test@123") {
@@ -91,6 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
           } else {
           // show server message (like wrong username/password) near fields
           setState(() {
+            _isLoggingIn = false;
             _loginError =
                 data["message"]?.toString() ?? "Invalid username or password. Please check and try again.";
           });
@@ -98,6 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
       } catch (e) {
         debugPrint("LOGIN ERROR: $e");
         setState(() {
+          _isLoggingIn = false;
           _loginError = "Unable to login right now. Please check your internet connection and try again.";
         });
       }
@@ -144,7 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       //App Name
                       Center(
                         child: Text(
-                          'Explore Holding',
+                          'ENEXA',
                           style: TextStyle(
                             fontSize: (w * 0.08).clamp(24.0, 34.0),
                             fontWeight: FontWeight.bold,
@@ -153,15 +167,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
 
                       SizedBox(height: 80),
-
-                      //Login Text
-                      // Text(
-                      //   'Login',
-                      //   style: GoogleFonts.actor(
-                      //     fontSize: (w * 0.08).clamp(24.0, 32.0),
-                      //     fontWeight: FontWeight.w600,
-                      //   ),
-                      // ),
 
                       SizedBox(height: sectionGap),
 
@@ -247,7 +252,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: TextButton(
                           onPressed: () {
                             // TODO: Navigate to Forgot Password screen
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => CreateNewPasswordScreen()));
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => ForgotPasswordScreen()));
                           },
                           style: TextButton.styleFrom(
                             padding: EdgeInsets.zero,
@@ -273,25 +278,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           width: (w * 0.45).clamp(150.0, 220.0),
                           height: 48,
                           child: ElevatedButton(
-                            onPressed: _loginApi,
-                            // () {
-                            //   final username = _usernameController.text.trim();
-                            //   final password = _passwordController.text.trim();
-
-                            //   if (username == 'admin' && password == '1234') {
-                            //     Navigator.pushReplacement(
-                            //       context,
-                            //       MaterialPageRoute(builder: (context) => HomeScreen(username: username)),
-                            //     );
-                            //   } else {
-                            //     ScaffoldMessenger.of(context).showSnackBar(
-                            //       const SnackBar(
-                            //         content: Text('Invalid username or password'),
-                            //         backgroundColor: Colors.red,
-                            //       ),
-                            //     );
-                            //   }
-                            // },
+                            onPressed: _isLoggingIn ? null : _loginApi,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF0060A6),
                               shape: RoundedRectangleBorder(
@@ -299,14 +286,23 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               elevation: 0,
                             ),
-                            child: const Text(
-                              'Login',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                            child: _isLoggingIn
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  )
+                                : const Text(
+                                    'Login',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
                           ),
                         ),
                       ),
@@ -321,7 +317,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey.shade700,
+                              color: const Color.fromARGB(255, 72, 117, 138),
                               height: 1.4,
                             ),
                           ),

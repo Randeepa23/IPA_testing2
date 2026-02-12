@@ -223,5 +223,26 @@ static Future<Map<String, dynamic>> updatePassword({
   return jsonDecode(res.body) as Map<String, dynamic>;
 }
 
+static Future<Map<String, dynamic>> forgotPassword({
+  required String email,
+  required String recoveryKey,
+  required String newPassword,
+}) async {
+  final url = Uri.parse("$baseUrl/forgot_password.php");
+
+  final res = await http.post(
+    url,
+    headers: {"Content-Type": "application/json"},
+    body: jsonEncode({
+      "email": email,
+      "recovery_key": recoveryKey, // MUST match PHP
+      "newPassword": newPassword,
+    }),
+  );
+
+  return jsonDecode(res.body) as Map<String, dynamic>;
+}
+
+
 
 }
