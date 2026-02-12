@@ -22,35 +22,81 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool loadingLeave = true;
   String? leaveError;
 
-  // Dummy Recent Leave Data
-  final List<Map<String, dynamic>> recentLeaves = const [
-    {
-      "type": "Annual Leave",
-      "date": "20 Mar 2026",
-      "days": "5 days",
-      "status": "Approved",
-      "color": Colors.green,
-    },
-    {
-      "type": "Sick Leave",
-      "date": "18 Mar 2026",
-      "days": "2 days",
-      "status": "Rejected",
-      "color": Colors.red,
-    },
-    {
-      "type": "Casual Leave",
-      "date": "15 Mar 2026",
-      "days": "1 day",
-      "status": "Pending",
-      "color": Colors.orange,
-    },
-  ];
+  // Recent leave requests from API (same source as leave_history_screen)
+  List<Map<String, dynamic>> recentLeaves = [];
+  bool loadingRecentLeaves = true;
+  String? recentLeavesError;
 
   @override
   void initState() {
     super.initState();
     _loadLeaveBalance();
+    _loadRecentLeaves();
+  }
+
+  static const int _recentLeavesLimit = 10;
+
+  Future<void> _loadRecentLeaves() async {
+    try {
+      setState(() {
+        loadingRecentLeaves = true;
+        recentLeavesError = null;
+      });
+
+      final employeeId = widget.user["employeeId"]?.toString() ?? "";
+      if (employeeId.isEmpty) {
+        setState(() {
+          loadingRecentLeaves = false;
+          recentLeavesError = "employeeId not found";
+        });
+        return;
+      }
+
+      final res = await ApiService.getLeaveHistory(employeeId: employeeId);
+
+      if (res["success"] == true) {
+        final list = List<Map<String, dynamic>>.from(res["data"] ?? []);
+        final mapped = list.take(_recentLeavesLimit).map((x) {
+          final statusStr = (x["status"] ?? "PENDING").toString().toUpperCase();
+          String status;
+          Color color;
+          if (statusStr == "APPROVED") {
+            status = "Approved";
+            color = Colors.green;
+          } else if (statusStr == "REJECTED") {
+            status = "Rejected";
+            color = Colors.red;
+          } else {
+            status = "Pending";
+            color = Colors.orange;
+          }
+          final numDays = x["number_of_days"]?.toString() ?? "0";
+          final days = numDays == "1" ? "1 day" : "$numDays days";
+          return {
+            "type": (x["leave_type"] ?? "-").toString(),
+            "date": (x["leave_start_date"] ?? x["requested_at"] ?? "-").toString(),
+            "days": days,
+            "status": status,
+            "color": color,
+          };
+        }).toList();
+
+        setState(() {
+          recentLeaves = mapped;
+          loadingRecentLeaves = false;
+        });
+      } else {
+        setState(() {
+          loadingRecentLeaves = false;
+          recentLeavesError = res["message"]?.toString() ?? "Failed to load recent requests";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        loadingRecentLeaves = false;
+        recentLeavesError = e.toString();
+      });
+    }
   }
 
   Future<void> _loadLeaveBalance() async {
@@ -219,15 +265,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: 10),
 
-                    ...recentLeaves.map(
-                      (leave) => _leaveStatus(
-                        leave['type'],
-                        leave['date'],
-                        leave['days'],
-                        leave['status'],
-                        leave['color'],
+                    if (loadingRecentLeaves)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (recentLeavesError != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Column(
+                          children: [
+                            Text(
+                              recentLeavesError!,
+                              style: GoogleFonts.poppins(fontSize: 12, color: Colors.red),
+                            ),
+                            const SizedBox(height: 8),
+                            TextButton(
+                              onPressed: _loadRecentLeaves,
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      )
+                    else if (recentLeaves.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Text(
+                          'No recent requests',
+                          style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey),
+                        ),
+                      )
+                    else
+                      ...recentLeaves.map(
+                        (leave) => _leaveStatus(
+                          leave['type'] as String,
+                          leave['date'] as String,
+                          leave['days'] as String,
+                          leave['status'] as String,
+                          leave['color'] as Color,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -320,7 +397,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // Progress Row
+  // Color by usage: green (low) → blue (middle) → red (near total)
+  Color _progressColor(double value) {
+    final v = value.clamp(0.0, 1.0);
+    if (v <= 0.5) {
+      return Color.lerp(Colors.green, Colors.blue, v / 0.5)!;
+    }
+    return Color.lerp(Colors.blue, Colors.red, (v - 0.5) / 0.5)!;
+  }
+
   Widget _progressRow(String type, int used, int total) {
     final safeTotal = total == 0 ? 1 : total;
     final value = used / safeTotal;
@@ -341,8 +426,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           LinearProgressIndicator(
             value: value.clamp(0.0, 1.0),
             minHeight: 8,
-            color: Colors.blue,
-            backgroundColor: Colors.blue.shade100,
+            valueColor: AlwaysStoppedAnimation<Color>(_progressColor(value)),
+            backgroundColor: Colors.grey.shade200,
             borderRadius: BorderRadius.circular(8),
           ),
         ],
@@ -363,11 +448,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _QuickAction(
           icon: Icons.add_circle,
           label: 'Apply Leave',
-          onTap: () {
-            Navigator.push(
+          onTap: () async {
+            await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => LeaveFormScreen(user: widget.user)),
             );
+            if (!mounted) return;
+            // Refresh dashboard after applying leave
+            _loadRecentLeaves();
+            _loadLeaveBalance();
           },
         ),
         _QuickAction(
@@ -390,39 +479,85 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _QuickAction(
           icon: Icons.cabin,
           label: 'Request',
-          onTap: () {
-            Navigator.push(
+          onTap: () async {
+            await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const LeaveRequestScreen()),
             );
+            if (!mounted) return;
+            // Refresh dashboard after any request screen actions
+            _loadRecentLeaves();
+            _loadLeaveBalance();
           },
         ),
       ],
     );
   }
 
-  // Leave Status Card
+ // Recent request card — simple, user-friendly
   Widget _leaveStatus(String type, String date, String days, String status, Color color) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE8EDF5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: ListTile(
-        title: Text(type, style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
-        subtitle: Text('$date • $days', style: GoogleFonts.poppins(fontSize: 12)),
-        trailing: Chip(
-          label: Text(status),
-          backgroundColor: color.withOpacity(0.2),
-          labelStyle: TextStyle(color: color),
-        ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  type,
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF1E2A3A),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$date  ·  $days',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: const Color(0xFF6B7A90),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              status,
+              style: GoogleFonts.poppins(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-// Quick Action Widget
 class _QuickAction extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -455,3 +590,6 @@ class _QuickAction extends StatelessWidget {
     );
   }
 }
+
+// Quick Action Widget
+
