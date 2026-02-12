@@ -5,8 +5,6 @@ import 'package:test_app/Services/api_service.dart';
 import 'top_banner.dart';
 
 
-// ---------------- SCREEN ----------------
-
 class LeaveHistoryScreen extends StatefulWidget {
   final Map<String, dynamic> user;
   const LeaveHistoryScreen({super.key, required this.user});
@@ -16,11 +14,11 @@ class LeaveHistoryScreen extends StatefulWidget {
 }
 
 enum LeaveStatus {
-  pending,          // waiting for reliever decision
+  pending,
   relieverAccepted,
   relieverDeclined,
-  approved,         // manager approved
-  rejected,         // manager rejected
+  approved,   
+  rejected,       
 }
 
 
@@ -34,6 +32,7 @@ class LeaveRequest {
   final String appliedOn;
   final LeaveStatus status;
   final String? managerComment;
+  final String? relieverComment;
 
   LeaveRequest({
     required this.leaveRequestId,
@@ -45,11 +44,12 @@ class LeaveRequest {
     required this.appliedOn,
     required this.status,
     this.managerComment,
+    this.relieverComment,
   });
 }
 
 class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
-  int selectedFilter = 0; // 0 all, 1 pending, 2 approved, 3 rejected, 4 canceled
+  int selectedFilter = 0; // 0 all, 1 pending, 2 approved, 3 rejected
 
   bool loading = true;
   String? error;
@@ -110,6 +110,7 @@ LeaveStatus _parseStatus(String s) {
               appliedOn: (x["requested_at"] ?? "-").toString(),
               status: _parseStatus((x["status"] ?? "PENDING").toString()),
               managerComment: x["manager_comment"]?.toString(),
+              relieverComment: x["reliever_comment"]?.toString() ?? x["reliever_notes"]?.toString(),
             );
           }).toList();
           loading = false;
@@ -375,7 +376,7 @@ LeaveStatus _parseStatus(String s) {
             const SizedBox(height: 12),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: const Color(0xFFD7E8F6),
                 borderRadius: BorderRadius.circular(10),
@@ -390,6 +391,47 @@ LeaveStatus _parseStatus(String s) {
                     ),
                     TextSpan(
                       text: r.managerComment!,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+
+          // Reliever comment: blue box when accepted, red box when declined
+          if (r.relieverComment != null && r.relieverComment!.trim().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: r.status == LeaveStatus.relieverDeclined
+                    ? const Color(0xFFFFD9D9) // light red for declined
+                    : const Color(0xFFD7E8F6), // same blue tone as manager comment for accepted
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: RichText(
+                text: TextSpan(
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: r.status == LeaveStatus.relieverDeclined
+                        ? const Color(0xFF7A1A1A)
+                        : const Color(0xFF1E2A3A),
+                    height: 1.3,
+                  ),
+                  children: [
+                    TextSpan(
+                      text: "Reliever's Comment:\n",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: r.status == LeaveStatus.relieverDeclined
+                            ? const Color(0xFF7A1A1A)
+                            : const Color(0xFF1E2A3A),
+                      ),
+                    ),
+                    TextSpan(
+                      text: r.relieverComment!,
                       style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ],
