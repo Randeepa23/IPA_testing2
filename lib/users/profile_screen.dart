@@ -375,6 +375,15 @@ class _DividerLine extends StatelessWidget {
   }
 }
 
+// Color by usage: green (low) → blue (middle) → red (near total)
+Color _leaveProgressColor(double value) {
+  final v = value.clamp(0.0, 1.0);
+  if (v <= 0.5) {
+    return Color.lerp(Colors.green, Colors.blue, v / 0.5)!;
+  }
+  return Color.lerp(Colors.blue, Colors.red, (v - 0.5) / 0.5)!;
+}
+
 class _LeaveBar extends StatelessWidget {
   final String title;
   final int used;
@@ -418,7 +427,8 @@ class _LeaveBar extends StatelessWidget {
           child: LinearProgressIndicator(
             value: ratio,
             minHeight: 8,
-            backgroundColor: const Color(0xFFEAF1FF),
+            valueColor: AlwaysStoppedAnimation<Color>(_leaveProgressColor(ratio)),
+            backgroundColor: Colors.grey.shade200,
           ),
         ),
         const SizedBox(height: 6),

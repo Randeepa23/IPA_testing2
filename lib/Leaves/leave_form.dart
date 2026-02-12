@@ -39,23 +39,6 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
   // Example leave types
   final leaveTypes = ['Annual Leave', 'Sick Leave', 'Casual Leave'];
 
-
-  // ===== MASTER MEMBER DATA WITH AVAILABILITY =====
-  final List<Map<String, dynamic>> allMembers = [
-    {
-      'id': 'M001',
-      'name': 'John Doe',
-      'availableFrom': DateTime(2026, 2, 1),
-      'availableTo': DateTime(2026, 2, 10),
-    },
-    {
-      'id': 'M002',
-      'name': 'Jane Smith',
-      'availableFrom': DateTime(2026, 1, 15),
-      'availableTo': DateTime(2026, 1, 25),
-    },
-  ];
-
   //Filtered members
   List<Map<String, String>> availableMembers = [];
 
@@ -72,7 +55,6 @@ void initState() {
   departmentController.text = widget.user['department'] ?? '';
   contactController.text = widget.user['primaryContact'] ?? '';
 }
-
 Future<void> _submitForm() async {
   if (!_formKey.currentState!.validate()) return;
 
