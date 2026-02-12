@@ -23,14 +23,17 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
 
   final _newPassController = TextEditingController();
   final _confirmPassController = TextEditingController();
+  final _recoveryKeyController = TextEditingController();
 
   bool _obscureNew = true;
   bool _obscureConfirm = true;
+  bool _obscureRecovery = true;
 
   @override
   void dispose() {
     _newPassController.dispose();
     _confirmPassController.dispose();
+    _recoveryKeyController.dispose();
     super.dispose();
   }
 
@@ -39,6 +42,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
 
     final newPassword = _newPassController.text.trim();
     final confirmPassword = _confirmPassController.text.trim();
+    final recoveryKey = _recoveryKeyController.text.trim();
 
     if (newPassword != confirmPassword) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -77,6 +81,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
       final res = await ApiService.updatePassword(
         email: email,
         newPassword: newPassword,
+        recoveryKey: recoveryKey,
       );
 
       if (!mounted) return;
@@ -182,14 +187,41 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                         ),
 
                         SizedBox(height: sectionGap),
+                        
+                        TextFormField(
+                          controller: _recoveryKeyController,
+                          obscureText: _obscureRecovery,
+                          decoration: InputDecoration(
+                            labelText: 'Recovery Key',
+                            filled: true,
+                            fillColor: Colors.grey.shade100,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: BorderSide.none,
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              borderSide: const BorderSide(color: Colors.blue, width: 1.2),
+                            ),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscureRecovery ? Icons.visibility_off : Icons.visibility,
+                              ),
+                              onPressed: () {
+                                setState(() => _obscureRecovery = !_obscureRecovery);
+                              },
+                            ),
+                          ),
+                        ),
 
+                        const SizedBox(height: 16),
                         // New Password (styled similar to login fields)
                         TextFormField(
                           controller: _newPassController,
                           obscureText: _obscureNew,
                           decoration: InputDecoration(
                             labelText: 'New Password',
-                            hintText: 'Enter a new password',
                             filled: true,
                             fillColor: Colors.grey.shade100,
                             contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
@@ -229,7 +261,6 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                           obscureText: _obscureConfirm,
                           decoration: InputDecoration(
                             labelText: 'Confirm Password',
-                            hintText: 'Re‑enter new password',
                             filled: true,
                             fillColor: Colors.grey.shade100,
                             contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
