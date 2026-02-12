@@ -244,5 +244,41 @@ static Future<Map<String, dynamic>> forgotPassword({
 }
 
 
+static Future<Map<String, dynamic>> relieverAccept({
+  required int leaveRequestId,
+  required String relieverId,
+  required String comment,
+}) async {
+  final url = Uri.parse("$baseUrl/reliever_accept.php");
+  final res = await http.post(
+    url,
+    headers: {"Content-Type": "application/json"},
+    body: jsonEncode({
+      "leaveRequestId": leaveRequestId,
+      "relieverId": relieverId,
+      "comment": comment,
+    }),
+  );
+  return jsonDecode(res.body);
+}
+
+static Future<Map<String, dynamic>> relieverDecline({
+  required int leaveRequestId,
+  required String relieverId,
+  required String comment,
+}) async {
+  final url = Uri.parse("$baseUrl/reliever_decline.php");
+  final res = await http.post(
+    url,
+    headers: {"Content-Type": "application/json"},
+    body: jsonEncode({
+      "leaveRequestId": leaveRequestId,
+      "relieverId": relieverId,
+      "comment": comment,
+    }),
+  );
+  return jsonDecode(res.body);
+}
+
 
 }

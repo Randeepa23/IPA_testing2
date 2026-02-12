@@ -15,7 +15,14 @@ class LeaveHistoryScreen extends StatefulWidget {
   State<LeaveHistoryScreen> createState() => _LeaveHistoryScreenState();
 }
 
-enum LeaveStatus { pending, approved, rejected }
+enum LeaveStatus {
+  pending,          // waiting for reliever decision
+  relieverAccepted,
+  relieverDeclined,
+  approved,         // manager approved
+  rejected,         // manager rejected
+}
+
 
 class LeaveRequest {
   final int leaveRequestId;
@@ -54,12 +61,19 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
     _loadHistory();
   }
 
-  LeaveStatus _parseStatus(String s) {
-    s = s.toUpperCase().trim();
-    if (s == "APPROVED") return LeaveStatus.approved;
-    if (s == "REJECTED") return LeaveStatus.rejected;
-    return LeaveStatus.pending;
-  }
+LeaveStatus _parseStatus(String s) {
+  s = s.toUpperCase().trim();
+
+  if (s == "APPROVED") return LeaveStatus.approved;
+  if (s == "REJECTED") return LeaveStatus.rejected;
+
+  if (s == "RELIEVER ACCEPTED") return LeaveStatus.relieverAccepted;
+  if (s == "RELIEVER DECLINED") return LeaveStatus.relieverDeclined;
+
+  // default
+  return LeaveStatus.pending;
+}
+
 
   Future<void> _loadHistory() async {
     try {
@@ -327,7 +341,7 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
           ),
 
           // Cancel button ONLY for pending
-          if (r.status == LeaveStatus.pending) ...[
+          if (r.status == LeaveStatus.pending || r.status == LeaveStatus.relieverDeclined) ...[
             const SizedBox(height: 10),
             Align(
               alignment: Alignment.centerRight,
@@ -563,40 +577,61 @@ Future<bool?> _confirmCancel() async {
 
   // ---------------- HELPERS ----------------
 
-  Map<String, dynamic> _statusUI(LeaveStatus s) {
-    switch (s) {
-      case LeaveStatus.pending:
-        return {'text': 'Pending', 'bg': const Color(0xFFE7D48A), 'fg': const Color(0xFF6B4F00)};
-      case LeaveStatus.approved:
-        return {'text': 'Approved', 'bg': const Color(0xFFCFF1D6), 'fg': const Color(0xFF0F6B2D)};
-      case LeaveStatus.rejected:
-        return {'text': 'Rejected', 'bg': const Color(0xFFFFD1D1), 'fg': const Color(0xFF9B1C1C)};
+Map<String, dynamic> _statusUI(LeaveStatus s) {
+  switch (s) {
+    case LeaveStatus.pending:
+      return {'text': 'Pending', 'bg': const Color(0xFFE7D48A), 'fg': const Color(0xFF6B4F00)};
+
+    case LeaveStatus.relieverAccepted:
+      return {'text': 'Reliever Accepted', 'bg': const Color(0xFFD7F3FF), 'fg': const Color(0xFF0B4F6C)};
+
+    case LeaveStatus.relieverDeclined:
+      return {'text': 'Reliever Declined', 'bg': const Color(0xFFE7D48A), 'fg': const Color(0xFF6B4F00)};
+
+    case LeaveStatus.approved:
+      return {'text': 'Approved', 'bg': const Color(0xFFCFF1D6), 'fg': const Color(0xFF0F6B2D)};
+
+    case LeaveStatus.rejected:
+      return {'text': 'Rejected', 'bg': const Color(0xFFFFD1D1), 'fg': const Color(0xFF9B1C1C)};
+  }
+}
+
+
+Map<String, int> _counts(List<LeaveRequest> list) {
+  int pending = 0, approved = 0, rejected = 0;
+
+  for (final r in list) {
+    if (r.status == LeaveStatus.approved) approved++;
+    else if (r.status == LeaveStatus.rejected) rejected++;
+    else {
+      // everything not final goes to "Pending"
+      pending++;
     }
   }
 
-  Map<String, int> _counts(List<LeaveRequest> list) {
-    int pending = 0, approved = 0, rejected = 0;
-    for (final r in list) {
-      if (r.status == LeaveStatus.pending) pending++;
-      if (r.status == LeaveStatus.approved) approved++;
-      if (r.status == LeaveStatus.rejected) rejected++;
+  return {
+    'all': list.length,
+    'pending': pending,
+    'approved': approved,
+    'rejected': rejected,
+  };
+}
+
+
+List<LeaveRequest> _filteredList(List<LeaveRequest> list) {
+  if (selectedFilter == 0) return list;
+
+  return list.where((r) {
+    if (selectedFilter == 1) {
+      // PENDING TAB includes reliever states too
+      return r.status == LeaveStatus.pending ||
+             r.status == LeaveStatus.relieverAccepted ||
+             r.status == LeaveStatus.relieverDeclined;
     }
-    return {
-      'all': list.length,
-      'pending': pending,
-      'approved': approved,
-      'rejected': rejected,
-    };
-  }
+    if (selectedFilter == 2) return r.status == LeaveStatus.approved;
+    if (selectedFilter == 3) return r.status == LeaveStatus.rejected;
+    return true;
+  }).toList();
+}
 
-  List<LeaveRequest> _filteredList(List<LeaveRequest> list) {
-    if (selectedFilter == 0) return list;
-
-    return list.where((r) {
-      if (selectedFilter == 1) return r.status == LeaveStatus.pending;
-      if (selectedFilter == 2) return r.status == LeaveStatus.approved;
-      if (selectedFilter == 3) return r.status == LeaveStatus.rejected;
-      return true;
-    }).toList();
-  }
 }

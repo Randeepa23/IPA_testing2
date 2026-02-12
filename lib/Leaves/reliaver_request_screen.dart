@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:test_app/Services/api_service.dart';
 
@@ -38,9 +41,17 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
 
       final res = await ApiService.getRelieverRequests(employeeId: employeeId);
 
+      if (!mounted) return;
+
       if (res["success"] == true) {
         final raw = res["requests"] ?? res["data"] ?? [];
         final list = List<Map<String, dynamic>>.from(raw);
+
+        // dispose old controllers first
+        for (final r in requests) {
+          final c = r["noteController"];
+          if (c is TextEditingController) c.dispose();
+        }
 
         // add controller per item
         for (final r in list) {
@@ -58,6 +69,7 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         loading = false;
         errorText = e.toString();
@@ -85,8 +97,6 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
         child: Column(
           children: [
             const SizedBox(height: 8),
-
-            // ✅ YOU ASKED WHERE TO ADD THIS -> THIS IS THE CORRECT PLACE
             if (loading)
               const Padding(
                 padding: EdgeInsets.only(top: 30),
@@ -126,7 +136,6 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
         ? r["noteController"] as TextEditingController
         : TextEditingController();
 
-    // ✅ Safe reads (works with different API key names)
     String getStr(List<String> keys, {String fallback = "-"}) {
       for (final k in keys) {
         final v = r[k];
@@ -134,6 +143,12 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
       }
       return fallback;
     }
+
+    final int leaveRequestId = (r["leaveRequestId"] is int)
+        ? r["leaveRequestId"] as int
+        : int.tryParse((r["leaveRequestId"] ?? "0").toString()) ?? 0;
+
+    final relieverId = widget.user["employeeId"]?.toString() ?? "";
 
     final name = getStr(["name", "employee_name"]);
     final role = getStr(["job_title_name", "designation", "job_title"], fallback: "");
@@ -162,7 +177,6 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // header row
           Row(
             children: [
               Container(
@@ -203,10 +217,8 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
               _statusPill(status, const Color(0xFFE7D48A), const Color(0xFF6B4F00)),
             ],
           ),
-
           const SizedBox(height: 12),
 
-          // details box
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -222,8 +234,6 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
                 const SizedBox(height: 8),
                 _rowLine("To date", to),
                 const SizedBox(height: 10),
-
-                // total days blue bar
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -260,48 +270,30 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
 
           const SizedBox(height: 12),
 
-          const Text(
-            "Add Note (Optional)",
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF1E2A3A),
-            ),
-          ),
-          const SizedBox(height: 8),
-
-          TextField(
-            controller: ctrl,
-            maxLines: 3,
-            decoration: InputDecoration(
-              hintText: "Type........",
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding: const EdgeInsets.all(12),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFE1E6EF)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: (Colors.blue[800] ?? Colors.blue)),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
           Row(
             children: [
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () async {
-                    // TODO: connect decline API
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Decline tapped")),
-                    );
-                  },
+                  onPressed: () => _showDeclineDialog(
+                    employeeName: name,
+                    initialNote: "",
+                    onDecline: (comment) async {
+                      if (leaveRequestId <= 0 || relieverId.isEmpty) return;
+
+                      final res = await ApiService.relieverDecline(
+                        leaveRequestId: leaveRequestId,
+                        relieverId: relieverId,
+                        comment: comment,
+                      );
+
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(res["message"] ?? "Declined")),
+                      );
+
+                      await _loadRelieverRequests();
+                    },
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFB10F0F),
                     elevation: 0,
@@ -320,14 +312,22 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
                 child: ElevatedButton(
                   onPressed: () => _showAcceptDialog(
                     employeeName: name,
-                    note: ctrl.text,
-                    onAccept: () async {
-                      // TODO: connect accept API
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text("Accepted (Note: ${ctrl.text})")),
+                    initialNote: "",
+                    onAccept: (comment) async {
+                      if (leaveRequestId <= 0 || relieverId.isEmpty) return;
+
+                      final res = await ApiService.relieverAccept(
+                        leaveRequestId: leaveRequestId,
+                        relieverId: relieverId,
+                        comment: comment,
                       );
-                      // Optional refresh:
-                      // await _loadRelieverRequests();
+
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(res["message"] ?? "Accepted")),
+                      );
+
+                      await _loadRelieverRequests();
                     },
                   ),
                   style: ElevatedButton.styleFrom(
@@ -396,121 +396,245 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
     );
   }
 
-  void _showAcceptDialog({
+  // ========= Decline dialog (comment required) =========
+  Future<void> _showDeclineDialog({
     required String employeeName,
-    required String note,
-    required VoidCallback onAccept,
-  }) {
-    final blue = Colors.blue[800] ?? Colors.blue;
+    required String initialNote,
+    required Function(String comment) onDecline,
+  }) async {
+    final controller = TextEditingController(text: initialNote);
+    final formKey = GlobalKey<FormState>();
 
-    showDialog(
+    await showDialog(
       context: context,
-      barrierDismissible: true,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withOpacity(0.15),
       builder: (ctx) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 18),
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.18),
-                  blurRadius: 24,
-                  offset: const Offset(0, 12),
-                ),
-              ],
+        final w = MediaQuery.of(ctx).size.width;
+        final dialogW = (w * 0.92).clamp(280.0, 420.0);
+
+        return Stack(
+          children: [
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+              child: Container(color: Colors.transparent),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 26,
-                      height: 26,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFE8E8),
-                        borderRadius: BorderRadius.circular(999),
+            Center(
+              child: Dialog(
+                insetPadding: const EdgeInsets.all(16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                child: SizedBox(
+                  width: dialogW,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                    child: Form(
+                      key: formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.error_outline, color: Colors.red),
+                              const SizedBox(width: 10),
+                              const Expanded(
+                                child: Text(
+                                  "Decline Reliever Coverage",
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () => Navigator.pop(ctx),
+                                icon: const Icon(Icons.close),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            "This action cannot be undone.",
+                            style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text("Your Comment", style: TextStyle(fontWeight: FontWeight.w800)),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: controller,
+                            maxLines: 3,
+                            decoration: InputDecoration(
+                              hintText: "Explain why you cannot cover this leave...",
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            validator: (v) {
+                              if (v == null || v.trim().isEmpty) return "Comment is required for decline";
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            "Are you sure you want to decline covering leave for $employeeName?",
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () => Navigator.pop(ctx),
+                                  style: OutlinedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                  child: const Text("Cancel"),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    if (!formKey.currentState!.validate()) return;
+                                    final comment = controller.text.trim();
+                                    Navigator.pop(ctx);
+                                    onDecline(comment);
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFD32F2F),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                  child: const Text(
+                                    "Decline",
+                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      child: const Icon(Icons.error_outline, color: Color(0xFFD64545), size: 18),
                     ),
-                    const SizedBox(width: 10),
-                    const Expanded(
-                      child: Text(
-                        "Are You Accept Request",
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF1E2A3A)),
-                      ),
-                    ),
-                    InkWell(
-                      onTap: () => Navigator.pop(ctx),
-                      child: const Icon(Icons.close, size: 18, color: Colors.black54),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  "This action cannot be undone",
-                  style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Color(0xFF6B7A90)),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  "Are you sure you want to accept this leave request from $employeeName?\nYour leave balance will be restored.",
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1E2A3A), height: 1.3),
-                ),
-                if (note.trim().isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Text(
-                    "Note: $note",
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF1E2A3A)),
                   ),
-                ],
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          side: const BorderSide(color: Color(0xFFE1E6EF)),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        child: const Text(
-                          "Cancel",
-                          style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF1E2A3A)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          onAccept();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: blue,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        child: const Text(
-                          "Accept",
-                          style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white),
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         );
       },
     );
+
+    controller.dispose();
+  }
+
+  // ========= Accept dialog (comment optional) =========
+  Future<void> _showAcceptDialog({
+    required String employeeName,
+    required String initialNote,
+    required Function(String comment) onAccept,
+  }) async {
+    final controller = TextEditingController(text: initialNote);
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withOpacity(0.15),
+      builder: (ctx) {
+        final w = MediaQuery.of(ctx).size.width;
+        final dialogW = (w * 0.92).clamp(280.0, 420.0);
+
+        return Stack(
+          children: [
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+              child: Container(color: Colors.transparent),
+            ),
+            Center(
+              child: Dialog(
+                insetPadding: const EdgeInsets.all(16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                child: SizedBox(
+                  width: dialogW,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.check_circle_outline, color: Colors.green),
+                            const SizedBox(width: 10),
+                            const Expanded(
+                              child: Text(
+                                "Accept & Forward Request",
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              icon: const Icon(Icons.close),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Text("Your Comment", style: TextStyle(fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: controller,
+                          maxLines: 3,
+                          decoration: InputDecoration(
+                            hintText: "e.g. I will cover all responsibilities during these dates...",
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          "Are you sure you want to accept and forward this leave request for $employeeName?",
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => Navigator.pop(ctx),
+                                style: OutlinedButton.styleFrom(
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                                child: const Text("Cancel"),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  final comment = controller.text.trim();
+                                  Navigator.pop(ctx);
+                                  onAccept(comment);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color.fromARGB(255, 57, 138, 60),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                                child: const Text(
+                                  "Accept & Forward",
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
   }
 }
