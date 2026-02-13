@@ -181,7 +181,7 @@ Widget build(BuildContext context) {
       onRefresh: _loadHistory,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
           const SizedBox(height: 8),
 

@@ -37,7 +37,11 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
   String? attachedFileName;
 
   // Example leave types
-  final leaveTypes = ['Annual Leave', 'Sick Leave', 'Casual Leave'];
+  final leaveTypes = ['Annual Leave', 'Sick Leave', 'Casual Leave', 'Half Day'];
+
+  bool isHalfDay = false;
+  String? halfDaySession; // 'MORNING' or 'EVENING'
+
 
   //Filtered members
   List<Map<String, String>> availableMembers = [];
