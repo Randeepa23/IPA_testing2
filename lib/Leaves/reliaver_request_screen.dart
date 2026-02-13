@@ -47,13 +47,10 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
         final raw = res["requests"] ?? res["data"] ?? [];
         final list = List<Map<String, dynamic>>.from(raw);
 
-        // dispose old controllers first
-        for (final r in requests) {
-          final c = r["noteController"];
-          if (c is TextEditingController) c.dispose();
-        }
+        // Keep reference to old controllers so we can dispose after build
+        final oldRequests = List<Map<String, dynamic>>.from(requests);
 
-        // add controller per item
+        // add controller per item for new list
         for (final r in list) {
           r["noteController"] = TextEditingController(text: "");
         }
@@ -61,6 +58,14 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
         setState(() {
           requests = list;
           loading = false;
+        });
+
+        // Dispose old controllers after this frame so TextFields have released them
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          for (final r in oldRequests) {
+            final c = r["noteController"];
+            if (c is TextEditingController) c.dispose();
+          }
         });
       } else {
         setState(() {
@@ -92,42 +97,45 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
-        child: Column(
-          children: [
-            const SizedBox(height: 8),
-            if (loading)
-              const Padding(
-                padding: EdgeInsets.only(top: 30),
-                child: CircularProgressIndicator(),
-              )
-            else if (errorText != null)
-              Column(
-                children: [
-                  Text(errorText!, style: const TextStyle(color: Colors.red)),
-                  const SizedBox(height: 10),
-                  ElevatedButton(
-                    onPressed: _loadRelieverRequests,
-                    child: const Text("Retry"),
-                  ),
-                ],
-              )
-            else if (requests.isEmpty)
-              const Padding(
-                padding: EdgeInsets.only(top: 30),
-                child: Text("No reliever requests"),
-              )
-            else
-              ...requests.map((r) => Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: _requestCard(r, blue),
-                  )),
-          ],
+      body: RefreshIndicator(
+      onRefresh: _loadRelieverRequests,
+      child: ListView(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        const SizedBox(height: 8),
+
+        if (loading)
+          const Padding(
+            padding: EdgeInsets.only(top: 30),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (errorText != null)
+          Column(
+            children: [
+              Text(errorText!, style: const TextStyle(color: Colors.red)),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: _loadRelieverRequests,
+                child: const Text("Retry"),
+              ),
+            ],
+          )
+        else if (requests.isEmpty)
+          const Padding(
+            padding: EdgeInsets.only(top: 30),
+            child: Center(child: Text("No reliever requests")),
+          )
+        else
+          ...requests.map((r) => Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: _requestCard(r, blue),
+              )),
+            ],
+          ),
         ),
-      ),
-    );
-  }
+      );
+    }
 
   // ---------------- CARD UI ----------------
 
@@ -521,7 +529,8 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
       },
     );
 
-    controller.dispose();
+    // Dispose after dialog tree has been torn down to avoid _dependents.isEmpty
+    WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
   }
 
   // ========= Accept dialog (comment optional) =========
@@ -635,6 +644,7 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
       },
     );
 
-    controller.dispose();
+    // Dispose after dialog tree has been torn down to avoid _dependents.isEmpty
+    WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
   }
 }

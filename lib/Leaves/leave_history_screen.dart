@@ -169,49 +169,55 @@ LeaveStatus _parseStatus(String s) {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final blue = Colors.blue[800]!;
-    final counts = _counts(allRequests);
-    final filtered = _filteredList(allRequests);
+@override
+Widget build(BuildContext context) {
+  final blue = Colors.blue[800]!;
+  final counts = _counts(allRequests);
+  final filtered = _filteredList(allRequests);
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SingleChildScrollView(
+  return Scaffold(
+    backgroundColor: Colors.white,
+    body: RefreshIndicator(
+      onRefresh: _loadHistory,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // --- state (loading/error) ---
-            if (loading) ...[
-              const SizedBox(height: 10),
-              const Center(child: CircularProgressIndicator()),
-              const SizedBox(height: 18),
-            ] else if (error != null) ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3F3),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFFFD1D1)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Error: $error", style: const TextStyle(fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 10),
-                    ElevatedButton(
-                      onPressed: _loadHistory,
-                      child: const Text("Retry"),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-            ],
+        children: [
+          const SizedBox(height: 8),
 
-            // Filter chips row
+          // --- loading ---
+          if (loading)
+            const Padding(
+              padding: EdgeInsets.only(top: 30),
+              child: Center(child: CircularProgressIndicator()),
+            )
+
+          // --- error ---
+          else if (error != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3F3),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFFD1D1)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Error: $error",
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: _loadHistory,
+                    child: const Text("Retry"),
+                  ),
+                ],
+              ),
+            )
+
+          else ...[
+            // Filter chips
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -229,22 +235,25 @@ LeaveStatus _parseStatus(String s) {
 
             const SizedBox(height: 16),
 
-            if (!loading && error == null && filtered.isEmpty)
+            if (filtered.isEmpty)
               const Padding(
-                padding: EdgeInsets.only(top: 18),
+                padding: EdgeInsets.only(top: 30),
                 child: Center(child: Text("No requests found")),
-              ),
-
-            // Cards list
-            ...filtered.map((r) => Padding(
+              )
+            else
+              ...filtered.map(
+                (r) => Padding(
                   padding: const EdgeInsets.only(bottom: 14),
                   child: _leaveCard(r, blue),
-                )),
+                ),
+              ),
           ],
-        ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   // ---------------- FILTER CHIPS ----------------
 
