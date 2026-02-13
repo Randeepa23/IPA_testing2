@@ -45,6 +45,9 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
   String? selectedMember;
   bool noMemberConfirmed = false;
 
+  // show loading on Send button
+  bool _isSubmitting = false;
+
 @override
 void initState() {
   super.initState();
@@ -82,6 +85,10 @@ Future<void> _submitForm() async {
   final days = (toDate!.difference(fromDate!).inDays + 1).toDouble();
 
   try {
+    setState(() {
+      _isSubmitting = true;
+    });
+
     final res = await ApiService.applyLeaveRequest(
       employeeId: widget.user["employeeId"],
       leavePolicyId: leavePolicyId,
@@ -112,9 +119,8 @@ Future<void> _submitForm() async {
         },
       );
       // OPTIONAL: close form after showing banner (slight delay)
-        Navigator.pop(context);
-      Future.delayed(const Duration(milliseconds: 1000), () {
-      });
+      Navigator.pop(context);
+      Future.delayed(const Duration(milliseconds: 1000), () {});
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(res["message"] ?? "Failed")),
@@ -124,6 +130,12 @@ Future<void> _submitForm() async {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Error: $e")),
     );
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isSubmitting = false;
+      });
+    }
   }
 }
 
@@ -262,19 +274,42 @@ void _showSubmitConfirmation() {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.pop(ctx);
-                                _submitForm();
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: blue,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                              ),
-                              child: const Text(
-                                "Send",
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                            child: Center(
+                              child: SizedBox(
+                                width: 200,
+                                height: 48,
+                                child: ElevatedButton(
+                                  onPressed: _isSubmitting
+                                      ? null
+                                      : () {
+                                          _submitForm();
+                                          Navigator.pop(ctx);
+                                        },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF0060A6),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  child: _isSubmitting
+                                      ? const SizedBox(
+                                          width: 22,
+                                          height: 22,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.5,
+                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                          ),
+                                        )
+                                      : const Text(
+                                          'Send',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                ),
                               ),
                             ),
                           ),

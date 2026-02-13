@@ -103,6 +103,19 @@ class _TopBannerWidgetState extends State<_TopBannerWidget>
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
 
+    // Choose friendly colors based on the type of message (icon)
+    final bool isSuccess = widget.icon == Icons.check_circle;
+    final bool isError =
+        widget.icon == Icons.cancel || widget.icon == Icons.error || widget.icon == Icons.error_outline;
+
+    final Color bgColor = isSuccess
+        ? const Color.fromARGB(255, 14, 81, 168) // green
+        : isError
+            ? const Color(0xFFDB4437) // red
+            : const Color.fromARGB(255, 33, 232, 26); // blue / info
+
+    final Color textColor = Colors.white;
+
     return Material(
       color: Colors.transparent,
       child: Stack(
@@ -120,26 +133,26 @@ class _TopBannerWidgetState extends State<_TopBannerWidget>
                   child: Container(
                     padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.95),
+                      color: bgColor,
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: Colors.white.withOpacity(0.22)),
+                      border: Border.all(color: Colors.white.withOpacity(0.18)),
                       boxShadow: [
                         BoxShadow(
                           blurRadius: 18,
-                          color: Colors.black.withOpacity(0.18),
+                          color: Colors.black.withOpacity(0.28),
                           offset: const Offset(0, 10),
                         )
                       ],
                     ),
                     child: DefaultTextStyle(
-                      style: const TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
+                      style: TextStyle(color: textColor),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                         Row(
                           children: [
                             if (widget.icon != null)
-                              Icon(widget.icon, color: Colors.black, size: 24),
+                              Icon(widget.icon, color: Colors.white, size: 24),
 
                             if (widget.icon != null)
                               const SizedBox(width: 10),
@@ -147,9 +160,10 @@ class _TopBannerWidgetState extends State<_TopBannerWidget>
                             Expanded(
                               child: Text(
                                 widget.title,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w800,
+                                  color: textColor,
                                 ),
                               ),
                             ),
@@ -162,7 +176,7 @@ class _TopBannerWidgetState extends State<_TopBannerWidget>
                             style: TextStyle(
                               fontSize: 12.5,
                               fontWeight: FontWeight.w600,
-                              color: const Color.fromARGB(255, 0, 0, 0).withOpacity(0.85),
+                              color: textColor.withOpacity(0.9),
                             ),
                           ),
                           const SizedBox(height: 14),
@@ -215,7 +229,11 @@ class _TopBannerWidgetState extends State<_TopBannerWidget>
         ),
         child: Text(
           text,
-          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+          style: const TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 13,
+            color: Colors.white,
+          ),
         ),
       ),
     );

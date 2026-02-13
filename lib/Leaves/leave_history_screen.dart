@@ -5,8 +5,6 @@ import 'package:test_app/Services/api_service.dart';
 import 'top_banner.dart';
 
 
-// ---------------- SCREEN ----------------
-
 class LeaveHistoryScreen extends StatefulWidget {
   final Map<String, dynamic> user;
   const LeaveHistoryScreen({super.key, required this.user});
@@ -15,7 +13,14 @@ class LeaveHistoryScreen extends StatefulWidget {
   State<LeaveHistoryScreen> createState() => _LeaveHistoryScreenState();
 }
 
-enum LeaveStatus { pending, approved, rejected }
+enum LeaveStatus {
+  pending,
+  relieverAccepted,
+  relieverDeclined,
+  approved,   
+  rejected,       
+}
+
 
 class LeaveRequest {
   final int leaveRequestId;
@@ -27,6 +32,7 @@ class LeaveRequest {
   final String appliedOn;
   final LeaveStatus status;
   final String? managerComment;
+  final String? relieverComment;
 
   LeaveRequest({
     required this.leaveRequestId,
@@ -38,11 +44,12 @@ class LeaveRequest {
     required this.appliedOn,
     required this.status,
     this.managerComment,
+    this.relieverComment,
   });
 }
 
 class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
-  int selectedFilter = 0; // 0 all, 1 pending, 2 approved, 3 rejected, 4 canceled
+  int selectedFilter = 0; // 0 all, 1 pending, 2 approved, 3 rejected
 
   bool loading = true;
   String? error;
@@ -54,12 +61,19 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
     _loadHistory();
   }
 
-  LeaveStatus _parseStatus(String s) {
-    s = s.toUpperCase().trim();
-    if (s == "APPROVED") return LeaveStatus.approved;
-    if (s == "REJECTED") return LeaveStatus.rejected;
-    return LeaveStatus.pending;
-  }
+LeaveStatus _parseStatus(String s) {
+  s = s.toUpperCase().trim();
+
+  if (s == "APPROVED") return LeaveStatus.approved;
+  if (s == "REJECTED") return LeaveStatus.rejected;
+
+  if (s == "RELIEVER ACCEPTED") return LeaveStatus.relieverAccepted;
+  if (s == "RELIEVER DECLINED") return LeaveStatus.relieverDeclined;
+
+  // default
+  return LeaveStatus.pending;
+}
+
 
   Future<void> _loadHistory() async {
     try {
@@ -96,6 +110,7 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
               appliedOn: (x["requested_at"] ?? "-").toString(),
               status: _parseStatus((x["status"] ?? "PENDING").toString()),
               managerComment: x["manager_comment"]?.toString(),
+              relieverComment: x["reliever_comment"]?.toString() ?? x["reliever_notes"]?.toString(),
             );
           }).toList();
           loading = false;
@@ -154,49 +169,55 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final blue = Colors.blue[800]!;
-    final counts = _counts(allRequests);
-    final filtered = _filteredList(allRequests);
+@override
+Widget build(BuildContext context) {
+  final blue = Colors.blue[800]!;
+  final counts = _counts(allRequests);
+  final filtered = _filteredList(allRequests);
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SingleChildScrollView(
+  return Scaffold(
+    backgroundColor: Colors.white,
+    body: RefreshIndicator(
+      onRefresh: _loadHistory,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // --- state (loading/error) ---
-            if (loading) ...[
-              const SizedBox(height: 10),
-              const Center(child: CircularProgressIndicator()),
-              const SizedBox(height: 18),
-            ] else if (error != null) ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3F3),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFFFD1D1)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Error: $error", style: const TextStyle(fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 10),
-                    ElevatedButton(
-                      onPressed: _loadHistory,
-                      child: const Text("Retry"),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-            ],
+        children: [
+          const SizedBox(height: 8),
 
-            // Filter chips row
+          // --- loading ---
+          if (loading)
+            const Padding(
+              padding: EdgeInsets.only(top: 30),
+              child: Center(child: CircularProgressIndicator()),
+            )
+
+          // --- error ---
+          else if (error != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3F3),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFFD1D1)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Error: $error",
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: _loadHistory,
+                    child: const Text("Retry"),
+                  ),
+                ],
+              ),
+            )
+
+          else ...[
+            // Filter chips
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -214,22 +235,25 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
 
             const SizedBox(height: 16),
 
-            if (!loading && error == null && filtered.isEmpty)
+            if (filtered.isEmpty)
               const Padding(
-                padding: EdgeInsets.only(top: 18),
+                padding: EdgeInsets.only(top: 30),
                 child: Center(child: Text("No requests found")),
-              ),
-
-            // Cards list
-            ...filtered.map((r) => Padding(
+              )
+            else
+              ...filtered.map(
+                (r) => Padding(
                   padding: const EdgeInsets.only(bottom: 14),
                   child: _leaveCard(r, blue),
-                )),
+                ),
+              ),
           ],
-        ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   // ---------------- FILTER CHIPS ----------------
 
@@ -327,7 +351,7 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
           ),
 
           // Cancel button ONLY for pending
-          if (r.status == LeaveStatus.pending) ...[
+          if (r.status == LeaveStatus.pending || r.status == LeaveStatus.relieverDeclined) ...[
             const SizedBox(height: 10),
             Align(
               alignment: Alignment.centerRight,
@@ -361,7 +385,7 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
             const SizedBox(height: 12),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: const Color(0xFFD7E8F6),
                 borderRadius: BorderRadius.circular(10),
@@ -376,6 +400,47 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
                     ),
                     TextSpan(
                       text: r.managerComment!,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+
+          // Reliever comment: blue box when accepted, red box when declined
+          if (r.relieverComment != null && r.relieverComment!.trim().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: r.status == LeaveStatus.relieverDeclined
+                    ? const Color(0xFFFFD9D9) // light red for declined
+                    : const Color(0xFFD7E8F6), // same blue tone as manager comment for accepted
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: RichText(
+                text: TextSpan(
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: r.status == LeaveStatus.relieverDeclined
+                        ? const Color(0xFF7A1A1A)
+                        : const Color(0xFF1E2A3A),
+                    height: 1.3,
+                  ),
+                  children: [
+                    TextSpan(
+                      text: "Reliever's Comment:\n",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: r.status == LeaveStatus.relieverDeclined
+                            ? const Color(0xFF7A1A1A)
+                            : const Color(0xFF1E2A3A),
+                      ),
+                    ),
+                    TextSpan(
+                      text: r.relieverComment!,
                       style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ],
@@ -563,40 +628,61 @@ Future<bool?> _confirmCancel() async {
 
   // ---------------- HELPERS ----------------
 
-  Map<String, dynamic> _statusUI(LeaveStatus s) {
-    switch (s) {
-      case LeaveStatus.pending:
-        return {'text': 'Pending', 'bg': const Color(0xFFE7D48A), 'fg': const Color(0xFF6B4F00)};
-      case LeaveStatus.approved:
-        return {'text': 'Approved', 'bg': const Color(0xFFCFF1D6), 'fg': const Color(0xFF0F6B2D)};
-      case LeaveStatus.rejected:
-        return {'text': 'Rejected', 'bg': const Color(0xFFFFD1D1), 'fg': const Color(0xFF9B1C1C)};
+Map<String, dynamic> _statusUI(LeaveStatus s) {
+  switch (s) {
+    case LeaveStatus.pending:
+      return {'text': 'Pending', 'bg': const Color(0xFFE7D48A), 'fg': const Color(0xFF6B4F00)};
+
+    case LeaveStatus.relieverAccepted:
+      return {'text': 'Reliever Accepted', 'bg': const Color(0xFFD7F3FF), 'fg': const Color(0xFF0B4F6C)};
+
+    case LeaveStatus.relieverDeclined:
+      return {'text': 'Reliever Declined', 'bg': const Color(0xFFE7D48A), 'fg': const Color(0xFF6B4F00)};
+
+    case LeaveStatus.approved:
+      return {'text': 'Approved', 'bg': const Color(0xFFCFF1D6), 'fg': const Color(0xFF0F6B2D)};
+
+    case LeaveStatus.rejected:
+      return {'text': 'Rejected', 'bg': const Color(0xFFFFD1D1), 'fg': const Color(0xFF9B1C1C)};
+  }
+}
+
+
+Map<String, int> _counts(List<LeaveRequest> list) {
+  int pending = 0, approved = 0, rejected = 0;
+
+  for (final r in list) {
+    if (r.status == LeaveStatus.approved) approved++;
+    else if (r.status == LeaveStatus.rejected) rejected++;
+    else {
+      // everything not final goes to "Pending"
+      pending++;
     }
   }
 
-  Map<String, int> _counts(List<LeaveRequest> list) {
-    int pending = 0, approved = 0, rejected = 0;
-    for (final r in list) {
-      if (r.status == LeaveStatus.pending) pending++;
-      if (r.status == LeaveStatus.approved) approved++;
-      if (r.status == LeaveStatus.rejected) rejected++;
+  return {
+    'all': list.length,
+    'pending': pending,
+    'approved': approved,
+    'rejected': rejected,
+  };
+}
+
+
+List<LeaveRequest> _filteredList(List<LeaveRequest> list) {
+  if (selectedFilter == 0) return list;
+
+  return list.where((r) {
+    if (selectedFilter == 1) {
+      // PENDING TAB includes reliever states too
+      return r.status == LeaveStatus.pending ||
+             r.status == LeaveStatus.relieverAccepted ||
+             r.status == LeaveStatus.relieverDeclined;
     }
-    return {
-      'all': list.length,
-      'pending': pending,
-      'approved': approved,
-      'rejected': rejected,
-    };
-  }
+    if (selectedFilter == 2) return r.status == LeaveStatus.approved;
+    if (selectedFilter == 3) return r.status == LeaveStatus.rejected;
+    return true;
+  }).toList();
+}
 
-  List<LeaveRequest> _filteredList(List<LeaveRequest> list) {
-    if (selectedFilter == 0) return list;
-
-    return list.where((r) {
-      if (selectedFilter == 1) return r.status == LeaveStatus.pending;
-      if (selectedFilter == 2) return r.status == LeaveStatus.approved;
-      if (selectedFilter == 3) return r.status == LeaveStatus.rejected;
-      return true;
-    }).toList();
-  }
 }
