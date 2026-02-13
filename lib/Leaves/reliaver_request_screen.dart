@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:ui';
-
+import 'top_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:test_app/Services/api_service.dart';
 
@@ -10,12 +10,37 @@ class RelieverRequestView extends StatefulWidget {
 
   @override
   State<RelieverRequestView> createState() => _RelieverRequestViewState();
+
+  
 }
 
 class _RelieverRequestViewState extends State<RelieverRequestView> {
   List<Map<String, dynamic>> requests = [];
   bool loading = false;
   String? errorText;
+
+
+
+  void _showSuccessBanner(String title, String message) {
+  TopBanner.show(
+    context,
+    title: title,
+    message: message,
+    icon: Icons.check_circle,
+    rightButtonText: "OK",
+  );
+}
+
+void _showErrorBanner(String title, String message) {
+  TopBanner.show(
+    context,
+    title: title,
+    message: message,
+    icon: Icons.error_outline,
+    rightButtonText: "OK",
+  );
+}
+
 
   @override
   void initState() {
@@ -288,20 +313,39 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
                     onDecline: (comment) async {
                       if (leaveRequestId <= 0 || relieverId.isEmpty) return;
 
-                      final res = await ApiService.relieverDecline(
+                     final res = await ApiService.relieverDecline(
                         leaveRequestId: leaveRequestId,
                         relieverId: relieverId,
                         comment: comment,
                       );
 
                       if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(res["message"] ?? "Declined")),
+
+                      if (res["success"] == true) {
+                      TopBanner.show(
+                        context,
+                        title: "Request Declined",
+                        message: "Your pending leave request has been canceled successfully.",
+                        icon: Icons.cancel,
+                        isSuccess: true,
                       );
 
+                        // refresh list
+                        await _loadRelieverRequests();
+                      } else {
+                      TopBanner.show(
+                        context,
+                        title: "Action failed",
+                        message: "Unable to process request.",
+                        icon: Icons.error,
+                        isError: true,
+
+                        );
+                      }
                       await _loadRelieverRequests();
                     },
                   ),
+
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFB10F0F),
                     elevation: 0,
@@ -331,10 +375,22 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
                       );
 
                       if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(res["message"] ?? "Accepted")),
+                     if (res["success"] == true) {
+                      TopBanner.show(
+                        context,
+                        title: "Request Accepted and Forwarded",
+                        message: "Your pending leave request has been accepted successfully.",
+                        icon: Icons.check_circle,
                       );
 
+                        // refresh list
+                        await _loadRelieverRequests();
+                      } else {
+                        _showErrorBanner(
+                          "Decline failed",
+                          res["message"]?.toString() ?? "Please try again.",
+                        );
+                      }
                       await _loadRelieverRequests();
                     },
                   ),
@@ -618,6 +674,7 @@ class _RelieverRequestViewState extends State<RelieverRequestView> {
                                 onPressed: () {
                                   final comment = controller.text.trim();
                                   Navigator.pop(ctx);
+
                                   onAccept(comment);
                                 },
                                 style: ElevatedButton.styleFrom(
