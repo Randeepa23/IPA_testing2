@@ -14,6 +14,9 @@ static void show(
   String rightButtonText = "OK",
   VoidCallback? onLeftTap,
   VoidCallback? onRightTap,
+  bool isSuccess = false,
+  bool isError = false,
+  
   Duration duration = const Duration(seconds: 4),
 }) {
     hide();

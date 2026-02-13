@@ -85,30 +85,34 @@ static const String baseUrl = "http://10.0.2.2/test-1/api";
       return Map<String, dynamic>.from(decoded);
     }
 
-  static Future<Map<String, dynamic>> applyLeaveRequest({
-    required String employeeId,
-    required int leavePolicyId,
-    required String startDate, // yyyy-MM-dd
-    required String endDate,   // yyyy-MM-dd
-    required double numberOfDays,
-    required String reason,
-    String? overseeMemberId, // nullable
-    required bool isSpecialRequest,
-    String? address,
-  }) async {
-    final url = Uri.parse("$baseUrl/apply_leave_request.php");
+static Future<Map<String, dynamic>> applyLeaveRequest({
+  required String employeeId,
+  required int leavePolicyId,
+  required String startDate,
+  required String endDate,
+  required double numberOfDays,
+  required String reason,
+  String? overseeMemberId,
+  required bool isSpecialRequest,
+  String? address,
 
-    final body = {
-      "employeeId": employeeId,
-      "leavePolicyId": leavePolicyId,
-      "startDate": startDate,
-      "endDate": endDate,
-      "numberOfDays": numberOfDays,
-      "reason": reason,
-      "overseeMemberId": overseeMemberId ?? "",
-      "isSpecialRequest": isSpecialRequest ? 1 : 0,
-      "address": address ?? "",
-    };
+  String? halfDaySession, // MORNING / EVENING
+}) async {
+  final url = Uri.parse("$baseUrl/apply_leave_request.php");
+
+  final body = {
+    "employeeId": employeeId,
+    "leavePolicyId": leavePolicyId,
+    "startDate": startDate,
+    "endDate": endDate,
+    "numberOfDays": numberOfDays,
+    "reason": reason,
+    "overseeMemberId": overseeMemberId ?? "",
+    "isSpecialRequest": isSpecialRequest ? 1 : 0,
+    "address": address ?? "",
+
+    "halfDaySession": halfDaySession ?? "",
+  };
 
     final res = await http.post(
       url,

@@ -103,6 +103,8 @@ Future<void> _submitForm() async {
       overseeMemberId: selectedMember, // null allowed
       isSpecialRequest: noMemberConfirmed,
       address: addressController.text.trim(),
+      halfDaySession: isHalfDay ? halfDaySession : null,
+
     );
 
     if (res["success"] == true) {
@@ -110,7 +112,7 @@ Future<void> _submitForm() async {
       TopBanner.show(
         context,
         title: "Request send successful..",
-        message: "Are you sure you want to cancel this leave request? Your leave balance will be restored.",
+        message: "Your leave request has been submitted successfully, and is now pending approval.",
         icon: Icons.check_circle,
         leftButtonText: "View request",
         rightButtonText: "Ok",
@@ -147,13 +149,14 @@ int _leaveTypeToId(String type) {
   if (type == "Annual Leave") return 1;
   if (type == "Sick Leave") return 2;
   if (type == "Casual Leave") return 3;
+  if (type == "Half Day") return 4;
   return 0;
 }
 
 
 
 void _showSubmitConfirmation() {
-  final blue = Colors.blue[800] ?? Colors.blue;
+  //final blue = Colors.blue[800] ?? Colors.blue;
 
   final leaveType = selectedLeaveType ?? "Leave";
   final fromTxt = fromDate == null ? "-" : DateFormat('yyyy-MM-dd').format(fromDate!);
@@ -333,15 +336,18 @@ void _showSubmitConfirmation() {
 
   // ===== DATE RANGE FILTER LOGIC =====
     Future<void> _loadRelievers() async {
-      if (fromDate == null || toDate == null) return;
+      if (fromDate == null) return;
+
+      // for half day: toDate = fromDate
+      final effectiveTo = isHalfDay ? fromDate : toDate;
+      if (effectiveTo == null) return;
 
       final employeeId = widget.user["employeeId"]?.toString() ?? "";
       final deptId = widget.user["departmentId"]?.toString() ?? "";
-
       if (employeeId.isEmpty || deptId.isEmpty) return;
 
       final from = DateFormat('yyyy-MM-dd').format(fromDate!);
-      final to = DateFormat('yyyy-MM-dd').format(toDate!);
+      final to = DateFormat('yyyy-MM-dd').format(effectiveTo);
 
       try {
         final res = await ApiService.getRelievers(
@@ -452,39 +458,160 @@ void _showSubmitConfirmation() {
                 items: leaveTypes
                     .map((t) => DropdownMenuItem(value: t, child: Text(t)))
                     .toList(),
-                onChanged: (v) => setState(() => selectedLeaveType = v),
+                onChanged: (v) {
+                setState(() {
+                  selectedLeaveType = v;
+
+                  // ✅ check Half Day
+                  isHalfDay = (v == "Half Day");
+
+                  // ✅ reset right side field
+                  toDate = null;
+                  halfDaySession = null;
+                });
+              },
+
                 validator: (v) => v == null ? 'Select leave type' : null,
               ),
 
               const SizedBox(height: 16),
 
+
+
               // ---------------- DATES (SIDE BY SIDE) ----------------
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              if (isHalfDay) ...[
+                _sectionTitle('Date *'),
+                const SizedBox(height: 8),
+                _buildDatePicker('Select date', fromDate, (date) {
+                  setState(() {
+                    fromDate = date;
+                    toDate = date;
+                  });
+                  _loadRelievers();
+                }),
+
+                const SizedBox(height: 12),
+                _sectionTitle('Half Day Session *'),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  value: halfDaySession,
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                  ),
+                  hint: const Text('Select session'),
+                  items: const [
+                    DropdownMenuItem(value: 'MORNING', child: Text('Morning')),
+                    DropdownMenuItem(value: 'EVENING', child: Text('Evening')),
+                  ],
+                  onChanged: (v) => setState(() => halfDaySession = v),
+                  validator: (v) => v == null ? 'Select session' : null,
+                ),
+
+
+                const SizedBox(height: 10),
+
+
+                if (fromDate != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEAF1FF),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _sectionTitle('From date *'),
-                        const SizedBox(height: 8),
-                        _buildDatePicker('From date', fromDate, (date) {
-                          fromDate = date;
-                          _loadRelievers();
-                        }),
+                        Text(
+                          'Total Days',
+                          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                        ),
+                        Text(
+                          'Half Day',
+                          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900),
+                        ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
+              ] else ...[
+              // ---------------- DATES (SIDE BY SIDE) ----------------
+              Row(
+                children: [
+                  // LEFT: From date / Date
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _sectionTitle('To date *'),
+                        _sectionTitle(isHalfDay ? 'Date *' : 'From date *'),
                         const SizedBox(height: 8),
-                        _buildDatePicker('To date', toDate, (date) {
-                          toDate = date;
-                          _loadRelievers();
-                        }),
+                        _buildDatePicker(
+                          isHalfDay ? 'Select date' : 'From date',
+                          fromDate,
+                          (date) {
+                            setState(() {
+                              fromDate = date;
+
+                              // If half day: end date same as start date
+                              if (isHalfDay) {
+                                toDate = date;
+                              }
+                            });
+
+                            // load relievers only when we have required dates
+                            _loadRelievers();
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(width: 12),
+
+                  // RIGHT: To date OR Time (Morning/Evening)
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _sectionTitle(isHalfDay ? 'Time *' : 'To date *'),
+                        const SizedBox(height: 8),
+
+                        if (isHalfDay)
+                          DropdownButtonFormField<String>(
+                            value: halfDaySession,
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding:
+                                  const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: Colors.grey.shade300),
+                              ),
+                            ),
+                            hint: const Text('Select time'),
+                            items: const [
+                              DropdownMenuItem(value: 'MORNING', child: Text('Morning')),
+                              DropdownMenuItem(value: 'EVENING', child: Text('Evening')),
+                            ],
+                            onChanged: (v) => setState(() => halfDaySession = v),
+                            validator: (v) => v == null ? 'Select time' : null,
+                          )
+                        else
+                          _buildDatePicker(
+                            'To date',
+                            toDate,
+                            (date) {
+                              setState(() => toDate = date);
+                              _loadRelievers();
+                            },
+                          ),
                       ],
                     ),
                   ),
@@ -493,34 +620,29 @@ void _showSubmitConfirmation() {
 
               const SizedBox(height: 10),
 
-              if (fromDate != null && toDate != null)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEAF1FF),
-                    borderRadius: BorderRadius.circular(10),
+                const SizedBox(height: 10),
+                if (fromDate != null && toDate != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEAF1FF),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Total Days',
+                          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                        ),
+                        Text(
+                          '${toDate!.difference(fromDate!).inDays + 1} days',
+                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Total Days',
-                        style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF1E2A3A)),
-                      ),
-                      Text(
-                        '${toDate!.difference(fromDate!).inDays + 1} days',
-                        style: const TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFF1E2A3A)),
-                      ),
-                    ],
-                  ),
-                ),
+              ],
 
               const SizedBox(height: 16),
 

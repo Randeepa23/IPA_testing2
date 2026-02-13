@@ -350,7 +350,7 @@ Widget build(BuildContext context) {
             ],
           ),
 
-          // Cancel button ONLY for pending
+          // Cancel button ONLY for pending or relieverDeclined (because employee can re-apply if reliever declined, so we keep cancel option there as well)
           if (r.status == LeaveStatus.pending || r.status == LeaveStatus.relieverDeclined) ...[
             const SizedBox(height: 10),
             Align(
