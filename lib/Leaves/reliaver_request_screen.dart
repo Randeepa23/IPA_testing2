@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:ui';
 import 'top_banner.dart';
 import 'package:flutter/material.dart';
@@ -165,9 +164,6 @@ void _showErrorBanner(String title, String message) {
   // ---------------- CARD UI ----------------
 
   Widget _requestCard(Map<String, dynamic> r, Color blue) {
-    final ctrl = (r["noteController"] is TextEditingController)
-        ? r["noteController"] as TextEditingController
-        : TextEditingController();
 
     String getStr(List<String> keys, {String fallback = "-"}) {
       for (final k in keys) {
@@ -333,13 +329,9 @@ void _showErrorBanner(String title, String message) {
                         // refresh list
                         await _loadRelieverRequests();
                       } else {
-                      TopBanner.show(
-                        context,
-                        title: "Action failed",
-                        message: "Unable to process request.",
-                        icon: Icons.error,
-                        isError: true,
-
+                        _showErrorBanner(
+                          "Decline failed",
+                          res["message"]?.toString() ?? "Please try again.",
                         );
                       }
                       await _loadRelieverRequests();
@@ -386,8 +378,8 @@ void _showErrorBanner(String title, String message) {
                         // refresh list
                         await _loadRelieverRequests();
                       } else {
-                        _showErrorBanner(
-                          "Decline failed",
+                        _showSuccessBanner(
+                          "Accept failed",
                           res["message"]?.toString() ?? "Please try again.",
                         );
                       }

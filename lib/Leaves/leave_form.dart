@@ -112,7 +112,7 @@ Future<void> _submitForm() async {
       TopBanner.show(
         context,
         title: "Request send successful..",
-        message: "Are you sure you want to cancel this leave request? Your leave balance will be restored.",
+        message: "Your leave request has been submitted successfully, and is now pending approval.",
         icon: Icons.check_circle,
         leftButtonText: "View request",
         rightButtonText: "Ok",
@@ -156,7 +156,7 @@ int _leaveTypeToId(String type) {
 
 
 void _showSubmitConfirmation() {
-  final blue = Colors.blue[800] ?? Colors.blue;
+  //final blue = Colors.blue[800] ?? Colors.blue;
 
   final leaveType = selectedLeaveType ?? "Leave";
   final fromTxt = fromDate == null ? "-" : DateFormat('yyyy-MM-dd').format(fromDate!);
