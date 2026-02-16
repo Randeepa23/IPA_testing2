@@ -9,7 +9,7 @@ class LeaveRequestScreen extends StatefulWidget {
 }
 
 class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
-  // ✅ Dummy requests (replace with API data)
+  // Dummy requests (replace with API data)
   final List<Map<String, dynamic>> requests = [
     {
       "employeeName": "Nimal Perera",
