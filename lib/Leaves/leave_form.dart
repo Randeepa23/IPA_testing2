@@ -462,10 +462,10 @@ void _showSubmitConfirmation() {
                 setState(() {
                   selectedLeaveType = v;
 
-                  // ✅ check Half Day
+                  // check Half Day
                   isHalfDay = (v == "Half Day");
 
-                  // ✅ reset right side field
+                  // reset right side field
                   toDate = null;
                   halfDaySession = null;
                 });
