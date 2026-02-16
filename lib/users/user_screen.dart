@@ -4,7 +4,8 @@ import '../Leaves/leave_history_screen.dart';
 import '../Leaves/reliaver_request_screen.dart';
 
 class UserScreen extends StatefulWidget {
-  const UserScreen({super.key});
+  final Map<String, dynamic> user;
+  const UserScreen({super.key, required this.user});
 
   @override
   State<UserScreen> createState() => _UserScreenState();
@@ -89,10 +90,10 @@ class _UserScreenState extends State<UserScreen> {
           Expanded(
             child: IndexedStack(
               index: selectedTab,
-              children: const [
-                ProfileScreen(),      // tab 0
-                LeaveHistoryScreen(), // tab 1
-                RelieverRequestView(),// tab 2
+              children: [
+                ProfileScreen(user: widget.user),// tab 0
+                LeaveHistoryScreen(user: widget.user), // tab 1
+                RelieverRequestView(user: widget.user),// tab 2
               ],
             ),
           ),

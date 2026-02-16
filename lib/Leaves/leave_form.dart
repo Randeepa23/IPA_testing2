@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:dotted_border/dotted_border.dart';
+import 'package:test_app/Services/api_service.dart';
 import 'dart:ui';
+import 'top_banner.dart';
+
 
 class LeaveFormScreen extends StatefulWidget {
-  const LeaveFormScreen({super.key});
+  final Map<String, dynamic> user;
+  
+  const LeaveFormScreen({super.key, required this.user});
 
   @override
   _LeaveFormScreenState createState() => _LeaveFormScreenState();
@@ -32,49 +37,126 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
   String? attachedFileName;
 
   // Example leave types
-  final leaveTypes = ['Annual Leave', 'Sick Leave', 'Casual Leave'];
+  final leaveTypes = ['Annual Leave', 'Sick Leave', 'Casual Leave', 'Half Day'];
 
-  // Example dataset
-  final Map<String, String> employeeData = {
-    'name': 'Induru Udantha',
-    'employeeNo': 'EMP12345',
-    'department': 'Tour Operations',
-    'contact': '+94771234567',
-  };
+  bool isHalfDay = false;
+  String? halfDaySession; // 'MORNING' or 'EVENING'
 
-  // ===== MASTER MEMBER DATA WITH AVAILABILITY =====
-  final List<Map<String, dynamic>> allMembers = [
-    {
-      'id': 'M001',
-      'name': 'John Doe',
-      'availableFrom': DateTime(2026, 2, 1),
-      'availableTo': DateTime(2026, 2, 10),
-    },
-    {
-      'id': 'M002',
-      'name': 'Jane Smith',
-      'availableFrom': DateTime(2026, 1, 15),
-      'availableTo': DateTime(2026, 1, 25),
-    },
-  ];
 
-  // Filtered members
+  //Filtered members
   List<Map<String, String>> availableMembers = [];
 
   String? selectedMember;
   bool noMemberConfirmed = false;
 
-  @override
-  void initState() {
-    super.initState();
-    nameController.text = employeeData['name']!;
-    employeeController.text = employeeData['employeeNo']!;
-    departmentController.text = employeeData['department']!;
-    contactController.text = employeeData['contact']!;
+  // show loading on Send button
+  bool _isSubmitting = false;
+
+@override
+void initState() {
+  super.initState();
+  debugPrint("FORM USER DATA: ${widget.user}");
+  
+  nameController.text = widget.user['name'] ?? '';
+  employeeController.text = widget.user['employeeCode'] ?? '';
+  departmentController.text = widget.user['department'] ?? '';
+  contactController.text = widget.user['primaryContact'] ?? '';
+}
+Future<void> _submitForm() async {
+  if (!_formKey.currentState!.validate()) return;
+
+  if (availableMembers.isNotEmpty && selectedMember == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Select a team member')),
+    );
+    return;
   }
 
+  if (availableMembers.isEmpty && !noMemberConfirmed) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Confirmation required')),
+    );
+    return;
+  }
+
+  if (fromDate == null || toDate == null || selectedLeaveType == null) return;
+
+  // map leave type name -> leave_policy_id
+  final leavePolicyId = _leaveTypeToId(selectedLeaveType!);
+
+  final start = DateFormat('yyyy-MM-dd').format(fromDate!);
+  final end = DateFormat('yyyy-MM-dd').format(toDate!);
+  final days = (toDate!.difference(fromDate!).inDays + 1).toDouble();
+
+  try {
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    final res = await ApiService.applyLeaveRequest(
+      employeeId: widget.user["employeeId"],
+      leavePolicyId: leavePolicyId,
+      startDate: start,
+      endDate: end,
+      numberOfDays: days,
+      reason: reasonController.text.trim(),
+      overseeMemberId: selectedMember, // null allowed
+      isSpecialRequest: noMemberConfirmed,
+      address: addressController.text.trim(),
+      halfDaySession: isHalfDay ? halfDaySession : null,
+
+    );
+
+    if (res["success"] == true) {
+      // show top banner
+      TopBanner.show(
+        context,
+        title: "Request send successful..",
+        message: "Your leave request has been submitted successfully, and is now pending approval.",
+        icon: Icons.check_circle,
+        leftButtonText: "View request",
+        rightButtonText: "Ok",
+        onLeftTap: () {
+          // TODO: Navigate to LeaveHistoryScreen / LeaveRequestScreen
+          // Navigator.push(context, MaterialPageRoute(builder: (_) => LeaveHistoryScreen(user: widget.user)));
+        },
+        onRightTap: () {
+          // just close
+        },
+      );
+      // OPTIONAL: close form after showing banner (slight delay)
+      Navigator.pop(context);
+      Future.delayed(const Duration(milliseconds: 1000), () {});
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(res["message"] ?? "Failed")),
+      );
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error: $e")),
+    );
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isSubmitting = false;
+      });
+    }
+  }
+}
+
+int _leaveTypeToId(String type) {
+  if (type == "Annual Leave") return 1;
+  if (type == "Sick Leave") return 2;
+  if (type == "Casual Leave") return 3;
+  if (type == "Half Day") return 4;
+  return 0;
+}
+
+
+
 void _showSubmitConfirmation() {
-  final blue = Colors.blue[800] ?? Colors.blue;
+  //final blue = Colors.blue[800] ?? Colors.blue;
 
   final leaveType = selectedLeaveType ?? "Leave";
   final fromTxt = fromDate == null ? "-" : DateFormat('yyyy-MM-dd').format(fromDate!);
@@ -199,19 +281,42 @@ void _showSubmitConfirmation() {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.pop(ctx);
-                                _submitForm();
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: blue,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                              ),
-                              child: const Text(
-                                "Send",
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                            child: Center(
+                              child: SizedBox(
+                                width: 200,
+                                height: 48,
+                                child: ElevatedButton(
+                                  onPressed: _isSubmitting
+                                      ? null
+                                      : () {
+                                          _submitForm();
+                                          Navigator.pop(ctx);
+                                        },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF0060A6),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  child: _isSubmitting
+                                      ? const SizedBox(
+                                          width: 22,
+                                          height: 22,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.5,
+                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                          ),
+                                        )
+                                      : const Text(
+                                          'Send',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                ),
                               ),
                             ),
                           ),
@@ -230,26 +335,55 @@ void _showSubmitConfirmation() {
 }
 
   // ===== DATE RANGE FILTER LOGIC =====
-  void _filterMembersByDate() {
-    if (fromDate == null || toDate == null) return;
+    Future<void> _loadRelievers() async {
+      if (fromDate == null) return;
 
-    setState(() {
-      availableMembers = allMembers.where((member) {
-        DateTime availableFrom = member['availableFrom'];
-        DateTime availableTo = member['availableTo'];
+      // for half day: toDate = fromDate
+      final effectiveTo = isHalfDay ? fromDate : toDate;
+      if (effectiveTo == null) return;
 
-        // DATE OVERLAP CHECK
-        return !(toDate!.isBefore(availableFrom) ||
-            fromDate!.isAfter(availableTo));
-      }).map((m) => {
-            'id': m['id'].toString(),
-            'name': m['name'].toString(),
-          }).toList();
+      final employeeId = widget.user["employeeId"]?.toString() ?? "";
+      final deptId = widget.user["departmentId"]?.toString() ?? "";
+      if (employeeId.isEmpty || deptId.isEmpty) return;
 
-      selectedMember = null;
-      noMemberConfirmed = false;
-    });
-  }
+      final from = DateFormat('yyyy-MM-dd').format(fromDate!);
+      final to = DateFormat('yyyy-MM-dd').format(effectiveTo);
+
+      try {
+        final res = await ApiService.getRelievers(
+          employeeId: employeeId,
+          departmentId: deptId,
+          fromDate: from,
+          toDate: to,
+        );
+
+        if (res["success"] == true) {
+          final list = List<Map<String, dynamic>>.from(res["members"] ?? []);
+
+          setState(() {
+            availableMembers = list
+                .map((m) => {
+                      "id": m["id"].toString(),
+                      "name": m["name"].toString(),
+                    })
+                .toList();
+
+            selectedMember = null;
+            noMemberConfirmed = false;
+          });
+        } else {
+          setState(() {
+            availableMembers = [];
+            selectedMember = null;
+          });
+        }
+      } catch (e) {
+        setState(() {
+          availableMembers = [];
+          selectedMember = null;
+        });
+      }
+    }
 
   @override
   Widget build(BuildContext context) {
@@ -324,39 +458,160 @@ void _showSubmitConfirmation() {
                 items: leaveTypes
                     .map((t) => DropdownMenuItem(value: t, child: Text(t)))
                     .toList(),
-                onChanged: (v) => setState(() => selectedLeaveType = v),
+                onChanged: (v) {
+                setState(() {
+                  selectedLeaveType = v;
+
+                  // check Half Day
+                  isHalfDay = (v == "Half Day");
+
+                  // reset right side field
+                  toDate = null;
+                  halfDaySession = null;
+                });
+              },
+
                 validator: (v) => v == null ? 'Select leave type' : null,
               ),
 
               const SizedBox(height: 16),
 
+
+
               // ---------------- DATES (SIDE BY SIDE) ----------------
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              if (isHalfDay) ...[
+                _sectionTitle('Date *'),
+                const SizedBox(height: 8),
+                _buildDatePicker('Select date', fromDate, (date) {
+                  setState(() {
+                    fromDate = date;
+                    toDate = date;
+                  });
+                  _loadRelievers();
+                }),
+
+                const SizedBox(height: 12),
+                _sectionTitle('Half Day Session *'),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  value: halfDaySession,
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                  ),
+                  hint: const Text('Select session'),
+                  items: const [
+                    DropdownMenuItem(value: 'MORNING', child: Text('Morning')),
+                    DropdownMenuItem(value: 'EVENING', child: Text('Evening')),
+                  ],
+                  onChanged: (v) => setState(() => halfDaySession = v),
+                  validator: (v) => v == null ? 'Select session' : null,
+                ),
+
+
+                const SizedBox(height: 10),
+
+
+                if (fromDate != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEAF1FF),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _sectionTitle('From date *'),
-                        const SizedBox(height: 8),
-                        _buildDatePicker('From date', fromDate, (date) {
-                          fromDate = date;
-                          _filterMembersByDate();
-                        }),
+                        Text(
+                          'Total Days',
+                          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                        ),
+                        Text(
+                          'Half Day',
+                          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900),
+                        ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
+              ] else ...[
+              // ---------------- DATES (SIDE BY SIDE) ----------------
+              Row(
+                children: [
+                  // LEFT: From date / Date
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _sectionTitle('To date *'),
+                        _sectionTitle(isHalfDay ? 'Date *' : 'From date *'),
                         const SizedBox(height: 8),
-                        _buildDatePicker('To date', toDate, (date) {
-                          toDate = date;
-                          _filterMembersByDate();
-                        }),
+                        _buildDatePicker(
+                          isHalfDay ? 'Select date' : 'From date',
+                          fromDate,
+                          (date) {
+                            setState(() {
+                              fromDate = date;
+
+                              // If half day: end date same as start date
+                              if (isHalfDay) {
+                                toDate = date;
+                              }
+                            });
+
+                            // load relievers only when we have required dates
+                            _loadRelievers();
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(width: 12),
+
+                  // RIGHT: To date OR Time (Morning/Evening)
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _sectionTitle(isHalfDay ? 'Time *' : 'To date *'),
+                        const SizedBox(height: 8),
+
+                        if (isHalfDay)
+                          DropdownButtonFormField<String>(
+                            value: halfDaySession,
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding:
+                                  const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: Colors.grey.shade300),
+                              ),
+                            ),
+                            hint: const Text('Select time'),
+                            items: const [
+                              DropdownMenuItem(value: 'MORNING', child: Text('Morning')),
+                              DropdownMenuItem(value: 'EVENING', child: Text('Evening')),
+                            ],
+                            onChanged: (v) => setState(() => halfDaySession = v),
+                            validator: (v) => v == null ? 'Select time' : null,
+                          )
+                        else
+                          _buildDatePicker(
+                            'To date',
+                            toDate,
+                            (date) {
+                              setState(() => toDate = date);
+                              _loadRelievers();
+                            },
+                          ),
                       ],
                     ),
                   ),
@@ -365,34 +620,29 @@ void _showSubmitConfirmation() {
 
               const SizedBox(height: 10),
 
-              if (fromDate != null && toDate != null)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEAF1FF),
-                    borderRadius: BorderRadius.circular(10),
+                const SizedBox(height: 10),
+                if (fromDate != null && toDate != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEAF1FF),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Total Days',
+                          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                        ),
+                        Text(
+                          '${toDate!.difference(fromDate!).inDays + 1} days',
+                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Total Days',
-                        style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF1E2A3A)),
-                      ),
-                      Text(
-                        '${toDate!.difference(fromDate!).inDays + 1} days',
-                        style: const TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFF1E2A3A)),
-                      ),
-                    ],
-                  ),
-                ),
+              ],
 
               const SizedBox(height: 16),
 
@@ -596,7 +846,6 @@ void _showSubmitConfirmation() {
   }
 
   // ---------------- UI HELPERS (UI ONLY) ----------------
-
   Widget _sectionTitle(String text) {
     return Text(
       text,
@@ -657,30 +906,6 @@ void _showSubmitConfirmation() {
         );
         if (picked != null) onSelect(picked);
       },
-    );
-  }
-
-  // ---------------- YOUR EXISTING LOGIC (UNCHANGED) ----------------
-
-  void _submitForm() {
-    if (!_formKey.currentState!.validate()) return;
-
-    if (availableMembers.isNotEmpty && selectedMember == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select a team member')),
-      );
-      return;
-    }
-
-    if (availableMembers.isEmpty && !noMemberConfirmed) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Confirmation required')),
-      );
-      return;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Leave submitted successfully!')),
     );
   }
 }
