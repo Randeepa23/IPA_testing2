@@ -63,7 +63,7 @@ static const String baseUrl = "http://10.0.2.2/test-1/api";
     required String managerId,
     required int leaveRequestId,
   }) async {
-    final uri = Uri.parse("$baseUrl/leave/approve_leave.php");
+    final uri = Uri.parse("$baseUrl/approve_leave.php");
 
     final res = await http.post(uri, body: {
       "manager_id": managerId,
@@ -85,7 +85,7 @@ static const String baseUrl = "http://10.0.2.2/test-1/api";
     required int leaveRequestId,
     required String comment,
   }) async {
-    final uri = Uri.parse("$baseUrl/leave/reject_leave.php");
+    final uri = Uri.parse("$baseUrl/reject_leave.php");
 
     final res = await http.post(uri, body: {
       "manager_id": managerId,

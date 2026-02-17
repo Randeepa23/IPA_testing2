@@ -389,7 +389,7 @@ Widget build(BuildContext context) {
               width: double.infinity,
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFFD7E8F6),
+                color: const Color.fromARGB(255, 246, 219, 215),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: RichText(
