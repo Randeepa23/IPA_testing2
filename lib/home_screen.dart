@@ -117,14 +117,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   ),
                   _serviceCard(
-                    imagePath: 'assets/vehicle_request.png',
+                    imagePath: 'assets/5689004.png',
                     label: "Request Vehicle",
                     onTap: () {
                       debugPrint("Vehicle clicked");
                     },
                   ),
                   _serviceCard(
-                    imagePath: 'assets/shift_shedule.png',
+                    imagePath: 'assets/3567331.png',
                     label: "Shift Schedule",
                     onTap: () {
                       debugPrint("Schedule clicked");
