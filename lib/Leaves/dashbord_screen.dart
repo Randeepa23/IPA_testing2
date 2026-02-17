@@ -315,9 +315,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     else if (recentLeaves.isEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        child: Text(
-                          'No recent requests',
-                          style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey),
+                        child: Center(
+                          child: Text(
+                            'No recent requests',
+                            style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey),
+                          ),
                         ),
                       )
                     else
@@ -508,7 +510,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onTap: () async {
             await Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const LeaveRequestScreen()),
+              MaterialPageRoute(builder: (context) => LeaveRequestScreen(managerId: widget.user["employeeId"])),
             );
             if (!mounted) return;
             // Refresh dashboard after any request screen actions
