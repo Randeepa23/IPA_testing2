@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:test_app/Services/api_service.dart';
 import 'login_screen.dart';
+import 'Leaves/top_banner.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -114,11 +115,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       if (!mounted) return;
 
       if (res["success"] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(res["message"] ?? "Password updated successfully! Please login again."),
-            backgroundColor: Colors.green,
-          ),
+
+        TopBanner.show(
+          context,
+          title: "Success",
+          message: "Password updated successfully! Please login again.",
+          icon: Icons.check_circle,
+          rightButtonText: "OK",
         );
 
         // Brief loading delay so user can see success, then navigate

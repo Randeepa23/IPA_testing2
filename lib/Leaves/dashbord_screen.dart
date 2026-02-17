@@ -99,6 +99,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  
+
+  /// Reloads both leave balance and recent leaves. Call this for pull-to-refresh or refresh button.
+  Future<void> _reloadPage() async {
+    await Future.wait([
+      _loadLeaveBalance(),
+      _loadRecentLeaves(),
+    ]);
+  }
+
   Future<void> _loadLeaveBalance() async {
     try {
       setState(() {
@@ -146,8 +156,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: SafeArea(
         top: false,
         bottom: false,
-        child: SingleChildScrollView(
-          child: Column(
+        child: RefreshIndicator(
+          onRefresh: _reloadPage,
+          color: Colors.blue,
+          backgroundColor: Colors.white,
+          strokeWidth: 2,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // HEADER (blue + blur + floating card) ALSO SCROLLS
@@ -186,7 +202,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Icon(Icons.notifications, color: Colors.white),
+                            Row(
+                              children: [
+                                const Icon(Icons.notifications, color: Colors.white),
+                                const SizedBox(width: 12),
+                                GestureDetector(
+                                  onTap: () => _reloadPage(),
+                                  child: const Icon(Icons.refresh, color: Colors.white),
+                                ),
+                              ],
+                            ),
                             Row(
                               children: [
                                 GestureDetector(
@@ -310,6 +335,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

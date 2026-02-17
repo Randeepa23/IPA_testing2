@@ -52,7 +52,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color.fromARGB(255, 255, 255, 255),
         title: const Text("Leave Request"),
         foregroundColor: Colors.black,
         elevation: 0.6,
