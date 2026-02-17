@@ -123,6 +123,8 @@ void _showErrorBanner(String title, String message) {
       backgroundColor: Colors.white,
       body: RefreshIndicator(
       onRefresh: _loadRelieverRequests,
+      color: Colors.blue,
+      backgroundColor: Colors.white,
       child: ListView(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
       physics: const AlwaysScrollableScrollPhysics(),

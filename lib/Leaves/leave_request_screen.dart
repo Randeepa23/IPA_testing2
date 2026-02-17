@@ -1,47 +1,44 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
-
+import '../Services/api_service.dart';
 class LeaveRequestScreen extends StatefulWidget {
-  const LeaveRequestScreen({super.key});
+  final String managerId; // ex: EMP-UUID-010
+  const LeaveRequestScreen({super.key, required this.managerId});
 
   @override
   State<LeaveRequestScreen> createState() => _LeaveRequestScreenState();
 }
 
 class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
-  // Dummy requests (replace with API data)
-  final List<Map<String, dynamic>> requests = [
-    {
-      "employeeName": "Nimal Perera",
-      "position": "Senior Tour Coordinator",
-      "employeeId": "EV2024001",
-      "leaveType": "Annual Leave",
-      "from": "2026-03-15",
-      "to": "2026-03-19",
-      "days": 4,
-      "reason": "Family vacation to Ella",
-      "coveringOfficer": {
-        "name": "Kasun Silva",
-        "note": "I confirm coverage. All bookings managed."
-      },
-      "attachmentName": "hotel_booking.pdf", // ✅ available
-    },
-    {
-      "employeeName": "Lahiru Perera",
-      "position": "Senior Tour Coordinator",
-      "employeeId": "EV2024002",
-      "leaveType": "Casual Leave",
-      "from": "2026-03-15",
-      "to": "2026-03-19",
-      "days": 4,
-      "reason": "Family vacation to Ella",
-      "coveringOfficer": {
-        "name": "Kasun Silva",
-        "note": "I confirm coverage. All bookings managed."
-      },
-      "attachmentName": null, // NOT available
-    },
-  ];
+  List<Map<String, dynamic>> requests = [];
+  bool loading = true;
+  String? errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadManagerRequests();
+  }
+
+  Future<void> _loadManagerRequests() async {
+    setState(() {
+      loading = true;
+      errorText = null;
+    });
+
+    try {
+      final data = await ApiService.fetchManagerLeaveRequests(managerId: widget.managerId);
+      setState(() {
+        requests = data;
+        loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        errorText = e.toString();
+        loading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,67 +54,230 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         foregroundColor: Colors.black,
         elevation: 0.6,
       ),
-      body: ListView.builder(
-        padding: EdgeInsets.all(pad),
-        itemCount: requests.length,
-        itemBuilder: (context, index) {
-          final r = requests[index];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: _LeaveRequestCard(
-              data: r,
-              onReject: () => _showRejectDialog(context, r),
-              onApprove: () => _showApproveDialog(context, r),
-            ),
-          );
-        },
+      body: RefreshIndicator(
+        onRefresh: _loadManagerRequests,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.all(pad),
+          children: [
+            if (loading)
+              const Padding(
+                padding: EdgeInsets.only(top: 40),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (errorText != null)
+              Column(
+                children: [
+                  Text(errorText!, style: const TextStyle(color: Colors.red)),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: _loadManagerRequests,
+                    child: const Text("Retry"),
+                  ),
+                ],
+              )
+            else if (requests.isEmpty)
+              const Padding(
+                padding: EdgeInsets.only(top: 40),
+                child: Center(child: Text("No manager requests")),
+              )
+            else
+              ...requests.map((r) => Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: _LeaveRequestCard(
+                      data: r,
+                      onReject: () => _showRejectDialog(context, r),
+                      onApprove: () => _showApproveDialog(context, r),
+                    ),
+                  )),
+          ],
+        ),
       ),
     );
   }
 
-  // ====================== REJECT POPUP (comment required) ======================
-Future<void> _showRejectDialog(BuildContext context, Map<String, dynamic> r) async {
-  final controller = TextEditingController();
-  final formKey = GlobalKey<FormState>();
+  // ====================== REJECT POPUP ======================
+  Future<void> _showRejectDialog(BuildContext context, Map<String, dynamic> r) async {
+    final controller = TextEditingController();
+    final formKey = GlobalKey<FormState>();
 
-  await showDialog(
-    context: context,
-    barrierDismissible: false,
-    barrierColor: Colors.black.withOpacity(0.15), // optional dim
-    builder: (ctx) {
-      final w = MediaQuery.of(ctx).size.width;
-      final dialogW = (w * 0.92).clamp(280.0, 420.0);
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withOpacity(0.15),
+      builder: (ctx) {
+        final w = MediaQuery.of(ctx).size.width;
+        final dialogW = (w * 0.92).clamp(280.0, 420.0);
 
-      return Stack(
-        children: [
-          // BACKGROUND BLUR ONLY
-          BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-            child: Container(color: Colors.transparent),
-          ),
+        return Stack(
+          children: [
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+              child: Container(color: Colors.transparent),
+            ),
+            Center(
+              child: Dialog(
+                insetPadding: const EdgeInsets.all(16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                child: SizedBox(
+                  width: dialogW,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                    child: Form(
+                      key: formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.error_outline, color: Colors.red),
+                              const SizedBox(width: 10),
+                              const Expanded(
+                                child: Text(
+                                  "Reject Leave Request",
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () => Navigator.pop(ctx),
+                                icon: const Icon(Icons.close),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            "This action cannot be undone.",
+                            style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text("Your Comment", style: TextStyle(fontWeight: FontWeight.w800)),
+                          const SizedBox(height: 8),
 
-          // YOUR EXISTING DIALOG (UNCHANGED)
-          Center(
-            child: Dialog(
-              insetPadding: const EdgeInsets.all(16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              child: SizedBox(
-                width: dialogW,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-                  child: Form(
-                    key: formKey,
+                          TextFormField(
+                            controller: controller,
+                            maxLines: 3,
+                            decoration: InputDecoration(
+                              hintText: "Peak season - unable to approve...",
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            validator: (v) {
+                              if (v == null || v.trim().isEmpty) {
+                                return "Comment is required for reject";
+                              }
+                              return null;
+                            },
+                          ),
+
+                          const SizedBox(height: 12),
+                          const Text(
+                            "Are you sure you want to reject this leave request?",
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () => Navigator.pop(ctx),
+                                  style: OutlinedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                  child: const Text("Cancel"),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () async {
+                                    if (!formKey.currentState!.validate()) return;
+
+                                    final comment = controller.text.trim();
+                                    final leaveId = int.parse(r["leave_request_id"].toString());
+
+                                    try {
+                                      await ApiService.rejectLeave(
+                                        managerId: widget.managerId,
+                                        leaveRequestId: leaveId,
+                                        comment: comment,
+                                      );
+
+                                      if (mounted) Navigator.pop(ctx);
+                                      await _loadManagerRequests();
+
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text("Rejected successfully")),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text("Reject failed: $e")),
+                                        );
+                                      }
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFD32F2F),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                  child: const Text("Reject", style: TextStyle(color: Colors.white)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ====================== APPROVE POPUP (no comment) ======================
+  Future<void> _showApproveDialog(BuildContext context, Map<String, dynamic> r) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withOpacity(0.15),
+      builder: (ctx) {
+        final w = MediaQuery.of(ctx).size.width;
+        final dialogW = (w * 0.90).clamp(300.0, 420.0);
+
+        return Stack(
+          children: [
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+              child: Container(color: Colors.transparent),
+            ),
+            Center(
+              child: Dialog(
+                insetPadding: const EdgeInsets.all(16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                child: SizedBox(
+                  width: dialogW,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.error_outline, color: Colors.red),
+                            const Icon(Icons.check_circle_outline, color: Colors.green),
                             const SizedBox(width: 10),
                             const Expanded(
                               child: Text(
-                                "Reject Leave Request",
+                                "Approve Leave Request",
                                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                               ),
                             ),
@@ -129,39 +289,16 @@ Future<void> _showRejectDialog(BuildContext context, Map<String, dynamic> r) asy
                         ),
                         const SizedBox(height: 4),
                         const Text(
-                          "This action cannot be undone.",
+                          "Please confirm approval.",
                           style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
                         ),
-
-                        const SizedBox(height: 12),
-                        const Text(
-                          "Your Comment",
-                          style: TextStyle(fontWeight: FontWeight.w800),
+                        const SizedBox(height: 14),
+                        Text(
+                          "Approve leave for ${r['employeeName']}?",
+                          style: const TextStyle(fontWeight: FontWeight.w800),
                         ),
-                        const SizedBox(height: 8),
-
-                        TextFormField(
-                          controller: controller,
-                          maxLines: 3,
-                          decoration: InputDecoration(
-                            hintText: "Peak season - unable to approve...",
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          validator: (v) {
-                            if (v == null || v.trim().isEmpty) {
-                              return "Comment is required for reject";
-                            }
-                            return null;
-                          },
-                        ),
-
-                        const SizedBox(height: 12),
-                        const Text(
-                          "Are you sure you want to reject this leave request?",
-                          style: TextStyle(fontWeight: FontWeight.w700),
-                        ),
-
                         const SizedBox(height: 16),
+
                         Row(
                           children: [
                             Expanded(
@@ -177,22 +314,37 @@ Future<void> _showRejectDialog(BuildContext context, Map<String, dynamic> r) asy
                             const SizedBox(width: 12),
                             Expanded(
                               child: ElevatedButton(
-                                onPressed: () {
-                                  if (!formKey.currentState!.validate()) return;
+                                onPressed: () async {
+                                  final leaveId = int.parse(r["leave_request_id"].toString());
 
-                                  final comment = controller.text.trim();
+                                  try {
+                                    await ApiService.approveLeave(
+                                      managerId: widget.managerId,
+                                      leaveRequestId: leaveId,
+                                    );
 
-                                  Navigator.pop(ctx);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text("Rejected with comment: $comment")),
-                                  );
+                                    if (mounted) Navigator.pop(ctx);
+                                    await _loadManagerRequests();
+
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text("Approved successfully")),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text("Approve failed: $e")),
+                                      );
+                                    }
+                                  }
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFD32F2F),
+                                  backgroundColor: const Color(0xFF2E7D32),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   padding: const EdgeInsets.symmetric(vertical: 12),
                                 ),
-                                child: const Text("Reject", style: TextStyle(color: Colors.white)),
+                                child: const Text("Approve", style: TextStyle(color: Colors.white)),
                               ),
                             ),
                           ],
@@ -203,120 +355,11 @@ Future<void> _showRejectDialog(BuildContext context, Map<String, dynamic> r) asy
                 ),
               ),
             ),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-
-
-
-  // ====================== APPROVE POPUP (no comment) ======================
-  Future<void> _showApproveDialog(BuildContext context, Map<String, dynamic> r) async {
-  await showDialog(
-    context: context,
-    barrierDismissible: false,
-    barrierColor: Colors.black.withOpacity(0.15), // dim (optional)
-    builder: (ctx) {
-      final w = MediaQuery.of(ctx).size.width;
-
-      // KEEP SAME WIDTH AS REJECT
-      final dialogW = (w * 0.90).clamp(300.0, 420.0);
-
-      return Stack(
-        children: [
-          //BLUR BACKGROUND
-          BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-            child: Container(color: Colors.transparent),
-          ),
-
-          Center(
-            child: Dialog(
-              insetPadding: const EdgeInsets.all(16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              child: SizedBox(
-                width: dialogW, //width controlled here
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.check_circle_outline, color: Colors.green),
-                          const SizedBox(width: 10),
-                          const Expanded(
-                            child: Text(
-                              "Approve Leave Request",
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            icon: const Icon(Icons.close),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        "Please confirm approval.",
-                        style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
-                      ),
-
-                      const SizedBox(height: 14),
-                      Text(
-                        "Approve leave for ${r['employeeName']}?",
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => Navigator.pop(ctx),
-                              style: OutlinedButton.styleFrom(
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                              ),
-                              child: const Text("Cancel"),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.pop(ctx);
-
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("Approved successfully")),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF2E7D32),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                              ),
-                              child: const Text("Approve", style: TextStyle(color: Colors.white)),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-    },
-  );
- }
+          ],
+        );
+      },
+    );
+  }
 }
 
 // ====================== CARD UI ======================
@@ -356,7 +399,6 @@ class _LeaveRequestCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ✅ top employee row (UNCHANGED)
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -401,15 +443,13 @@ class _LeaveRequestCard extends StatelessWidget {
             ),
             child: Column(
               children: [
-                _detailRow("Leave type", data["leaveType"]),
+                _detailRow("Leave type", (data["leaveType"] ?? "").toString()),
                 const SizedBox(height: 8),
-                _detailRow("From date", data["from"]),
+                _detailRow("From date", (data["from"] ?? "").toString()),
                 const SizedBox(height: 8),
-                _detailRow("To date", data["to"]),
-
+                _detailRow("To date", (data["to"] ?? "").toString()),
                 const SizedBox(height: 10),
 
-                // total days blue bar
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -445,12 +485,9 @@ class _LeaveRequestCard extends StatelessWidget {
           ),
 
           const SizedBox(height: 12),
-          //Reason (UNCHANGED)
-          _boxField("Reason", data["reason"] ?? ""),
-
+          _boxField("Reason", (data["reason"] ?? "").toString()),
           const SizedBox(height: 10),
 
-          //Covering Officer (UNCHANGED)
           if (covering != null) ...[
             _boxField(
               "Covering Officer",
@@ -459,7 +496,6 @@ class _LeaveRequestCard extends StatelessWidget {
             const SizedBox(height: 10),
           ],
 
-          //Attachment row (KEEP, optional)
           if (attachment != null && attachment.toString().trim().isNotEmpty) ...[
             _attachmentRow(attachment.toString()),
             const SizedBox(height: 10),
@@ -475,7 +511,6 @@ class _LeaveRequestCard extends StatelessWidget {
             const SizedBox(height: 10),
           ],
 
-          //Buttons (UNCHANGED)
           Row(
             children: [
               Expanded(
@@ -514,7 +549,6 @@ class _LeaveRequestCard extends StatelessWidget {
     );
   }
 
-  //NEW detail row style (label left, value right) — like your UI
   Widget _detailRow(String label, String value) {
     return Row(
       children: [
@@ -548,7 +582,6 @@ class _LeaveRequestCard extends StatelessWidget {
     );
   }
 
-  //SAME box style (Reason / Covering)
   Widget _boxField(String label, String value) {
     return Container(
       width: double.infinity,
@@ -584,7 +617,6 @@ class _LeaveRequestCard extends StatelessWidget {
     );
   }
 
-  // SAME attachment row (kept)
   Widget _attachmentRow(String fileName) {
     return Container(
       width: double.infinity,
@@ -610,9 +642,7 @@ class _LeaveRequestCard extends StatelessWidget {
             ),
           ),
           IconButton(
-            onPressed: () {
-              // TODO: open/download attachment
-            },
+            onPressed: () {},
             icon: const Icon(Icons.download, size: 18),
           ),
         ],
@@ -620,4 +650,3 @@ class _LeaveRequestCard extends StatelessWidget {
     );
   }
 }
-

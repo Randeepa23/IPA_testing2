@@ -179,6 +179,8 @@ Widget build(BuildContext context) {
     backgroundColor: Colors.white,
     body: RefreshIndicator(
       onRefresh: _loadHistory,
+      color: Colors.blue,
+      backgroundColor: Colors.white,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -387,7 +389,7 @@ Widget build(BuildContext context) {
               width: double.infinity,
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFFD7E8F6),
+                color: const Color.fromARGB(255, 246, 219, 215),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: RichText(

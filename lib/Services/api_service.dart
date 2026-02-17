@@ -6,6 +6,104 @@ class ApiService {
   //Android Emulator → PC localhost
 static const String baseUrl = "http://10.0.2.2/test-1/api";
 
+  static Future<List<Map<String, dynamic>>> fetchManagerLeaveRequests({
+    required String managerId,
+  }) async {
+    final uri = Uri.parse(
+      "$baseUrl/get_manager_leave_requests.php?manager_id=$managerId",
+    );
+
+    final res = await http.get(uri);
+    if (res.statusCode != 200) {
+      throw Exception("HTTP ${res.statusCode}: ${res.body}");
+    }
+
+    final body = json.decode(res.body);
+    if (body["success"] != true) {
+      throw Exception(body["message"] ?? "Unknown error");
+    }
+
+    final List data = body["data"] ?? [];
+
+    return data.map<Map<String, dynamic>>((x) {
+      final isSpecial = x["is_special_request"].toString() == "1";
+      final overseeName = (x["oversee_name"] ?? "").toString().trim();
+      final relieverComment = (x["reliever_comment"] ?? "").toString().trim();
+
+      return {
+        "leave_request_id": x["leave_request_id"],
+
+        "employeeName": x["employee_name"] ?? "",
+        "position": x["job_title_name"] ?? "—",
+
+        // your UI uses employeeId field -> map to employee_code
+        "employeeId": x["employee_code"] ?? x["employee_id"],
+
+        "leaveType": "Leave Policy #${x["leave_policy_id"]}",
+        "from": (x["leave_start_date"] ?? "").toString(),
+        "to": (x["leave_end_date"] ?? "").toString(),
+        "days": (x["number_of_days"] ?? "").toString(),
+        "reason": x["reason"] ?? "",
+
+        "coveringOfficer": (!isSpecial && overseeName.isNotEmpty)
+            ? {
+                "name": overseeName,
+                "note": relieverComment.isNotEmpty ? relieverComment : "—",
+              }
+            : null,
+
+        "attachmentName": null,
+        "is_special_request": x["is_special_request"],
+        "status": x["status"],
+      };
+    }).toList();
+  }
+
+  static Future<void> approveLeave({
+    required String managerId,
+    required int leaveRequestId,
+  }) async {
+    final uri = Uri.parse("$baseUrl/approve_leave.php");
+
+    final res = await http.post(uri, body: {
+      "manager_id": managerId,
+      "leave_request_id": leaveRequestId.toString(),
+    });
+
+    if (res.statusCode != 200) {
+      throw Exception("HTTP ${res.statusCode}: ${res.body}");
+    }
+
+    final body = json.decode(res.body);
+    if (body["success"] != true) {
+      throw Exception(body["message"] ?? "Approve failed");
+    }
+  }
+
+  static Future<void> rejectLeave({
+    required String managerId,
+    required int leaveRequestId,
+    required String comment,
+  }) async {
+    final uri = Uri.parse("$baseUrl/reject_leave.php");
+
+    final res = await http.post(uri, body: {
+      "manager_id": managerId,
+      "leave_request_id": leaveRequestId.toString(),
+      "comment": comment,
+    });
+
+    if (res.statusCode != 200) {
+      throw Exception("HTTP ${res.statusCode}: ${res.body}");
+    }
+
+    final body = json.decode(res.body);
+    if (body["success"] != true) {
+      throw Exception(body["message"] ?? "Reject failed");
+    }
+  }
+
+
   static Future<List<dynamic>> fetchEmployees() async {
 
     // final res = await http.get(Uri.parse("$baseUrl/employees"), headers: {"Accept": "application/json"},
