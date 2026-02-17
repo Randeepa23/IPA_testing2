@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import '../Services/api_service.dart';
+import 'top_banner.dart';
 class LeaveRequestScreen extends StatefulWidget {
   final String managerId; // ex: EMP-UUID-010
   const LeaveRequestScreen({super.key, required this.managerId});
@@ -208,8 +209,11 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                       await _loadManagerRequests();
 
                                       if (mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text("Rejected successfully")),
+                                        TopBanner.show(
+                                        context,
+                                        title: "Reject Request",
+                                        message: "Your pending leave request has been rejected successfully.",
+                                        icon: Icons.cancel,
                                         );
                                       }
                                     } catch (e) {
@@ -327,9 +331,12 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                     await _loadManagerRequests();
 
                                     if (mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text("Approved successfully")),
-                                      );
+                                        TopBanner.show(
+                                        context,
+                                        title: "Accept Request",
+                                        message: "Your pending leave request has been accepted successfully.",
+                                        icon: Icons.check_circle,
+                                        );
                                     }
                                   } catch (e) {
                                     if (mounted) {
