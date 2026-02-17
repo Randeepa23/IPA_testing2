@@ -388,6 +388,8 @@ class _LeaveRequestCard extends StatelessWidget {
 
     final attachment = data["attachmentName"];
     final covering = data["coveringOfficer"] as Map<String, dynamic>?;
+    final isSpecial = data["is_special_request"].toString() == "1";
+
 
     return Container(
       decoration: BoxDecoration(
@@ -419,10 +421,35 @@ class _LeaveRequestCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      data["employeeName"] ?? "",
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          data["employeeName"] ?? "",
+                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5),
+                        ),
+                      ),
+                      if (isSpecial)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF3CD), // light amber
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: const Color(0xFFFFE08A)),
+                          ),
+                          child: const Text(
+                            "SPECIAL",
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF8A5A00),
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+
                     const SizedBox(height: 2),
                     Text(
                       "${data["position"] ?? ""}\nEmployee ID: ${data["employeeId"] ?? ""}",
@@ -495,13 +522,35 @@ class _LeaveRequestCard extends StatelessWidget {
           _boxField("Reason", (data["reason"] ?? "").toString()),
           const SizedBox(height: 10),
 
+          // ===== RELIEVER / SPECIAL REQUEST SECTION =====
           if (covering != null) ...[
             _boxField(
-              "Covering Officer",
-              "Name: ${covering["name"] ?? "-"}\nNote: \"${covering["note"] ?? "-"}\"",
+              "Reliever Comment",
+              "Name: ${covering["name"] ?? "-"}\nComment: ${covering["note"] ?? "-"}",
+            ),
+            const SizedBox(height: 10),
+          ]
+          else if (isSpecial) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF8E1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFFFE08A)),
+              ),
+              child: const Text(
+                "Special Request (No relievers).",
+                style: TextStyle(
+                  fontSize: 12.3,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF8A5A00),
+                ),
+              ),
             ),
             const SizedBox(height: 10),
           ],
+
 
           if (attachment != null && attachment.toString().trim().isNotEmpty) ...[
             _attachmentRow(attachment.toString()),
