@@ -13,6 +13,8 @@ class LeaveHistoryScreen extends StatefulWidget {
   State<LeaveHistoryScreen> createState() => _LeaveHistoryScreenState();
 }
 
+
+//Leave Status Enum
 enum LeaveStatus {
   pending,
   relieverAccepted,
