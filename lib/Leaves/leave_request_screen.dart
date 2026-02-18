@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import '../Services/api_service.dart';
 import 'top_banner.dart';
+
+import 'package:url_launcher/url_launcher.dart';
+import 'package:photo_view/photo_view.dart';
 class LeaveRequestScreen extends StatefulWidget {
 
   final String managerId;
@@ -393,6 +396,9 @@ class _LeaveRequestCard extends StatelessWidget {
     final attachment = data["attachmentName"];
     final covering = data["coveringOfficer"] as Map<String, dynamic>?;
     final isSpecial = data["is_special_request"].toString() == "1";
+    final attachmentName = data["attachmentName"];
+    final attachmentPath = data["attachmentPath"];
+
 
 
     return Container(
@@ -557,7 +563,12 @@ class _LeaveRequestCard extends StatelessWidget {
 
 
           if (attachment != null && attachment.toString().trim().isNotEmpty) ...[
-            _attachmentRow(attachment.toString()),
+            _attachmentRow(
+              context: context,
+              fileName: attachmentName.toString(),
+              filePath: attachmentPath.toString(),
+            ),
+
             const SizedBox(height: 10),
           ] else ...[
             const Text(
@@ -677,7 +688,90 @@ class _LeaveRequestCard extends StatelessWidget {
     );
   }
 
-  Widget _attachmentRow(String fileName) {
+
+
+  Widget _attachmentRow({
+    required BuildContext context,
+    required String fileName,
+    required String filePath, // relative path from DB
+  }) {
+    // Make full URL (change domain to your server)
+    final fileUrl = "http://10.0.2.2/test-1/$filePath";
+
+    bool isImage(String name) {
+      final n = name.toLowerCase();
+      return n.endsWith(".jpg") || n.endsWith(".jpeg") || n.endsWith(".png");
+    }
+
+    Future<void> openUrl(String url) async {
+      final uri = Uri.parse(url);
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        throw Exception("Could not open $url");
+      }
+    }
+
+
+  void showImagePreviewWithBlur(BuildContext context, String fileUrl) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withOpacity(0.15), // dim
+      builder: (ctx) {
+        final w = MediaQuery.of(ctx).size.width;
+        final dialogW = (w * 0.92).clamp(280.0, 520.0);
+
+        return Stack(
+          children: [
+            //Blurred Background
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+              child: Container(color: Colors.transparent),
+            ),
+
+            // DIALOG
+            Center(
+              child: Dialog(
+                insetPadding: const EdgeInsets.all(16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                child: SizedBox(
+                  width: dialogW,
+                  height: 420,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Stack(
+                      children: [
+                        Container(
+                          color: Colors.black,
+                          child: PhotoView(
+                            imageProvider: NetworkImage(fileUrl),
+                            backgroundDecoration: const BoxDecoration(color: Colors.black),
+                            minScale: PhotoViewComputedScale.contained,
+                            maxScale: PhotoViewComputedScale.covered * 2.5,
+                          ),
+                        ),
+
+                        // Close button
+                        Positioned(
+                          right: 6,
+                          top: 6,
+                          child: IconButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            icon: const Icon(Icons.close, color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
@@ -701,8 +795,25 @@ class _LeaveRequestCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
+
+          // 👁 View (only for images)
           IconButton(
-            onPressed: () {},
+            tooltip: "View",
+            onPressed: () {
+              if (isImage(fileName)) {
+                showImagePreviewWithBlur(context, fileUrl);
+              } else {
+                // for PDF/DOC open external
+                openUrl(fileUrl);
+              }
+            },
+            icon: const Icon(Icons.remove_red_eye, size: 18),
+          ),
+
+          // ⬇ Download/Open
+          IconButton(
+            tooltip: "Open",
+            onPressed: () => openUrl(fileUrl),
             icon: const Icon(Icons.download, size: 18),
           ),
         ],
