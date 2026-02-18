@@ -17,6 +17,11 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
 
+  bool get isHod {
+  final id = widget.user["jobTitleId"]?.toString() ?? "";
+  return id == "3"; // job_title_id 3 = HOD
+}
+
   Map<String, dynamic>? leaveBalance;
   bool loadingLeave = true;
   String? leaveError;
@@ -352,17 +357,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           leave['status'] as String,
                           leave['color'] as Color,
                         ),
-                        
                       ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Center(
-                          child: Text(
-                            'Loaded last ${recentLeaves.length} recent requests........',
-                            style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey),
-                          ),
-                        ),
-                      )
                   ],
                 ),
               ),
@@ -456,46 +451,123 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // Color by usage: green (low) → blue (middle) → red (near total)
-  Color _progressColor(double value) {
-    final v = value.clamp(0.0, 1.0);
-    if (v <= 0.5) {
-      return Color.lerp(Colors.green, Colors.blue, v / 0.5)!;
+    // Color by usage: green (low) → blue (middle) → red (near total)
+    Color _progressColor(double value) {
+      final v = value.clamp(0.0, 1.0);
+      if (v <= 0.5) {
+        return Color.lerp(Colors.green, Colors.blue, v / 0.5)!;
+      }
+      return Color.lerp(Colors.blue, Colors.red, (v - 0.5) / 0.5)!;
     }
-    return Color.lerp(Colors.blue, Colors.red, (v - 0.5) / 0.5)!;
-  }
 
-  Widget _progressRow(String type, int used, int total) {
-    final safeTotal = total == 0 ? 1 : total;
-    final value = used / safeTotal;
+    Widget _progressRow(String type, int used, int total) {
+      final safeTotal = total == 0 ? 1 : total;
+      final value = used / safeTotal;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(type, style: GoogleFonts.poppins()),
-              Text('$used/$total', style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
-            ],
-          ),
-          const SizedBox(height: 6),
-          LinearProgressIndicator(
-            value: value.clamp(0.0, 1.0),
-            minHeight: 8,
-            valueColor: AlwaysStoppedAnimation<Color>(_progressColor(value)),
-            backgroundColor: Colors.grey.shade200,
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ],
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(type, style: GoogleFonts.poppins()),
+                Text('$used/$total', style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
+              ],
+            ),
+            const SizedBox(height: 6),
+            LinearProgressIndicator(
+              value: value.clamp(0.0, 1.0),
+              minHeight: 8,
+              valueColor: AlwaysStoppedAnimation<Color>(_progressColor(value)),
+              backgroundColor: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // QUICK ACTIONS
+    Widget _quickActions(BuildContext context) {
+    final actions = <Widget>[
+      _QuickAction(
+        icon: Icons.add_circle,
+        label: 'Apply Leave',
+        onTap: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => LeaveFormScreen(user: widget.user)),
+          );
+          if (!mounted) return;
+          _loadRecentLeaves();
+          _loadLeaveBalance();
+        },
       ),
-    );
-  }
+      _QuickAction(
+        icon: Icons.history,
+        label: 'Leave History',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => UserScreen(user: widget.user, initialTab: 1),
+            ),
+          );
+        },
+      ),
+      _QuickAction(
+        icon: Icons.person,
+        label: 'Reliever Request',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => UserScreen(user: widget.user, initialTab: 2),
+            ),
+          );
+        },
+      ),
 
-  // QUICK ACTIONS
-  Widget _quickActions(BuildContext context) {
+          _QuickAction(
+        icon: Icons.directions_car ,
+        label: 'Vehicle Request',
+        onTap: () {
+          // Navigator.push(
+          //   context,
+          //   MaterialPageRoute(
+          //     builder: (context) => UserScreen(user: widget.user, initialTab: 2),
+          //   ),
+          // );
+          print("Vehicle Request tapped");
+        },
+      ),
+    ];
+
+    // Only HOD sees Request button
+    if (isHod) {
+      actions.add(
+        _QuickAction(
+          icon: Icons.cabin,
+          label: 'Request',
+          onTap: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => LeaveRequestScreen(
+                  managerId: widget.user["employeeId"],
+                ),
+              ),
+            );
+            if (!mounted) return;
+            _loadRecentLeaves();
+            _loadLeaveBalance();
+          },
+        ),
+      );
+    }
+
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -503,68 +575,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
       childAspectRatio: 2.4,
-      children: [
-        _QuickAction(
-          icon: Icons.add_circle,
-          label: 'Apply Leave',
-          onTap: () async {
-            await Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => LeaveFormScreen(user: widget.user)),
-            );
-            if (!mounted) return;
-            // Refresh dashboard after applying leave
-            _loadRecentLeaves();
-            _loadLeaveBalance();
-          },
-        ),
-        _QuickAction(
-          icon: Icons.history,
-          label: 'Leave History',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => UserScreen(
-                  user: widget.user,
-                  initialTab: 1,
-                ),
-              ),
-            );
-          },
-        ),
-        _QuickAction(
-          icon: Icons.person,
-          label: 'Reliever Request',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => UserScreen(
-                  user: widget.user,
-                  initialTab: 2,
-                ),
-              ),
-            );
-          },
-        ),
-        _QuickAction(
-          icon: Icons.cabin,
-          label: 'Request',
-          onTap: () async {
-            await Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => LeaveRequestScreen(managerId: widget.user["employeeId"])),
-            );
-            if (!mounted) return;
-            // Refresh dashboard after any request screen actions
-            _loadRecentLeaves();
-            _loadLeaveBalance();
-          },
-        ),
-      ],
+      children: actions,
     );
   }
+
 
  // Recent request card — simple, user-friendly
   Widget _leaveStatus(String type, String date, String days, String status, Color color) {
