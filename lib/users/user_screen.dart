@@ -4,15 +4,24 @@ import '../Leaves/leave_history_screen.dart';
 import '../Leaves/reliaver_request_screen.dart';
 
 class UserScreen extends StatefulWidget {
+  
   final Map<String, dynamic> user;
-  const UserScreen({super.key, required this.user});
+  final int initialTab;
+
+  const UserScreen({super.key, required this.user, this.initialTab = 0,});
 
   @override
   State<UserScreen> createState() => _UserScreenState();
 }
 
 class _UserScreenState extends State<UserScreen> {
-  int selectedTab = 0; 
+  late int selectedTab;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedTab = widget.initialTab;
+  }
 
   String getAppBarTitle() {
   switch (selectedTab) {

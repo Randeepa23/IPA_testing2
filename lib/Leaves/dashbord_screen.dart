@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'leave_form.dart';
 import '../users/user_screen.dart';
 import 'leave_request_screen.dart';
-import './../users/employees_screen.dart';
 import 'package:test_app/Services/api_service.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -52,26 +51,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return;
       }
 
-      final res = await ApiService.getLeaveHistory(employeeId: employeeId);
+      final res = await ApiService.getRecentLeaveHistory(employeeId: employeeId);
 
       if (res["success"] == true) {
         final list = List<Map<String, dynamic>>.from(res["data"] ?? []);
+
+        // sort newest -> oldest
+        list.sort((a, b) {
+          DateTime parseDate(dynamic v) {
+            final s = (v ?? "").toString();
+            return DateTime.tryParse(s) ?? DateTime(1970);
+          }
+
+          final aDate = parseDate(a["requested_at"] ?? a["leave_start_date"]);
+          final bDate = parseDate(b["requested_at"] ?? b["leave_start_date"]);
+          return bDate.compareTo(aDate); // newest first
+        });
+
         final mapped = list.take(_recentLeavesLimit).map((x) {
           final statusStr = (x["status"] ?? "PENDING").toString().toUpperCase();
+
           String status;
           Color color;
+
           if (statusStr == "APPROVED") {
             status = "Approved";
             color = Colors.green;
           } else if (statusStr == "REJECTED") {
             status = "Rejected";
             color = Colors.red;
+          } else if (statusStr == "RELIEVER ACCEPTED") {
+            status = "Reliever Accepted";
+            color = Colors.blue;
+          } else if (statusStr == "RELIEVER DECLINED") {
+            status = "Reliever Declined";
+            color = Colors.deepOrange;
           } else {
             status = "Pending";
             color = Colors.orange;
           }
+
           final numDays = x["number_of_days"]?.toString() ?? "0";
           final days = numDays == "1" ? "1 day" : "$numDays days";
+
           return {
             "type": (x["leave_type"] ?? "-").toString(),
             "date": (x["leave_start_date"] ?? x["requested_at"] ?? "-").toString(),
@@ -80,6 +102,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             "color": color,
           };
         }).toList();
+
 
         setState(() {
           recentLeaves = mapped;
@@ -98,8 +121,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       });
     }
   }
-
-  
 
   /// Reloads both leave balance and recent leaves. Call this for pull-to-refresh or refresh button.
   Future<void> _reloadPage() async {
@@ -331,7 +352,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           leave['status'] as String,
                           leave['color'] as Color,
                         ),
+                        
                       ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Center(
+                          child: Text(
+                            'Loaded last ${recentLeaves.length} recent requests........',
+                            style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey),
+                          ),
+                        ),
+                      )
                   ],
                 ),
               ),
@@ -488,10 +519,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           },
         ),
         _QuickAction(
-          icon: Icons.car_rental,
-          label: 'Vehicle Request',
+          icon: Icons.history,
+          label: 'Leave History',
           onTap: () {
-            print('Vehicle tapped');
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => UserScreen(
+                  user: widget.user,
+                  initialTab: 1,
+                ),
+              ),
+            );
           },
         ),
         _QuickAction(
@@ -500,7 +539,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const EmployeesScreen()),
+              MaterialPageRoute(
+                builder: (context) => UserScreen(
+                  user: widget.user,
+                  initialTab: 2,
+                ),
+              ),
             );
           },
         ),
