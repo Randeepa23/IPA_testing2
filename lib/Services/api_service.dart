@@ -4,9 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  //Android Emulator → PC localhost
+
+
+//Android Emulator → PC localhost
 static const String baseUrl = "http://10.0.2.2/test-1/api";
 
+
+  // File upload API (use this in LeaveFormScreen after applying leave request)
   static Future<void> uploadLeaveDocument({
     required int leaveRequestId,
     required File file,
@@ -23,7 +27,7 @@ static const String baseUrl = "http://10.0.2.2/test-1/api";
     if (res.statusCode != 200) throw Exception(bodyStr);
   }
 
-
+  // Fetch Manager's Leave Requests API (use this in ManagerLeaveRequestsScreen)
   static Future<List<Map<String, dynamic>>> fetchManagerLeaveRequests({
     required String managerId,
   }) async {
@@ -80,6 +84,8 @@ static const String baseUrl = "http://10.0.2.2/test-1/api";
     }).toList();
   }
 
+
+  // Approve Leave API (use this in ManagerLeaveRequestsScreen)
   static Future<void> approveLeave({
     required String managerId,
     required int leaveRequestId,
@@ -101,6 +107,7 @@ static const String baseUrl = "http://10.0.2.2/test-1/api";
     }
   }
 
+  // Add comment parameter for rejection reason
   static Future<void> rejectLeave({
     required String managerId,
     required int leaveRequestId,
@@ -181,6 +188,7 @@ static const String baseUrl = "http://10.0.2.2/test-1/api";
       }
 
 
+    //Get Leave Balance API (use this in LeaveFormScreen when user selects leave type)
     static Future<Map<String, dynamic>> getLeaveBalance({
     required String employeeId,
     }) async {
@@ -204,50 +212,51 @@ static const String baseUrl = "http://10.0.2.2/test-1/api";
       return Map<String, dynamic>.from(decoded);
     }
 
-static Future<Map<String, dynamic>> applyLeaveRequest({
-  required String employeeId,
-  required int leavePolicyId,
-  required String startDate,
-  required String endDate,
-  required double numberOfDays,
-  required String reason,
-  String? overseeMemberId,
-  required bool isSpecialRequest,
-  String? address,
+  //Apply Leave API (use this in LeaveFormScreen)
+  static Future<Map<String, dynamic>> applyLeaveRequest({
+    required String employeeId,
+    required int leavePolicyId,
+    required String startDate,
+    required String endDate,
+    required double numberOfDays,
+    required String reason,
+    String? overseeMemberId,
+    required bool isSpecialRequest,
+    String? address,
 
-  String? halfDaySession, // MORNING / EVENING
-}) async {
-  final url = Uri.parse("$baseUrl/apply_leave_request.php");
+    String? halfDaySession, // MORNING / EVENING
+  }) async {
+    final url = Uri.parse("$baseUrl/apply_leave_request.php");
 
-  final body = {
-    "employeeId": employeeId,
-    "leavePolicyId": leavePolicyId,
-    "startDate": startDate,
-    "endDate": endDate,
-    "numberOfDays": numberOfDays,
-    "reason": reason,
-    "overseeMemberId": overseeMemberId ?? "",
-    "isSpecialRequest": isSpecialRequest ? 1 : 0,
-    "address": address ?? "",
+    final body = {
+      "employeeId": employeeId,
+      "leavePolicyId": leavePolicyId,
+      "startDate": startDate,
+      "endDate": endDate,
+      "numberOfDays": numberOfDays,
+      "reason": reason,
+      "overseeMemberId": overseeMemberId ?? "",
+      "isSpecialRequest": isSpecialRequest ? 1 : 0,
+      "address": address ?? "",
 
-    "halfDaySession": halfDaySession ?? "",
-  };
+      "halfDaySession": halfDaySession ?? "",
+    };
 
-    final res = await http.post(
-      url,
-      headers: {"Content-Type": "application/json", "Accept": "application/json"},
-      body: jsonEncode(body),
-    );
+      final res = await http.post(
+        url,
+        headers: {"Content-Type": "application/json", "Accept": "application/json"},
+        body: jsonEncode(body),
+      );
 
-    if (res.body.trim().isEmpty) {
-      throw Exception("EMPTY response");
+      if (res.body.trim().isEmpty) {
+        throw Exception("EMPTY response");
+      }
+
+      return Map<String, dynamic>.from(jsonDecode(res.body));
     }
 
-    return Map<String, dynamic>.from(jsonDecode(res.body));
-  }
 
-
-
+    //Get Relievers API (use this in LeaveForm when user selects dates and # of days)
     static Future<Map<String, dynamic>> getRelievers({
     required String employeeId,
     required String departmentId,
@@ -271,6 +280,8 @@ static Future<Map<String, dynamic>> applyLeaveRequest({
     return Map<String, dynamic>.from(jsonDecode(res.body));
   }
 
+
+    //Get Leave History API (use this in LeaveHistoryScreen)
     static Future<Map<String, dynamic>> getLeaveHistory({required String employeeId}) async {
     final url = Uri.parse("$baseUrl/get_leave_history.php");
     final res = await http.post(url,
@@ -280,128 +291,140 @@ static Future<Map<String, dynamic>> applyLeaveRequest({
     return Map<String, dynamic>.from(jsonDecode(res.body));
   }
 
-static Future<Map<String, dynamic>> cancelLeaveRequest({
-  required String employeeId,
-  required int leaveRequestId,
-}) async {
-  final url = Uri.parse("$baseUrl/cancel_leave_request.php");
-
-  final res = await http.post(
-    url,
-    headers: {"Content-Type": "application/json", "Accept": "application/json"},
-    body: jsonEncode({"employeeId": employeeId, "leaveRequestId": leaveRequestId}),
-  );
-
-  debugPrint("CANCEL URL: $url");
-  debugPrint("CANCEL STATUS: ${res.statusCode}");
-  debugPrint("CANCEL BODY: '${res.body}'");
-
-  if (res.body.trim().isEmpty) {
-    throw Exception("Server returned EMPTY response (check PHP path / fatal error).");
+    //Get Recent Leave History API (use this in DashboardScreen)
+    static Future<Map<String, dynamic>> getRecentLeaveHistory({required String employeeId}) async {
+    final url = Uri.parse("$baseUrl/get_recent_leaves.php");
+    final res = await http.post(url,
+      headers: {"Content-Type": "application/json", "Accept": "application/json"},
+      body: jsonEncode({"employeeId": employeeId}),
+    );
+    return Map<String, dynamic>.from(jsonDecode(res.body));
   }
 
-  final decoded = jsonDecode(res.body);
-  return Map<String, dynamic>.from(decoded);
-}
+  // Cancel Leave Request API (use this in LeaveHistoryScreen for cancel button)
+  static Future<Map<String, dynamic>> cancelLeaveRequest({
+    required String employeeId,
+    required int leaveRequestId,
+  }) async {
+    final url = Uri.parse("$baseUrl/cancel_leave_request.php");
 
-static Future<Map<String, dynamic>> getRelieverRequests({
-  required String employeeId,
-}) async {
-  final url = Uri.parse("$baseUrl/get_reliever_requests.php");
+    final res = await http.post(
+      url,
+      headers: {"Content-Type": "application/json", "Accept": "application/json"},
+      body: jsonEncode({"employeeId": employeeId, "leaveRequestId": leaveRequestId}),
+    );
 
-  final res = await http.post(
-    url,
-    headers: {"Content-Type": "application/json", "Accept": "application/json"},
-    body: jsonEncode({"employeeId": employeeId}),
-  );
+    debugPrint("CANCEL URL: $url");
+    debugPrint("CANCEL STATUS: ${res.statusCode}");
+    debugPrint("CANCEL BODY: '${res.body}'");
 
-  if (res.body.trim().isEmpty) {
-    throw Exception("Server returned EMPTY response.");
+    if (res.body.trim().isEmpty) {
+      throw Exception("Server returned EMPTY response (check PHP path / fatal error).");
+    }
+
+    final decoded = jsonDecode(res.body);
+    return Map<String, dynamic>.from(decoded);
   }
 
-  final decoded = jsonDecode(res.body);
-  return Map<String, dynamic>.from(decoded);
-}
+  // Get Reliever Requests API (use this in RelieverRequestsScreen)
+  static Future<Map<String, dynamic>> getRelieverRequests({
+    required String employeeId,
+  }) async {
+    final url = Uri.parse("$baseUrl/get_reliever_requests.php");
 
-//Create New Password API (use this in CreateNewPasswordScreen)
-static Future<Map<String, dynamic>> updatePassword({
+    final res = await http.post(
+      url,
+      headers: {"Content-Type": "application/json", "Accept": "application/json"},
+      body: jsonEncode({"employeeId": employeeId}),
+    );
 
-  required String email,
-  required String newPassword,
-  required String recoveryKey,
+    if (res.body.trim().isEmpty) {
+      throw Exception("Server returned EMPTY response.");
+    }
 
-}) async {
-  final url = Uri.parse("$baseUrl/create_new_password.php");
+    final decoded = jsonDecode(res.body);
+    return Map<String, dynamic>.from(decoded);
+  }
 
-  final res = await http.post(
-    url,
-    headers: {"Content-Type": "application/json"},
-    body: jsonEncode({
-      "email": email,
-      "newPassword": newPassword,
-      "recovery_key": recoveryKey,
-    }),
-  );
+  //Create New Password API (use this in CreateNewPasswordScreen)
+  static Future<Map<String, dynamic>> updatePassword({
 
-  return jsonDecode(res.body) as Map<String, dynamic>;
-}
+    required String email,
+    required String newPassword,
+    required String recoveryKey,
 
-static Future<Map<String, dynamic>> forgotPassword({
-  required String email,
-  required String recoveryKey,
-  required String newPassword,
-}) async {
-  final url = Uri.parse("$baseUrl/forgot_password.php");
+  }) async {
+    final url = Uri.parse("$baseUrl/create_new_password.php");
 
-  final res = await http.post(
-    url,
-    headers: {"Content-Type": "application/json"},
-    body: jsonEncode({
-      "email": email,
-      "recovery_key": recoveryKey, // MUST match PHP
-      "newPassword": newPassword,
-    }),
-  );
+    final res = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "email": email,
+        "newPassword": newPassword,
+        "recovery_key": recoveryKey,
+      }),
+    );
 
-  return jsonDecode(res.body) as Map<String, dynamic>;
-}
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
 
+  // Forgot Password API (use this in ForgotPasswordScreen)
+  static Future<Map<String, dynamic>> forgotPassword({
+    required String email,
+    required String recoveryKey,
+    required String newPassword,
+  }) async {
+    final url = Uri.parse("$baseUrl/forgot_password.php");
 
-static Future<Map<String, dynamic>> relieverAccept({
-  required int leaveRequestId,
-  required String relieverId,
-  required String comment,
-}) async {
-  final url = Uri.parse("$baseUrl/reliever_accept.php");
-  final res = await http.post(
-    url,
-    headers: {"Content-Type": "application/json"},
-    body: jsonEncode({
-      "leaveRequestId": leaveRequestId,
-      "relieverId": relieverId,
-      "comment": comment,
-    }),
-  );
-  return jsonDecode(res.body);
-}
+    final res = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "email": email,
+        "recovery_key": recoveryKey, // MUST match PHP
+        "newPassword": newPassword,
+      }),
+    );
 
-static Future<Map<String, dynamic>> relieverDecline({
-  required int leaveRequestId,
-  required String relieverId,
-  required String comment,
-}) async {
-  final url = Uri.parse("$baseUrl/reliever_decline.php");
-  final res = await http.post(
-    url,
-    headers: {"Content-Type": "application/json"},
-    body: jsonEncode({
-      "leaveRequestId": leaveRequestId,
-      "relieverId": relieverId,
-      "comment": comment,
-    }),
-  );
-  return jsonDecode(res.body);
-}
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
 
+  // Reliever Accept API (use this in RelieverRequestsScreen)
+  static Future<Map<String, dynamic>> relieverAccept({
+    required int leaveRequestId,
+    required String relieverId,
+    required String comment,
+  }) async {
+    final url = Uri.parse("$baseUrl/reliever_accept.php");
+    final res = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "leaveRequestId": leaveRequestId,
+        "relieverId": relieverId,
+        "comment": comment,
+      }),
+    );
+    return jsonDecode(res.body);
+  }
 
+  // Reliever Decline API (use this in RelieverRequestsScreen)
+  static Future<Map<String, dynamic>> relieverDecline({
+    required int leaveRequestId,
+    required String relieverId,
+    required String comment,
+  }) async {
+    final url = Uri.parse("$baseUrl/reliever_decline.php");
+    final res = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "leaveRequestId": leaveRequestId,
+        "relieverId": relieverId,
+        "comment": comment,
+      }),
+    );
+    return jsonDecode(res.body);
+  }
 }
