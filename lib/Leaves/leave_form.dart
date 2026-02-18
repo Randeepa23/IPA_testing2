@@ -3,9 +3,14 @@ import 'package:intl/intl.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:test_app/Services/api_service.dart';
 import 'dart:ui';
+import 'dart:io';
 import 'package:test_app/ui/dialogs/leave_submit_dialog.dart';
 import 'leave_history_screen.dart';
 import 'top_banner.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
+
+
 
 
 class LeaveFormScreen extends StatefulWidget {
@@ -36,6 +41,7 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
   DateTime? toDate;
 
   // File (mock)
+  File? attachedFile;
   String? attachedFileName;
 
   // Example leave types
@@ -53,6 +59,8 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
 
   // show loading on Send button
   bool _isSubmitting = false;
+
+  
 
 @override
 void initState() {
@@ -102,50 +110,70 @@ Future<void> _submitForm() async {
       endDate: end,
       numberOfDays: days,
       reason: reasonController.text.trim(),
-      overseeMemberId: selectedMember, // null allowed
+      overseeMemberId: selectedMember,
       isSpecialRequest: noMemberConfirmed,
       address: addressController.text.trim(),
       halfDaySession: isHalfDay ? halfDaySession : null,
 
     );
 
-    if (res["success"] == true) {
-      // show top banner
-      TopBanner.show(
-        context,
-        title: "Request send successful..",
-        message: "Your leave request has been submitted successfully, and is now pending approval.",
-        icon: Icons.check_circle,
-        leftButtonText: "View request",
-        rightButtonText: "Ok",
-        onLeftTap: () {
-          // TODO: Navigate to LeaveHistoryScreen / LeaveRequestScreen
-          Navigator.push(context, MaterialPageRoute(builder: (_) => LeaveHistoryScreen(user: widget.user)));
-        },  
-        onRightTap: () {
-          // just close
-        },
-      );
-      // OPTIONAL: close form after showing banner (slight delay)
-      Navigator.pop(context);
-      Future.delayed(const Duration(milliseconds: 1000), () {});
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(res["message"] ?? "Failed")),
-      );
-    }
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Error: $e")),
-    );
-  } finally {
-    if (mounted) {
-      setState(() {
-        _isSubmitting = false;
-      });
-    }
-  }
-}
+      if (res["success"] == true) {
+
+        // 1) Get new leave_request_id from response
+        final int leaveRequestId = int.parse(res["leave_request_id"].toString());
+
+        // 2) Upload document if user selected a file
+        if (attachedFile != null) {
+          try {
+            await ApiService.uploadLeaveDocument(
+              leaveRequestId: leaveRequestId,
+              file: attachedFile!,
+            );
+          } catch (e) {
+            // upload failed but leave request created
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Document upload failed: $e")),
+            );
+          }
+        }
+
+        //  3) show top banner
+        TopBanner.show(
+          context,
+          title: "Request send successful..",
+          message: "Your leave request has been submitted successfully, and is now pending approval.",
+          icon: Icons.check_circle,
+          leftButtonText: "View request",
+          rightButtonText: "Ok",
+          onLeftTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => LeaveHistoryScreen(user: widget.user)),
+            );
+          },
+          onRightTap: () {},
+        );
+
+        Navigator.pop(context);
+        Future.delayed(const Duration(milliseconds: 1000), () {});
+      }
+      else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(res["message"] ?? "Failed")),
+            );
+          }
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error: $e")),
+          );
+        } finally {
+          if (mounted) {
+            setState(() {
+              _isSubmitting = false;
+            });
+          }
+        }
+      }
 
 int _leaveTypeToId(String type) {
   if (type == "Annual Leave") return 1;
@@ -623,11 +651,7 @@ void _showSubmitConfirmation() {
               _sectionTitle('Attach Document (Optional)'),
               const SizedBox(height: 8),
               GestureDetector(
-                onTap: () {
-                  setState(() {
-                    attachedFileName = 'document.pdf'; // mock
-                  });
-                },
+                onTap: _pickAttachment,
                 child: DottedBorder(
                   radius: const Radius.circular(12),
                   dashPattern: const [6, 4],
@@ -687,6 +711,80 @@ void _showSubmitConfirmation() {
       ),
     );
   }
+
+// ================== Document Picker Function ==================
+  Future<void> _pickAttachment() async {
+  showModalBottomSheet(
+    context: context,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (_) {
+      return SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text("Take photo"),
+              onTap: () async {
+                Navigator.pop(context);
+                final x = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 80);
+                if (x == null) return;
+                setState(() {
+                  attachedFile = File(x.path);
+                  attachedFileName = x.name;
+                });
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text("Choose from gallery"),
+              onTap: () async {
+                Navigator.pop(context);
+                final x = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 80);
+                if (x == null) return;
+                setState(() {
+                  attachedFile = File(x.path);
+                  attachedFileName = x.name;
+                });
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.upload_file),
+              title: const Text("Choose document (PDF/DOC)"),
+              onTap: () async {
+                Navigator.pop(context);
+                final result = await FilePicker.platform.pickFiles(
+                  type: FileType.custom,
+                  allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
+                );
+                if (result == null || result.files.single.path == null) return;
+                setState(() {
+                  attachedFile = File(result.files.single.path!);
+                  attachedFileName = result.files.single.name;
+                });
+              },
+            ),
+            if (attachedFile != null)
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text("Remove attachment"),
+                onTap: () {
+                  Navigator.pop(context);
+                  setState(() {
+                    attachedFile = null;
+                    attachedFileName = null;
+                  });
+                },
+              ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
 
   // ---------------- UI HELPERS (UI ONLY) ----------------
   Widget _sectionTitle(String text) {

@@ -3,7 +3,8 @@ import 'dart:ui';
 import '../Services/api_service.dart';
 import 'top_banner.dart';
 class LeaveRequestScreen extends StatefulWidget {
-  final String managerId; // ex: EMP-UUID-010
+
+  final String managerId;
   const LeaveRequestScreen({super.key, required this.managerId});
 
   @override
@@ -57,6 +58,9 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _loadManagerRequests,
+          color: Colors.blue,
+          backgroundColor: Colors.white,
+          strokeWidth: 2,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.all(pad),

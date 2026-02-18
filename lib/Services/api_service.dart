@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -5,6 +6,23 @@ import 'package:http/http.dart' as http;
 class ApiService {
   //Android Emulator → PC localhost
 static const String baseUrl = "http://10.0.2.2/test-1/api";
+
+  static Future<void> uploadLeaveDocument({
+    required int leaveRequestId,
+    required File file,
+  }) async {
+    final uri = Uri.parse("$baseUrl/upload_leave_document.php");
+
+    final req = http.MultipartRequest("POST", uri);
+    req.fields["leave_request_id"] = leaveRequestId.toString();
+    req.files.add(await http.MultipartFile.fromPath("document", file.path));
+
+    final res = await req.send();
+    final bodyStr = await res.stream.bytesToString();
+
+    if (res.statusCode != 200) throw Exception(bodyStr);
+  }
+
 
   static Future<List<Map<String, dynamic>>> fetchManagerLeaveRequests({
     required String managerId,
@@ -52,7 +70,10 @@ static const String baseUrl = "http://10.0.2.2/test-1/api";
               }
             : null,
 
-        "attachmentName": null,
+        //"attachmentName": null,
+        "attachmentName": x["attachment_name"],
+        "attachmentPath": x["attachment_path"],
+
         "is_special_request": x["is_special_request"],
         "status": x["status"],
       };
