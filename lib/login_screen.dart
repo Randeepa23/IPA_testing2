@@ -158,7 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       //App Name
                       Center(
                         child: Text(
-                          'ENEXA',
+                          'EES',
                           style: TextStyle(
                             fontSize: (w * 0.08).clamp(24.0, 34.0),
                             fontWeight: FontWeight.bold,
