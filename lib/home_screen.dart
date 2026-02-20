@@ -124,7 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => VehicleHomeScreen(),
+                          builder: (_) => VehicleHomeScreen(user: user),
                         ),
                       );
                     },

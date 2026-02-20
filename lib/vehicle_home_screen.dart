@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import '../users/vehicle_screen.dart';
 class VehicleHomeScreen extends StatelessWidget {
-  const VehicleHomeScreen({super.key});
+  final Map<String, dynamic> user;
+  const VehicleHomeScreen({super.key, required this.user});
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +16,7 @@ class VehicleHomeScreen extends StatelessWidget {
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(
-              child: _TopHeader(isTablet: isTablet),
+              child: _TopHeader(isTablet: isTablet, user: user),
             ),
             SliverPadding(
               padding: EdgeInsets.fromLTRB(isTablet ? 24 : 16, 16, isTablet ? 24 : 16, 24),
@@ -44,7 +46,7 @@ class VehicleHomeScreen extends StatelessWidget {
                       onPrimaryTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => VehicleScreen()),
+                          MaterialPageRoute(builder: (_) => VehicleScreen(user: user)),
                         );
                       },
                     ),
@@ -63,10 +65,6 @@ class VehicleHomeScreen extends StatelessWidget {
                       onPrimaryTap: () {
                         // TODO: Navigator.push(...)
                       },
-                      secondaryButtonText: "My Bookings",
-                      onSecondaryTap: () {
-                        // TODO: Navigator.push(...)
-                      },
                     ),
 
                     const SizedBox(height: 14),
@@ -81,10 +79,6 @@ class VehicleHomeScreen extends StatelessWidget {
                       chipTextColor: const Color(0xFF1E7D47),
                       primaryButtonText: "View Trips",
                       onPrimaryTap: () {
-                        // TODO: Navigator.push(...)
-                      },
-                      secondaryButtonText: "New Transfer",
-                      onSecondaryTap: () {
                         // TODO: Navigator.push(...)
                       },
                     ),
@@ -120,10 +114,13 @@ class VehicleHomeScreen extends StatelessWidget {
 /// ---------- TOP HEADER ----------
 class _TopHeader extends StatelessWidget {
   final bool isTablet;
-  const _TopHeader({required this.isTablet});
+  final Map<String, dynamic> user;
+  const _TopHeader({required this.isTablet, required this.user});
+
 
   @override
   Widget build(BuildContext context) {
+    final firstName = user["firstName"] ?? "";
     return Padding(
       padding: EdgeInsets.fromLTRB(isTablet ? 24 : 16, 10, isTablet ? 24 : 16, 8),
       child: Row(
@@ -131,9 +128,9 @@ class _TopHeader extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
-                  "Welcome, Explore",
+                  "Welcome, $firstName !",
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
@@ -153,11 +150,11 @@ class _TopHeader extends StatelessWidget {
             ),
           ),
           IconButton(
-            tooltip: "Refresh",
+            tooltip: "Back",
             onPressed: () {
-              // TODO: reload if needed
+              Navigator.pop(context);
             },
-            icon: const Icon(Icons.refresh_rounded),
+            icon: const Icon(Icons.arrow_back_rounded),
           ),
         ],
       ),
@@ -255,9 +252,6 @@ class _ServiceCard extends StatelessWidget {
   final String primaryButtonText;
   final VoidCallback onPrimaryTap;
 
-  final String? secondaryButtonText;
-  final VoidCallback? onSecondaryTap;
-
   const _ServiceCard({
     required this.icon,
     required this.title,
@@ -267,9 +261,9 @@ class _ServiceCard extends StatelessWidget {
     required this.chipTextColor,
     required this.primaryButtonText,
     required this.onPrimaryTap,
-    this.secondaryButtonText,
-    this.onSecondaryTap,
+
   });
+  
 
   @override
   Widget build(BuildContext context) {
@@ -347,27 +341,6 @@ class _ServiceCard extends StatelessWidget {
                   ),
                 ),
               ),
-              // if (secondaryButtonText != null) ...[
-              //   const SizedBox(width: 10),
-              //   Expanded(
-              //     child: OutlinedButton(
-              //       onPressed: onSecondaryTap,
-              //       style: OutlinedButton.styleFrom(
-              //         foregroundColor: const Color(0xFF2563EB),
-              //         side: const BorderSide(color: Color(0xFFB7D1FF)),
-              //         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              //         padding: const EdgeInsets.symmetric(vertical: 12),
-              //       ),
-              //       child: Text(
-              //         secondaryButtonText!,
-              //         style: const TextStyle(
-              //           fontWeight: FontWeight.w800,
-              //           fontSize: 12.8,
-              //         ),
-              //       ),
-              //     ),
-              //   ),
-              // ],
             ],
           )
         ],

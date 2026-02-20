@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../Vehicle/vehicle_new_request_screen.dart';
-
 class VehicleScreen extends StatefulWidget {
+  final Map<String, dynamic> user;
   final int initialTab;
 
-  const VehicleScreen({super.key, this.initialTab = 0});
+  const VehicleScreen({super.key, this.initialTab = 0, required this.user});
 
   @override
   State<VehicleScreen> createState() => _VehicleScreenState();
@@ -91,7 +91,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
             child: IndexedStack(
               index: selectedTab,
               children: [
-                VehicleNewRequestScreen(),
+                VehicleRequestFormScreen(user: widget.user),
                 // VehicleMyTripsScreen(user: widget.user),
                 // VehicleRequestsScreen(user: widget.user),
               ],
