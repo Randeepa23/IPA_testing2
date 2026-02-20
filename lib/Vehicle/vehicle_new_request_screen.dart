@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../ui/dialogs/vehicle_submit_dialog.dart';
 
 class VehicleRequestFormScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -74,6 +75,29 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
       if (mounted) setState(() => _isSubmitting = false);
     }
   }
+void _showVehicleSubmitConfirmation() {
+
+  final vehicleNoTxt =
+      "${vehiclePrefixController.text.trim()}-${vehicleNumberController.text.trim()}";
+
+  final fromTxt = fromDate == null ? "-" : DateFormat('MM/dd/yyyy').format(fromDate!);
+  final toTxt = toDate == null ? "-" : DateFormat('MM/dd/yyyy').format(toDate!);
+
+  final destinationTxt = destinationController.text.trim().isEmpty
+      ? "-"
+      : destinationController.text.trim();
+
+  showVehicleSubmitDialog(
+    context: context,
+    vehicleNoTxt: vehicleNoTxt,
+    fromTxt: fromTxt,
+    toTxt: toTxt,
+    destinationTxt: destinationTxt,
+    isSubmitting: _isSubmitting,
+    onConfirm: _submitForm,
+  );
+}
+  
 
   @override
   Widget build(BuildContext context) {
@@ -229,7 +253,7 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
               SizedBox(
                 height: 46,
                 child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : _submitForm,
+                  onPressed: _isSubmitting ? null : _showVehicleSubmitConfirmation,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: blue,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
