@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
-import 'profile_screen.dart';
-import '../Leaves/leave_history_screen.dart';
-import '../Leaves/reliaver_request_screen.dart';
-
-class UserScreen extends StatefulWidget {
-  
+import '../Vehicle/vehicle_new_request_screen.dart';
+import '../Vehicle/my_trip_screen.dart';
+import '../Vehicle/vehicle_request_screen.dart';
+class VehicleScreen extends StatefulWidget {
   final Map<String, dynamic> user;
   final int initialTab;
 
-  const UserScreen({super.key, required this.user, this.initialTab = 0,});
+  const VehicleScreen({super.key, this.initialTab = 0, required this.user});
 
   @override
-  State<UserScreen> createState() => _UserScreenState();
+  State<VehicleScreen> createState() => _VehicleScreenState();
 }
 
-class _UserScreenState extends State<UserScreen> {
+class _VehicleScreenState extends State<VehicleScreen> {
   late int selectedTab;
 
   @override
@@ -24,48 +22,44 @@ class _UserScreenState extends State<UserScreen> {
   }
 
   String getAppBarTitle() {
-  switch (selectedTab) {
-    case 0:
-      return 'Profile';
-    case 1:
-      return 'Leave History';
-    case 2:
-      return 'Reliever Request';
-    default:
-      return 'Employee';
+    switch (selectedTab) {
+      case 0:
+        return "New Request";
+      case 1:
+        return "My Trips";
+      case 2:
+        return "Requests";
+      default:
+        return "Vehicle";
+    }
   }
-}
 
-        @override
-        Widget build(BuildContext context) {
-          final blue = Colors.blue[800]!;
+  @override
+  Widget build(BuildContext context) {
+    final blue = Colors.blue[800]!;
 
-          return Scaffold(
-            backgroundColor: Colors.white,
-              appBar: AppBar(
-                  backgroundColor: Colors.white,
-            title: Text(
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+         title: Text(
         getAppBarTitle(),
         style: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w700,
         ),
       ),
-
       ),
-
-      // Column: Top buttons + changing content
       body: Column(
         children: [
-          // 3 buttons always visible
           Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
                 Expanded(
                   child: _tabButton(
-                    label: "Profile",
-                    icon: Icons.person_outline,
+                    label: "New\nRequest",
+                    icon: Icons.add_circle_outline,
                     isActive: selectedTab == 0,
                     onTap: () => setState(() => selectedTab = 0),
                     activeColor: blue,
@@ -74,8 +68,8 @@ class _UserScreenState extends State<UserScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: _tabButton(
-                    label: "Leave History",
-                    icon: Icons.history,
+                    label: "My Trips",
+                    icon: Icons.directions_car_outlined,
                     isActive: selectedTab == 1,
                     onTap: () => setState(() => selectedTab = 1),
                     activeColor: blue,
@@ -84,8 +78,8 @@ class _UserScreenState extends State<UserScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: _tabButton(
-                    label: "Reliever\nRequest",
-                    icon: Icons.group_outlined,
+                    label: "Requests",
+                    icon: Icons.assignment_outlined,
                     isActive: selectedTab == 2,
                     onTap: () => setState(() => selectedTab = 2),
                     activeColor: blue,
@@ -95,14 +89,13 @@ class _UserScreenState extends State<UserScreen> {
             ),
           ),
 
-          //Only this part changes
           Expanded(
             child: IndexedStack(
               index: selectedTab,
               children: [
-                ProfileScreen(user: widget.user),// tab 0
-                LeaveHistoryScreen(user: widget.user), // tab 1
-                RelieverRequestView(user: widget.user),// tab 2
+                VehicleRequestFormScreen(user: widget.user),
+                MyTripsScreen(user: widget.user),
+                VehicleRequestScreen(),
               ],
             ),
           ),
@@ -111,7 +104,6 @@ class _UserScreenState extends State<UserScreen> {
     );
   }
 
-  // same button UI you already use
   Widget _tabButton({
     required String label,
     required IconData icon,

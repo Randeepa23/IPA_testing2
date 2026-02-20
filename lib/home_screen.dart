@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:test_app/Leaves/dashbord_screen.dart';
 import 'login_screen.dart';
 import 'Leaves/top_banner.dart';
+import 'vehicle_home_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String username;
@@ -118,9 +119,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   _serviceCard(
                     imagePath: 'assets/5689004.png',
-                    label: "Request Vehicle",
+                    label: "Vehicle Request",
                     onTap: () {
-                      debugPrint("Vehicle clicked");
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => VehicleHomeScreen(user: user),
+                        ),
+                      );
                     },
                   ),
                   _serviceCard(

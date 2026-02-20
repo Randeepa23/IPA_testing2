@@ -7,7 +7,7 @@ class ApiService {
 
 
 //Android Emulator → PC localhost
-static const String baseUrl = "http://172.20.10.10/test-1/api";
+static const String baseUrl = "http://10.0.2.2/test-1/api";
 
 
   // File upload API (use this in LeaveFormScreen after applying leave request)
