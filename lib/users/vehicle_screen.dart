@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../Vehicle/vehicle_new_request_screen.dart';
+import '../Vehicle/my_trip_screen.dart';
 class VehicleScreen extends StatefulWidget {
   final Map<String, dynamic> user;
   final int initialTab;
@@ -92,7 +93,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
               index: selectedTab,
               children: [
                 VehicleRequestFormScreen(user: widget.user),
-                // VehicleMyTripsScreen(user: widget.user),
+                MyTripsScreen(user: widget.user),
                 // VehicleRequestsScreen(user: widget.user),
               ],
             ),

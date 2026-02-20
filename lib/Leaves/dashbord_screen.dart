@@ -242,7 +242,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               children: [
                                 GestureDetector(
                                   onTap: () => Navigator.pop(context),
-                                  child: const Icon(Icons.logout_outlined, color: Colors.white),
+                                  child: const Icon(Icons.arrow_back_rounded, color: Colors.white),
                                 ),
                                 const SizedBox(width: 10),
                                 GestureDetector(
