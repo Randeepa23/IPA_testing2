@@ -550,6 +550,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     // Only HOD sees Request button
     if (isHod) {
+      final managerId = widget.user["employeeId"]?.toString() ?? "";
       actions.add(
         _QuickAction(
           icon: Icons.cabin,
@@ -559,7 +560,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               context,
               MaterialPageRoute(
                 builder: (context) => LeaveRequestScreen(
-                  managerId: widget.user["employeeId"],
+                  managerId: managerId,
                 ),
               ),
             );

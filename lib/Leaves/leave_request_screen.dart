@@ -696,7 +696,7 @@ class _LeaveRequestCard extends StatelessWidget {
     required String filePath, // relative path from DB
   }) {
     // Make full URL (change domain to your server)
-    final fileUrl = "http://10.0.2.2/test-1/$filePath";
+    final fileUrl = "https://exploresuite.lk/mobile-api/$filePath";
 
     bool isImage(String name) {
       final n = name.toLowerCase();
