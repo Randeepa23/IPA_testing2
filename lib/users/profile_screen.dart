@@ -149,7 +149,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return _infoCard(
         padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
         children: const [
-          Center(child: CircularProgressIndicator()),
+          Center(child: CircularProgressIndicator(
+            color: Colors.blue,
+            strokeWidth: 3,
+          )),
         ],
       );
     }
