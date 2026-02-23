@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import '../users/vehicle_screen.dart';
 import '../Vehicle/assigned_shuttle_trip_screen.dart';
+import '../Vehicle/assigned_transfer_trip_screen.dart';
+
 class VehicleHomeScreen extends StatelessWidget {
   final Map<String, dynamic> user;
   const VehicleHomeScreen({super.key, required this.user});
@@ -83,7 +85,10 @@ class VehicleHomeScreen extends StatelessWidget {
                       chipTextColor: const Color(0xFF1E7D47),
                       primaryButtonText: "View Trips",
                       onPrimaryTap: () {
-                        // TODO: Navigator.push(...)
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => AssignedTransferTripScreen (user: user)),
+                        );
                       },
                     ),
 
