@@ -686,20 +686,31 @@ void _showSubmitConfirmation() {
               // ---------------- SUBMIT ----------------
               SizedBox(
                 height: 46,
-                child: ElevatedButton(
-                  onPressed: _showSubmitConfirmation,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: blue,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                    elevation: 0,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1565C0), Color(0xFF003580)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Text(
-                    'SUBMIT',
-                    style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white),
+                  child: ElevatedButton(
+                    onPressed: _showSubmitConfirmation,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'SUBMIT',
+                      style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white),
+                    ),
                   ),
                 ),
               ),
