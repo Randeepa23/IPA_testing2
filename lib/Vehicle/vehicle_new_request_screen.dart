@@ -234,6 +234,7 @@ void _showVehicleSubmitConfirmation() {
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 value: selectedManagerId,
+                dropdownColor: Colors.white,
                 decoration: _inputDecoration("Select Manager.."),
                 hint: const Text("Select Manager.."),
                 items: managers
@@ -334,6 +335,10 @@ void _showVehicleSubmitConfirmation() {
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(color: Colors.grey.shade300),
       ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.blue, width: 1.2),
+      ),
     );
   }
 
@@ -360,6 +365,18 @@ void _showVehicleSubmitConfirmation() {
           initialDate: selected ?? now,
           firstDate: (minDate ?? now).subtract(const Duration(days: 0)),
           lastDate: DateTime(2030),
+          builder: (ctx, child) => Theme(
+            data: Theme.of(ctx).copyWith(
+              colorScheme: const ColorScheme.light(
+                primary: Color(0xFF1565C0),
+                onPrimary: Colors.white,
+                surface: Colors.white,
+                onSurface: Color(0xFF1E2A3A),
+              ),
+              dialogBackgroundColor: Colors.white,
+            ),
+            child: child!,
+          ),
         );
         if (picked != null) onSelect(picked);
       },
