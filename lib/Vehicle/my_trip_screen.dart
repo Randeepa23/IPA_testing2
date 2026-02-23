@@ -12,6 +12,18 @@ class MyTripsScreen extends StatefulWidget {
 
 class _MyTripsScreenState extends State<MyTripsScreen> {
   int selectedTab = 0; // 0 Approved, 1 In Progress, 2 Completed
+  bool loading = false;
+
+  Future<void> _refreshTrips() async {
+    setState(() => loading = true);
+
+    // TODO: call your API here
+    await Future.delayed(const Duration(seconds: 1)); // mock refresh
+
+    // after fetching, update trips list (if dynamic)
+    setState(() => loading = false);
+  }
+
 
 final trips = [
   {
@@ -66,45 +78,38 @@ final trips = [
 
   @override
   Widget build(BuildContext context) {
-    final list = _filteredTrips();
-
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
+    body: RefreshIndicator(
+    onRefresh: _refreshTrips,
+    color: Colors.blue,
+    backgroundColor: Colors.white,
+    child: ListView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 16),
+      itemCount: _filteredTrips().length + 1,
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
             child: _SegmentTabs(
               selectedIndex: selectedTab,
               onChanged: (i) => setState(() => selectedTab = i),
             ),
-          ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(14, 6, 14, 16),
-              itemCount: list.length,
-              itemBuilder: (context, index) {
-                final t = list[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: TripCard(
-                    data: t,
-                    onStartTrip: () {
-                      // TODO: open meter reading screen
+          );
+        }
 
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Start Trip clicked")),
-                      );
-                    },
-                  ),
-                );
-              },
-            ),
+        final t = _filteredTrips()[index - 1];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 14),
+          child: TripCard(
+            data: t,
+            onStartTrip: () {},
           ),
-        ],
-      ),
+        );
+      },
+    ),
+  ),
     );
   }
 }
@@ -125,7 +130,7 @@ class _SegmentTabs extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFE6ECF5)),
+        //border: Border.all(color: const Color(0xFFE6ECF5)),
       ),
       child: Row(
         children: [
@@ -149,7 +154,7 @@ class _SegmentTabs extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: active ? const Color(0xFF0B5FA5) : Colors.white,
+            color: active ? const Color(0xFF0B5FA5) : const Color.fromARGB(255, 250, 250, 250),
             borderRadius: BorderRadius.circular(999),
             boxShadow: active
                 ? [
