@@ -102,7 +102,7 @@ Future<void> _submitForm() async {
     });
 
     final res = await ApiService.applyLeaveRequest(
-      employeeId: widget.user["employeeId"],
+      employeeId: widget.user["employeeId"].toString(),
       leavePolicyId: leavePolicyId,
       startDate: start,
       endDate: end,

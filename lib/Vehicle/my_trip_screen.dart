@@ -80,36 +80,36 @@ final trips = [
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: RefreshIndicator(
-      color: Colors.blue,
-      backgroundColor: Colors.white,
-      onRefresh: _refreshTrips,
-      child: ListView.builder(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(14, 10, 14, 16),
-        itemCount: _filteredTrips().length + 1,
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _SegmentTabs(
-                selectedIndex: selectedTab,
-                onChanged: (i) => setState(() => selectedTab = i),
-              ),
-            );
-          }
-
-          final t = _filteredTrips()[index - 1];
+    body: RefreshIndicator(
+    onRefresh: _refreshTrips,
+    color: Colors.blue,
+    backgroundColor: Colors.white,
+    child: ListView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 16),
+      itemCount: _filteredTrips().length + 1,
+      itemBuilder: (context, index) {
+        if (index == 0) {
           return Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: TripCard(
-              data: t,
-              onStartTrip: () {},
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _SegmentTabs(
+              selectedIndex: selectedTab,
+              onChanged: (i) => setState(() => selectedTab = i),
             ),
           );
-        },
-      ),
+        }
+
+        final t = _filteredTrips()[index - 1];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 14),
+          child: TripCard(
+            data: t,
+            onStartTrip: () {},
+          ),
+        );
+      },
     ),
+  ),
     );
   }
 }
@@ -130,7 +130,7 @@ class _SegmentTabs extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFE6ECF5)),
+        //border: Border.all(color: const Color(0xFFE6ECF5)),
       ),
       child: Row(
         children: [
@@ -154,7 +154,7 @@ class _SegmentTabs extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: active ? const Color(0xFF0B5FA5) : Colors.white,
+            color: active ? const Color(0xFF0B5FA5) : const Color.fromARGB(255, 250, 250, 250),
             borderRadius: BorderRadius.circular(999),
             boxShadow: active
                 ? [
