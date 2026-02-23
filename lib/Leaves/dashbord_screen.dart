@@ -436,12 +436,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Leave Balance Overview',
-              style: GoogleFonts.poppins(
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
+            Row(
+              children: [
+                 Image.asset('assets/arrow.png', width: 28, height: 28),
+                //const Icon(Icons.trending_up_rounded, color: Color(0xFF2B7DE9), size: 20),
+                const SizedBox(width: 4),
+                Text(
+                  'Leave Balance Overview',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 10),
 

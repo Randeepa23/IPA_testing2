@@ -101,7 +101,6 @@ void _showVehicleSubmitConfirmation() {
 
   @override
   Widget build(BuildContext context) {
-    final blue = Colors.blue[800] ?? Colors.blue;
     return Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
@@ -252,35 +251,46 @@ void _showVehicleSubmitConfirmation() {
               // Submit
               SizedBox(
                 height: 46,
-                child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : _showVehicleSubmitConfirmation,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: blue,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    elevation: 0,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1565C0), Color(0xFF003580)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Text(
-                          'SUBMIT',
-                          style: TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
+                  child: ElevatedButton(
+                    onPressed: _isSubmitting ? null : _showVehicleSubmitConfirmation,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      elevation: 0,
+                    ),
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text(
+                            'SUBMIT',
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+            ),
+       );
+    }
 
   // ---------------- UI HELPERS ----------------
 

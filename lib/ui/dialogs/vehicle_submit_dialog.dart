@@ -107,37 +107,50 @@ Future<void> showVehicleSubmitDialog({
                           Expanded(
                             child: SizedBox(
                               height: 48,
-                              child: ElevatedButton(
-                                onPressed: isSubmitting
-                                    ? null
-                                    : () {
-                                        onConfirm();
-                                        Navigator.pop(ctx);
-                                      },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF0060A6),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  elevation: 0,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: isSubmitting
+                                      ? null
+                                      : const LinearGradient(
+                                          colors: [Color(0xFF1565C0), Color(0xFF003580)],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                  borderRadius: BorderRadius.circular(14),
                                 ),
-                                child: isSubmitting
-                                    ? const SizedBox(
-                                        width: 22,
-                                        height: 22,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2.5,
-                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                child: ElevatedButton(
+                                  onPressed: isSubmitting
+                                      ? null
+                                      : () {
+                                          onConfirm();
+                                          Navigator.pop(ctx);
+                                        },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  child: isSubmitting
+                                      ? const SizedBox(
+                                          width: 22,
+                                          height: 22,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.5,
+                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                          ),
+                                        )
+                                      : const Text(
+                                          'Send',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w700,
+                                          ),
                                         ),
-                                      )
-                                    : const Text(
-                                        'Send',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
+                                ),
                               ),
                             ),
                           ),

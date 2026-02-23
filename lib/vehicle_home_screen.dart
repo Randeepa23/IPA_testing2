@@ -92,7 +92,7 @@ class VehicleHomeScreen extends StatelessWidget {
                       },
                     ),
 
-                  const SizedBox(height: 75),
+                  const SizedBox(height: 50),
                    Row(
                       children: const [
                         Expanded(child: Divider(color: Color(0xFF2563EB), thickness: 1)),
