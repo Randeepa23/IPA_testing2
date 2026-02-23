@@ -319,7 +319,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     if (loadingRecentLeaves)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 20),
-                        child: Center(child: CircularProgressIndicator()),
+                        child: Center(child: CircularProgressIndicator(
+                          color: Colors.blue,
+                          strokeWidth: 3,
+                        )),
                       )
                     else if (recentLeavesError != null)
                       Padding(
@@ -547,6 +550,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     // Only HOD sees Request button
     if (isHod) {
+      final managerId = widget.user["employeeId"]?.toString() ?? "";
       actions.add(
         _QuickAction(
           icon: Icons.cabin,
@@ -556,7 +560,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               context,
               MaterialPageRoute(
                 builder: (context) => LeaveRequestScreen(
-                  managerId: widget.user["employeeId"],
+                  managerId: managerId,
                 ),
               ),
             );

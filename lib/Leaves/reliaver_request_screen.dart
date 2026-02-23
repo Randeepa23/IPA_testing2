@@ -134,7 +134,7 @@ void _showErrorBanner(String title, String message) {
         if (loading)
           const Padding(
             padding: EdgeInsets.only(top: 30),
-            child: Center(child: CircularProgressIndicator()),
+            //child: Center(child: CircularProgressIndicator()),
           )
         else if (errorText != null)
           Column(

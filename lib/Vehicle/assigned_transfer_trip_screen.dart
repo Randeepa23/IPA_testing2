@@ -3,16 +3,16 @@ import 'package:flutter/material.dart';
 import '../ui/dialogs/start_trip_dialog.dart';
 import '../ui/dialogs/stop_trip_dialog.dart';
 
-class AssignedShuttleTripScreen extends StatefulWidget {
+class AssignedTransferTripScreen extends StatefulWidget {
   final Map<String, dynamic> user;
-  const AssignedShuttleTripScreen({super.key, required this.user});
+  const AssignedTransferTripScreen({super.key, required this.user});
 
   @override
-  State<AssignedShuttleTripScreen> createState() =>
-      _AssignedShuttleTripScreenState();
+  State<AssignedTransferTripScreen> createState() =>
+      _AssignedTransferTripScreenState();
 }
 
-class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
+class _AssignedTransferTripScreenState extends State<AssignedTransferTripScreen> {
   int selectedTab = 0; // 0 Assigned, 1 Start Trip, 2 In Progress, 3 Completed
   bool loading = false;
 
@@ -142,7 +142,7 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
         appBar: AppBar(
           backgroundColor: Colors.white,
           title: const Text(
-            "Assigned Shuttle Trip",
+            "Assigned Transfer Trip",
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -198,8 +198,8 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
 
     @override
     Widget build(BuildContext context) {
-      final name = (user["name"] ?? "_").toString();
-      final role = (user["role"] ?? "_").toString();
+      final name = (user["name"] ?? "Nimal perera").toString();
+      final role = (user["role"] ?? "Driver").toString();
 
       return Container(
         padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
@@ -212,7 +212,7 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              "Assigned Shuttle Trip",
+              "Assigned Transfer Trip",
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 4),
@@ -369,7 +369,7 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("Shuttle Trip",
+                        Text("Transfer Trip",
                             style: TextStyle(
                                 fontWeight: FontWeight.w900, fontSize: 14)),
                         SizedBox(height: 2),
@@ -398,7 +398,7 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
                     // Shuttle ID only for Start / In Progress
                     if (isStartTrip || isInProgress) ...[
                       _infoRow(
-                        "Shuttle Code",
+                        "Transfer Code",
                         (data["tripCode"] ?? "-").toString(),
                         highlight: true,
                       ),

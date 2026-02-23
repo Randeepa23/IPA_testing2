@@ -193,7 +193,7 @@ Widget build(BuildContext context) {
           if (loading)
             const Padding(
               padding: EdgeInsets.only(top: 30),
-              child: Center(child: CircularProgressIndicator()),
+              // child: Center(child: CircularProgressIndicator()),
             )
 
           // --- error ---
