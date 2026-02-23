@@ -12,6 +12,18 @@ class MyTripsScreen extends StatefulWidget {
 
 class _MyTripsScreenState extends State<MyTripsScreen> {
   int selectedTab = 0; // 0 Approved, 1 In Progress, 2 Completed
+  bool loading = false;
+
+  Future<void> _refreshTrips() async {
+    setState(() => loading = true);
+
+    // TODO: call your API here
+    await Future.delayed(const Duration(seconds: 1)); // mock refresh
+
+    // after fetching, update trips list (if dynamic)
+    setState(() => loading = false);
+  }
+
 
 final trips = [
   {
@@ -66,45 +78,38 @@ final trips = [
 
   @override
   Widget build(BuildContext context) {
-    final list = _filteredTrips();
-
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: _SegmentTabs(
-              selectedIndex: selectedTab,
-              onChanged: (i) => setState(() => selectedTab = i),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(14, 6, 14, 16),
-              itemCount: list.length,
-              itemBuilder: (context, index) {
-                final t = list[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: TripCard(
-                    data: t,
-                    onStartTrip: () {
-                      // TODO: open meter reading screen
+      body: RefreshIndicator(
+      color: Colors.blue,
+      backgroundColor: Colors.white,
+      onRefresh: _refreshTrips,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 16),
+        itemCount: _filteredTrips().length + 1,
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _SegmentTabs(
+                selectedIndex: selectedTab,
+                onChanged: (i) => setState(() => selectedTab = i),
+              ),
+            );
+          }
 
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Start Trip clicked")),
-                      );
-                    },
-                  ),
-                );
-              },
+          final t = _filteredTrips()[index - 1];
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: TripCard(
+              data: t,
+              onStartTrip: () {},
             ),
-          ),
-        ],
+          );
+        },
       ),
+    ),
     );
   }
 }
