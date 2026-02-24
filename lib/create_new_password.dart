@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:test_app/Services/api_service.dart';
 import 'login_screen.dart';
@@ -38,6 +39,25 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
     _confirmPassController.dispose();
     _recoveryKeyController.dispose();
     super.dispose();
+  }
+
+    String _generateRecoveryKey({int length = 12}) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    final rand = DateTime.now().microsecondsSinceEpoch;
+
+    return List.generate(
+      length,
+      (i) => chars[(rand + i * 7) % chars.length],
+    ).join();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (_recoveryKeyController.text.isEmpty) {
+      _recoveryKeyController.text = _generateRecoveryKey(length: 12);
+    }
   }
 
   Future<void> _submit() async {
@@ -206,42 +226,45 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
 
                         SizedBox(height: sectionGap),
                         
-                        TextFormField(
-                          controller: _recoveryKeyController,
-                          obscureText: _obscureRecovery,
-                          decoration: InputDecoration(
-                            labelText: 'Recovery Key',
-                            filled: true,
-                            fillColor: Colors.grey.shade100,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: BorderSide.none,
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              borderSide: const BorderSide(color: Colors.blue, width: 1.2),
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscureRecovery ? Icons.visibility_off : Icons.visibility,
+                            TextFormField(
+                              controller: _recoveryKeyController,
+                              textCapitalization: TextCapitalization.characters,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(RegExp(r'[A-Z]')),
+                              ],
+                              decoration: InputDecoration(
+                                labelText: 'Recovery Name',
+                                filled: true,
+                                fillColor: Colors.grey.shade100,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                  borderSide: BorderSide.none,
+                                ),
                               ),
-                              onPressed: () {
-                                setState(() => _obscureRecovery = !_obscureRecovery);
+                              validator: (v) {
+                                final value = (v ?? '').trim();
+
+                                if (value.isEmpty) {
+                                  return 'Recovery key is required';
+                                }
+
+                                if (!RegExp(r'^[A-Z]{6,}$').hasMatch(value)) {
+                                  return 'Use only capital letters (minimum 6)';
+                                }
+
+                                return null;
                               },
                             ),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Important: Please remember this recovery key. If you forget your password later, you must use this key to reset and log in again.',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            color: const Color.fromARGB(255, 223, 148, 148),
-                            fontWeight: FontWeight.w500,
-                            height: 1.3,
-                          ),
-                        ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Important: Please remember this recovery key. If you forget your password later, you must use this key to reset and log in again.',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: const Color.fromARGB(255, 223, 148, 148),
+                                fontWeight: FontWeight.w500,
+                                height: 1.3,
+                              ),
+                            ),
 
                         const SizedBox(height: 16),
                         // New Password (styled similar to login fields)
@@ -272,11 +295,35 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                           ),
                           validator: (v) {
                             final value = (v ?? '').trim();
-                            if (value.isEmpty) return "New password is required";
-                            if (value.length < 6) return "Minimum 6 characters";
+
+                            if (value.isEmpty) {
+                              return "New password is required";
+                            }
+
+                            if (value.length < 6) {
+                              return "Password must be at least 6 characters";
+                            }
+
+                            if (!RegExp(r'[A-Z]').hasMatch(value)) {
+                              return "Must contain at least one uppercase letter";
+                            }
+
+                            if (!RegExp(r'[a-z]').hasMatch(value)) {
+                              return "Must contain at least one lowercase letter";
+                            }
+
+                            if (!RegExp(r'[0-9]').hasMatch(value)) {
+                              return "Must contain at least one number";
+                            }
+
+                            if (!RegExp(r'[!@#\$&*~^%()_+\-=\[\]{};:"\\|,.<>\/?]').hasMatch(value)) {
+                              return "Must contain at least one special character";
+                            }
+
                             if (value == "Test@123") {
                               return "Cannot use default password";
                             }
+
                             return null;
                           },
                         ),

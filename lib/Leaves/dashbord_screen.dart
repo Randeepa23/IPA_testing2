@@ -812,10 +812,10 @@ class _QuickAction extends StatelessWidget {
           // badge
           if (badgeCount > 0)
             Positioned(
-              top: 6,
-              right: 10,
+              top: -2,
+              right:-2,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: Colors.red,
                   borderRadius: BorderRadius.circular(999),
