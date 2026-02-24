@@ -311,6 +311,7 @@ void _showSubmitConfirmation() {
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 value: selectedLeaveType,
+                dropdownColor: Colors.white,
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.white,
@@ -321,6 +322,10 @@ void _showSubmitConfirmation() {
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Colors.blue, width: 1.2),
                   ),
                 ),
                 hint: const Text('Select leave type'),
@@ -364,6 +369,7 @@ void _showSubmitConfirmation() {
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   value: halfDaySession,
+                  dropdownColor: Colors.white,
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white,
@@ -372,6 +378,10 @@ void _showSubmitConfirmation() {
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.blue, width: 1.2),
                     ),
                   ),
                   hint: const Text('Select session'),
@@ -453,6 +463,7 @@ void _showSubmitConfirmation() {
                         if (isHalfDay)
                           DropdownButtonFormField<String>(
                             value: halfDaySession,
+                            dropdownColor: Colors.white,
                             decoration: InputDecoration(
                               filled: true,
                               fillColor: Colors.white,
@@ -462,6 +473,10 @@ void _showSubmitConfirmation() {
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Colors.blue, width: 1.2),
                               ),
                             ),
                             hint: const Text('Select time'),
@@ -526,11 +541,14 @@ void _showSubmitConfirmation() {
                   filled: true,
                   fillColor: Colors.white,
                   contentPadding: const EdgeInsets.all(14),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Colors.blue, width: 1.2),
                   ),
                 ),
                 validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
@@ -634,11 +652,14 @@ void _showSubmitConfirmation() {
                   filled: true,
                   fillColor: Colors.white,
                   contentPadding: const EdgeInsets.all(14),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Colors.blue, width: 1.2),
                   ),
                 ),
               ),
@@ -840,6 +861,11 @@ void _showSubmitConfirmation() {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade300),
+          
+        ),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20),
+            borderSide: const BorderSide(color: Colors.blue, width: 1.2),
         ),
         suffixIcon: const Icon(Icons.calendar_today),
       ),
@@ -853,6 +879,18 @@ void _showSubmitConfirmation() {
           initialDate: selected ?? DateTime.now(),
           firstDate: DateTime.now().subtract(const Duration(days: 1)),
           lastDate: DateTime(2030),
+          builder: (ctx, child) => Theme(
+            data: Theme.of(ctx).copyWith(
+              colorScheme: const ColorScheme.light(
+                primary: Color(0xFF1565C0),      // header & selected day
+                onPrimary: Colors.white,          // text on header
+                surface: Colors.white,            // calendar background
+                onSurface: Color(0xFF1E2A3A),     // day numbers
+              ),
+              dialogBackgroundColor: Colors.white,
+            ),
+            child: child!,
+          ),
         );
         if (picked != null) onSelect(picked);
       },
