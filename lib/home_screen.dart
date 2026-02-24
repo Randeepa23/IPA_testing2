@@ -106,7 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 childAspectRatio: 1.25,
                 children: [
                   _serviceCard(
-                    imagePath: 'assets/7481040.png',
+                    //imagePath: 'assets/7481040.png',
                     label: "Apply Leaves",
                     onTap: () {
                       Navigator.push(
@@ -118,7 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   ),
                   _serviceCard(
-                    imagePath: 'assets/5689004.png',
+                    //imagePath: 'assets/vehicle1122.png',
                     label: "Vehicle Request",
                     onTap: () {
                       Navigator.push(
@@ -130,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   ),
                   _serviceCard(
-                    imagePath: 'assets/3567331.png',
+                    //imagePath: 'assets/3567331.png',
                     label: "Shift Schedule",
                     onTap: () {
                       debugPrint("Schedule clicked");
@@ -288,7 +288,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   //Service Card Widget
   Widget _serviceCard({
-    required String imagePath,
+    //required String imagePath,
     required String label,
     required VoidCallback onTap,
   }) {
@@ -320,12 +320,12 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              imagePath,
-              width: 54,
-              height: 54,
-              fit: BoxFit.contain,
-            ),
+            // Image.asset(
+            //   imagePath,
+            //   width: 54,
+            //   height: 54,
+            //   fit: BoxFit.contain,
+            // ),
             const SizedBox(height: 10),
             Text(
               label,

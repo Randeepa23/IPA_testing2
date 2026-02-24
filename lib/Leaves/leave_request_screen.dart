@@ -71,7 +71,10 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
             if (loading)
               const Padding(
                 padding: EdgeInsets.only(top: 40),
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(child: CircularProgressIndicator(
+                  color: Colors.blue,
+                  backgroundColor: Colors.white,)
+                ),
               )
             else if (errorText != null)
               Column(

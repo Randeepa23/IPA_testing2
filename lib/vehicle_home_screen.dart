@@ -92,7 +92,7 @@ class VehicleHomeScreen extends StatelessWidget {
                       },
                     ),
 
-                  const SizedBox(height: 75),
+                  const SizedBox(height: 50),
                    Row(
                       children: const [
                         Expanded(child: Divider(color: Color(0xFF2563EB), thickness: 1)),
@@ -332,20 +332,31 @@ class _ServiceCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: ElevatedButton(
-                  onPressed: onPrimaryTap,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 47, 106, 233),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    elevation: 0,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1565C0), Color(0xFF003580)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(
-                    primaryButtonText,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 12.8,
-                      color: Colors.white,
+                  child: ElevatedButton(
+                    onPressed: onPrimaryTap,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      primaryButtonText,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12.8,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
