@@ -274,7 +274,10 @@ Future<void> _loadManagerRequestCount() async {
 
   @override
   Widget build(BuildContext context) {
-    final firstName = widget.user["firstName"] ?? "";
+    final fullName = widget.user["name"] ?? "";
+    final parts = fullName.trim().split(RegExp(r'\s+'));
+    final firstName = parts.isNotEmpty ? parts.first : "";
+    //final lastName  = parts.length > 1 ? parts.last : "";
 
     return Scaffold(
       backgroundColor: Colors.white,

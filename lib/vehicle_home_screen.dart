@@ -129,7 +129,10 @@ class _TopHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final firstName = user["firstName"] ?? "";
+    final fullName = user["name"] ?? "";
+    final parts = fullName.trim().split(RegExp(r'\s+'));
+    final firstName = parts.isNotEmpty ? parts.first : "";
+    //final lastName  = parts.length > 1 ? parts.last : "";
     return Padding(
       padding: EdgeInsets.fromLTRB(isTablet ? 24 : 16, 10, isTablet ? 24 : 16, 8),
       child: Row(
