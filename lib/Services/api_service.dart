@@ -7,8 +7,8 @@ class ApiService {
 
 
 //Android Emulator → PC localhost
-static const String baseUrl = "http://10.0.2.2/test-2/api";
-//static const String baseUrl = "https://exploresuite.lk/mobile-api/api";
+//static const String baseUrl = "http://10.0.2.2/test-2/api";
+static const String baseUrl = "https://exploresuite.lk/mobile-api/api";
 
   // File upload API (use this in LeaveFormScreen after applying leave request)
   static Future<void> uploadLeaveDocument({
@@ -61,7 +61,7 @@ static const String baseUrl = "http://10.0.2.2/test-2/api";
         // your UI uses employeeId field -> map to employee_code
         "employeeId": x["employee_code"] ?? x["employee_id"],
 
-        "leaveType": "Leave Policy #${x["leave_policy_id"]}",
+        "leaveType": (x["leave_policy_name"] ?? "").toString(),
         "from": (x["leave_start_date"] ?? "").toString(),
         "to": (x["leave_end_date"] ?? "").toString(),
         "days": (x["number_of_days"] ?? "").toString(),

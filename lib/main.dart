@@ -7,7 +7,7 @@ import 'splash_screen.dart';
 void main() {
   runApp(
     DevicePreview(
-      enabled: !kReleaseMode, // ✅ ON in debug, OFF in release
+      enabled: !kReleaseMode, // ON in debug, OFF in release
       builder: (context) => const MyApp(),
     ),
   );
