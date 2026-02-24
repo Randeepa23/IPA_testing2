@@ -129,13 +129,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       );
                     },
                   ),
-                  _serviceCard(
-                    //imagePath: 'assets/3567331.png',
-                    label: "Shift Schedule",
-                    onTap: () {
-                      debugPrint("Schedule clicked");
-                    },
-                  ),
+                _serviceCard(
+                  label: "Shift Schedule",
+                  isDisabled: true, // add this
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Shift Schedule is coming soon 🚧"),
+                        duration: Duration(seconds: 1),
+                      ),
+                    );
+                  },
+                ),
                   const SizedBox.shrink(),
                 ],
               ),
@@ -291,6 +296,7 @@ class _HomeScreenState extends State<HomeScreen> {
     //required String imagePath,
     required String label,
     required VoidCallback onTap,
+    bool isDisabled = false,
   }) {
     const blue = Color(0xFF0060A6);
 
@@ -331,7 +337,7 @@ class _HomeScreenState extends State<HomeScreen> {
               label,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 16,
+                fontSize: 18,
                 fontWeight: FontWeight.w800,
                 color: blue,
               ),
