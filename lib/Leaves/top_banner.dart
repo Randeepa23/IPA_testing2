@@ -17,6 +17,7 @@ static void show(
   bool isSuccess = false,
   bool isError = false,
   
+  
   Duration duration = const Duration(seconds: 4),
 }) {
     hide();
@@ -27,9 +28,11 @@ static void show(
       builder: (_) => _TopBannerWidget(
         title: title,
         message: message,
-        icon: icon,   // ← add
+        icon: icon,
         leftButtonText: leftButtonText,
         rightButtonText: rightButtonText,
+        isSuccess: isSuccess,
+        isError: isError,
         onLeftTap: () {
           hide();
           onLeftTap?.call();
@@ -64,16 +67,20 @@ class _TopBannerWidget extends StatefulWidget {
   final VoidCallback? onLeftTap;
   final VoidCallback? onRightTap;
   final IconData? icon;
+  final bool isSuccess;
+  final bool isError;
 
-  const _TopBannerWidget({
-    required this.title,
-    required this.message,
-    this.icon,
-    required this.leftButtonText,
-    required this.rightButtonText,
-    this.onLeftTap,
-    this.onRightTap,
-  });
+const _TopBannerWidget({
+  required this.title,
+  required this.message,
+  this.icon,
+  required this.leftButtonText,
+  required this.rightButtonText,
+  this.onLeftTap,
+  this.onRightTap,
+  required this.isSuccess,
+  required this.isError,
+});
 
   @override
   State<_TopBannerWidget> createState() => _TopBannerWidgetState();

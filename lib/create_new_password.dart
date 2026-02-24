@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:test_app/Services/api_service.dart';
 import 'login_screen.dart';
+import 'Leaves/top_banner.dart';
+
 class CreateNewPasswordScreen extends StatefulWidget {
   final String? userEmail;
   final String? userName;
@@ -92,29 +94,29 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
 
       if (!mounted) return;
 
-      if (res["success"] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(res["message"] ?? "Password updated successfully! Please login again."),
-            backgroundColor: Colors.green,
-          ),
-        );
+        if (res["success"] == true) {
+          TopBanner.show(
+            context,
+            title: "Success",
+            message: (res["message"] ??
+                "Password updated successfully! Please login again."),
+            icon: Icons.check_circle,
+            isSuccess: true,
+            rightButtonText: "OK",
+          );
 
-        // Brief loading delay so user can see success, then navigate
-        await Future.delayed(const Duration(milliseconds: 900));
+          // keep your delay
+          await Future.delayed(const Duration(milliseconds: 900));
 
-        // Go back to a fresh login screen (clear stack) with username pre‑filled
-        if (!mounted) return;
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(
-            builder: (_) => LoginScreen(
-              initialUsername: email,
+          if (!mounted) return;
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (_) => LoginScreen(initialUsername: email),
             ),
-          ),
-          (route) => false,
-        );
-      } else {
+            (route) => false,
+          );
+        } else {
         setState(() {
           _isSubmitting = false;
         });
@@ -180,7 +182,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                         ),
                       ),
 
-                          SizedBox(height: 80),
+                          SizedBox(height: 40),
 
 
                         Text(
@@ -230,12 +232,12 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                             ),
                           ),
                         ),
-                                        const SizedBox(height: 6),
+                        const SizedBox(height: 6),
                         Text(
                           'Important: Please remember this recovery key. If you forget your password later, you must use this key to reset and log in again.',
                           style: TextStyle(
                             fontSize: 11.5,
-                            color: const Color.fromARGB(255, 173, 135, 135),
+                            color: const Color.fromARGB(255, 223, 148, 148),
                             fontWeight: FontWeight.w500,
                             height: 1.3,
                           ),
