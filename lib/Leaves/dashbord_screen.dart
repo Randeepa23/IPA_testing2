@@ -5,6 +5,7 @@ import 'leave_form.dart';
 import '../users/user_screen.dart';
 import 'leave_request_screen.dart';
 import 'package:test_app/Services/api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -22,6 +23,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   return id == "3"; // job_title_id 3 = HOD
 }
 
+  int relieverBadgeCount = 0;
+  int managerBadgeCount = 0;
+
   Map<String, dynamic>? leaveBalance;
   bool loadingLeave = true;
   String? leaveError;
@@ -36,9 +40,102 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     _loadLeaveBalance();
     _loadRecentLeaves();
+
+    _loadRelieverRequestCount();
+    _loadManagerRequestCount();
+
   }
 
-  static const int _recentLeavesLimit = 10;
+    static const int _recentLeavesLimit = 10;
+
+Future<void> _loadRelieverRequestCount() async {
+  try {
+    final employeeId = widget.user["employeeId"]?.toString() ?? "";
+    if (employeeId.isEmpty) return;
+
+    final res = await ApiService.getRelieverRequests(employeeId: employeeId);
+    print("RELIEVER API RES = $res");
+
+    if (res["success"] == true) {
+      final List list = (res["requests"] ?? []) as List;
+
+      // count only "Awaiting Your Response"
+      final pendingCount = list.where((e) {
+        final status = (e["status"] ?? "").toString().toUpperCase();
+        return status.contains("AWAITING YOUR RESPONSE");
+      }).length;
+
+      setState(() => relieverBadgeCount = pendingCount);
+    } else {
+      setState(() => relieverBadgeCount = 0);
+    }
+  } catch (e) {
+    setState(() => relieverBadgeCount = 0);
+  }
+}
+
+Future<void> _loadManagerRequestCount() async {
+  try {
+    if (!isHod) {
+      setState(() => managerBadgeCount = 0);
+      return;
+    }
+
+    final managerId = widget.user["employeeId"]?.toString() ?? "";
+    if (managerId.isEmpty) return;
+
+    final list = await ApiService.fetchManagerLeaveRequests(managerId: managerId);
+
+    final pendingCount = list.where((e) {
+      final status = (e["status"] ?? "").toString().toUpperCase();
+      final isSpecial = (e["is_special_request"]?.toString() ?? "0") == "1";
+
+      final isRelieverAccepted = status == "RELIEVER ACCEPTED";
+
+      // Special request waiting manager action
+      final isSpecialPending = isSpecial && status == "PENDING";
+
+      return isRelieverAccepted || isSpecialPending;
+    }).length;
+
+        setState(() => managerBadgeCount = pendingCount);
+      } catch (e) {
+        setState(() => managerBadgeCount = 0);
+      }
+    }
+
+    Widget badgeWrapper({
+      required Widget child,
+      required int count,
+    }) {
+      if (count <= 0) return child;
+
+      return Stack(
+        clipBehavior: Clip.none,
+        children: [
+          child,
+          Positioned(
+            top: -6,
+            right: -6,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '$count',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
 
   Future<void> _loadRecentLeaves() async {
     try {
@@ -132,6 +229,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await Future.wait([
       _loadLeaveBalance(),
       _loadRecentLeaves(),
+      _loadRelieverRequestCount(),
+      _loadManagerRequestCount(),
     ]);
   }
 
@@ -230,7 +329,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           children: [
                             Row(
                               children: [
-                                const Icon(Icons.notifications, color: Colors.white),
+                                badgeWrapper(
+                                  count: relieverBadgeCount + managerBadgeCount,
+                                  child: const Icon(Icons.notifications, color: Colors.white),
+                                ),
                                 const SizedBox(width: 12),
                                 GestureDetector(
                                   onTap: () => _reloadPage(),
@@ -530,8 +632,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _QuickAction(
         icon: Icons.person,
         label: 'Reliever Request',
-        onTap: () {
-          Navigator.push(
+        badgeCount: relieverBadgeCount,
+        onTap: () async {
+          // mark as seen
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('reliever_seen', true);
+
+          // hide immediately
+          setState(() => relieverBadgeCount = 0);
+
+          await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => UserScreen(user: widget.user, initialTab: 2),
@@ -562,18 +672,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _QuickAction(
           icon: Icons.cabin,
           label: 'Request',
-          onTap: () async {
+          badgeCount: managerBadgeCount,
+          onTap: () async {          
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool('manager_seen', true);
+            //optional: hide immediately when opened
+            setState(() => managerBadgeCount = 0);
+
             await Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => LeaveRequestScreen(
-                  managerId: managerId,
-                ),
+                builder: (context) => LeaveRequestScreen(managerId: managerId),
               ),
             );
-            if (!mounted) return;
-            _loadRecentLeaves();
-            _loadLeaveBalance();
           },
         ),
       );
@@ -659,30 +770,64 @@ class _QuickAction extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final int badgeCount;
 
-  const _QuickAction({required this.icon, required this.label, required this.onTap});
+  const _QuickAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.badgeCount = 0,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
-      child: Card(
-        color: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: Colors.blue, size: 28),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(fontSize: 12),
+      borderRadius: BorderRadius.circular(14),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // full-size card
+          SizedBox.expand(
+            child: Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, color: Colors.blue, size: 28),
+                  const SizedBox(height: 8),
+                  Text(label,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(fontSize: 12)),
+                ],
+              ),
             ),
-          ],
-        ),
+          ),
+
+          // badge
+          if (badgeCount > 0)
+            Positioned(
+              top: 6,
+              right: 10,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '$badgeCount',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
