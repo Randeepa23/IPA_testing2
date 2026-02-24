@@ -41,6 +41,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
     super.dispose();
   }
 
+    // Generate a random recovery key
     String _generateRecoveryKey({int length = 12}) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     final rand = DateTime.now().microsecondsSinceEpoch;
@@ -50,14 +51,14 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
       (i) => chars[(rand + i * 7) % chars.length],
     ).join();
   }
+    // Generate a random recovery key when the screen is loaded
+    @override
+    void initState() {
+      super.initState();
 
-  @override
-  void initState() {
-    super.initState();
-
-    if (_recoveryKeyController.text.isEmpty) {
-      _recoveryKeyController.text = _generateRecoveryKey(length: 12);
-    }
+      if (_recoveryKeyController.text.isEmpty) {
+        _recoveryKeyController.text = _generateRecoveryKey(length: 12);
+      }
   }
 
   Future<void> _submit() async {
@@ -240,6 +241,14 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                                   borderRadius: BorderRadius.circular(15),
                                   borderSide: BorderSide.none,
                                 ),
+                                suffixIcon: IconButton( icon: Icon( 
+                                  _obscureRecovery ? Icons.visibility_off : Icons.visibility, 
+                                  ), 
+                                  onPressed: () { 
+                                    setState(() => _obscureRecovery = !_obscureRecovery
+                                      ); 
+                                    }, 
+                                  ), 
                               ),
                               validator: (v) {
                                 final value = (v ?? '').trim();
