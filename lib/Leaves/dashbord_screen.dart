@@ -5,6 +5,7 @@ import 'leave_form.dart';
 import '../users/user_screen.dart';
 import 'leave_request_screen.dart';
 import 'package:test_app/Services/api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -23,6 +24,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 }
 
   int relieverBadgeCount = 0;
+  int managerBadgeCount = 0;
 
   Map<String, dynamic>? leaveBalance;
   bool loadingLeave = true;
@@ -40,6 +42,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _loadRecentLeaves();
 
     _loadRelieverRequestCount();
+    _loadManagerRequestCount();
 
   }
 
@@ -70,6 +73,36 @@ Future<void> _loadRelieverRequestCount() async {
     setState(() => relieverBadgeCount = 0);
   }
 }
+
+Future<void> _loadManagerRequestCount() async {
+  try {
+    if (!isHod) {
+      setState(() => managerBadgeCount = 0);
+      return;
+    }
+
+    final managerId = widget.user["employeeId"]?.toString() ?? "";
+    if (managerId.isEmpty) return;
+
+    final list = await ApiService.fetchManagerLeaveRequests(managerId: managerId);
+
+    final pendingCount = list.where((e) {
+      final status = (e["status"] ?? "").toString().toUpperCase();
+      final isSpecial = (e["is_special_request"]?.toString() ?? "0") == "1";
+
+      final isRelieverAccepted = status == "RELIEVER ACCEPTED";
+
+      // Special request waiting manager action
+      final isSpecialPending = isSpecial && status == "PENDING";
+
+      return isRelieverAccepted || isSpecialPending;
+    }).length;
+
+        setState(() => managerBadgeCount = pendingCount);
+      } catch (e) {
+        setState(() => managerBadgeCount = 0);
+      }
+    }
 
     Widget badgeWrapper({
       required Widget child,
@@ -197,6 +230,7 @@ Future<void> _loadRelieverRequestCount() async {
       _loadLeaveBalance(),
       _loadRecentLeaves(),
       _loadRelieverRequestCount(),
+      _loadManagerRequestCount(),
     ]);
   }
 
@@ -296,7 +330,7 @@ Future<void> _loadRelieverRequestCount() async {
                             Row(
                               children: [
                                 badgeWrapper(
-                                  count: relieverBadgeCount,
+                                  count: relieverBadgeCount + managerBadgeCount,
                                   child: const Icon(Icons.notifications, color: Colors.white),
                                 ),
                                 const SizedBox(width: 12),
@@ -600,14 +634,19 @@ Future<void> _loadRelieverRequestCount() async {
         label: 'Reliever Request',
         badgeCount: relieverBadgeCount,
         onTap: () async {
+          // mark as seen
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('reliever_seen', true);
+
+          // hide immediately
           setState(() => relieverBadgeCount = 0);
-          Navigator.push(
+
+          await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => UserScreen(user: widget.user, initialTab: 2),
             ),
           );
-            _loadRelieverRequestCount();
         },
       ),
 
@@ -633,18 +672,19 @@ Future<void> _loadRelieverRequestCount() async {
         _QuickAction(
           icon: Icons.cabin,
           label: 'Request',
-          onTap: () async {
+          badgeCount: managerBadgeCount,
+          onTap: () async {          
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool('manager_seen', true);
+            //optional: hide immediately when opened
+            setState(() => managerBadgeCount = 0);
+
             await Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => LeaveRequestScreen(
-                  managerId: managerId,
-                ),
+                builder: (context) => LeaveRequestScreen(managerId: managerId),
               ),
             );
-            if (!mounted) return;
-            _loadRecentLeaves();
-            _loadLeaveBalance();
           },
         ),
       );
