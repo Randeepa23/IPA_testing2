@@ -84,13 +84,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _InfoRow(
                   icon: Icons.email_outlined,
                   title: 'Email',
-                  value: (u["email"] ?? "-").toString(),
+                  value: (u["workEmail"] ?? "-").toString(),
                 ),
                 const _DividerLine(),
                 _InfoRow(
                   icon: Icons.phone_outlined,
                   title: 'Phone',
-                  value: (u["primaryContact"] ?? "-").toString(),
+                  value: (u["phone"] ?? "-").toString(),
                 ),
                 const _DividerLine(),
                 _InfoRow(
