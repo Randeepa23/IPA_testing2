@@ -81,21 +81,33 @@ class LogoutDialog extends StatelessWidget {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(context); // close dialog
-                              onLogout(); // run logout action
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: blue,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF0060A6), Color(0xFF003580)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Text(
-                              "Logout",
-                              style: TextStyle(color: Colors.white),
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.pop(context); // close dialog
+                                onLogout(); // run logout action
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                elevation: 0,
+                              ),
+                              child: const Text(
+                                "Logout",
+                                style: TextStyle(color: Colors.white),
+                              ),
                             ),
                           ),
                         ),
