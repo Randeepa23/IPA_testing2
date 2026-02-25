@@ -7,8 +7,8 @@ class ApiService {
 
 
 //Android Emulator → PC localhost
-static const String baseUrl = "http://10.0.2.2/test-2/api";
-//static const String baseUrl = "https://exploresuite.lk/mobile-api/api";
+//static const String baseUrl = "http://10.0.2.2/test-2/api";
+static const String baseUrl = "https://exploresuite.lk/mobile-api/api";
 
   // File upload API (use this in LeaveFormScreen after applying leave request)
   static Future<void> uploadLeaveDocument({
@@ -25,6 +25,30 @@ static const String baseUrl = "http://10.0.2.2/test-2/api";
     final bodyStr = await res.stream.bytesToString();
 
     if (res.statusCode != 200) throw Exception(bodyStr);
+  }
+
+
+  // Get Profile Photo API (use this in DashboardScreen to display user's profile photo)
+  static Future<Map<String, dynamic>?> getProfilePhoto({
+    required int employeeId,
+  }) async {
+    final uri = Uri.parse("$baseUrl/get_profile_photo.php?employee_id=$employeeId");
+    final res = await http.get(uri);
+
+    if (res.statusCode != 200) {
+      throw Exception("HTTP ${res.statusCode}: ${res.body}");
+    }
+
+    final data = jsonDecode(res.body);
+    if (data is! Map<String, dynamic>) {
+      throw Exception("Invalid JSON");
+    }
+
+    final photo = data["photo"];
+    if (photo == null) return null;
+
+    if (photo is Map<String, dynamic>) return photo;
+    throw Exception("Invalid photo object");
   }
 
   // Fetch Manager's Leave Requests API (use this in ManagerLeaveRequestsScreen)

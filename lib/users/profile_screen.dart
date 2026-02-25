@@ -17,10 +17,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool loadingLeave = true;
   String? leaveError;
 
+  String? profilePhotoUrl;
+  bool photoLoading = false;
+
+  Future<void> _loadProfilePhoto() async {
+  setState(() => photoLoading = true);
+  try {
+    final employeeId = widget.user["employeeId"]?.toString() ?? "";
+    if (employeeId.isEmpty) {
+      setState(() => profilePhotoUrl = null);
+      return;
+    }
+    final photo = await ApiService.getProfilePhoto(employeeId: int.parse(employeeId));
+    setState(() {
+      profilePhotoUrl = (photo?["fileUrl"] as String?)?.trim();
+    });
+  } catch (_) {
+    setState(() => profilePhotoUrl = null);
+  } finally {
+    setState(() => photoLoading = false);
+  }
+}
+
   @override
   void initState() {
     super.initState();
     _loadLeaveBalance();
+    _loadProfilePhoto();
+
   }
 
   Future<void> _loadLeaveBalance() async {
@@ -208,7 +232,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ---------------- UI Widgets ----------------
-
   Widget _profileCard(Color blue, Map<String, dynamic> user) {
     final name = (user["name"] ?? "").toString();
     final department = (user["department"] ?? "").toString();
@@ -232,18 +255,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ],
       ),
-      child: Row(
+      child:Row(
         children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              image: const DecorationImage(
-                image: AssetImage('assets/profile.png'),
-                fit: BoxFit.cover,
-              ),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: SizedBox(
+              width: 80,
+              height: 80,
+              child: profilePhotoUrl != null && profilePhotoUrl!.isNotEmpty
+                  ? Image.network(
+                      profilePhotoUrl!,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Image.asset(
+                          'assets/profile.png',
+                          fit: BoxFit.cover,
+                        );
+                      },
+                    )
+                  : Image.asset(
+                      'assets/profile.png',
+                      fit: BoxFit.cover,
+                    ),
             ),
           ),
           const SizedBox(width: 12),
@@ -279,7 +318,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ],
-      ),
+      )
     );
   }
 

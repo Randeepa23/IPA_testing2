@@ -6,6 +6,8 @@ import '../users/user_screen.dart';
 import 'leave_request_screen.dart';
 import 'package:test_app/Services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:test_app/login_screen.dart';
+import '../ui/dialogs/logout_dialog.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -35,6 +37,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool loadingRecentLeaves = true;
   String? recentLeavesError;
 
+  String? profilePhotoUrl;
+  bool photoLoading = false;
+
+  Future<void> _loadProfilePhoto() async {
+  setState(() => photoLoading = true);
+  try {
+    final employeeId = widget.user["employeeId"]?.toString() ?? "";
+    if (employeeId.isEmpty) {
+      setState(() => profilePhotoUrl = null);
+      return;
+    }
+    final photo = await ApiService.getProfilePhoto(employeeId: int.parse(employeeId));
+    setState(() {
+      profilePhotoUrl = (photo?["fileUrl"] as String?)?.trim();
+    });
+  } catch (_) {
+    setState(() => profilePhotoUrl = null);
+  } finally {
+    setState(() => photoLoading = false);
+  }
+}
+
   @override
   void initState() {
     super.initState();
@@ -43,6 +67,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     _loadRelieverRequestCount();
     _loadManagerRequestCount();
+    _loadProfilePhoto();
 
   }
 
@@ -102,6 +127,27 @@ Future<void> _loadManagerRequestCount() async {
       } catch (e) {
         setState(() => managerBadgeCount = 0);
       }
+    }
+
+    void _openLogoutDialog(BuildContext context) {
+      showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (_) => LogoutDialog(
+          onLogout: () async {
+            // TODO: clear saved session if you use SharedPreferences
+            // final prefs = await SharedPreferences.getInstance();
+            // await prefs.clear();
+
+            // OR if you don't use routes:
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+              (r) => false,
+            );
+          },
+        ),
+      );
     }
 
     Widget badgeWrapper({
@@ -350,23 +396,68 @@ Future<void> _loadManagerRequestCount() async {
                                   child: const Icon(Icons.arrow_back_rounded, color: Colors.white),
                                 ),
                                 const SizedBox(width: 10),
-                                GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => UserScreen(user: widget.user),
-                                      ),
-                                    );
+
+                                PopupMenuButton<String>(
+                                  color: Colors.white,
+                                  elevation: 8,
+                                  offset: const Offset(0, 45),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  onSelected: (value) async {
+                                    if (value == "profile") {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => UserScreen(user: widget.user),
+                                        ),
+                                      );
+                                    } else if (value == "logout") {
+                                      _openLogoutDialog(context);
+                                    }
                                   },
-                                  child: const CircleAvatar(
-                                    radius: 14,
-                                    backgroundColor: Colors.white,
-                                    child: Icon(Icons.person, size: 16, color: Colors.blue),
+                                  itemBuilder: (context) => const [
+                                    PopupMenuItem(
+                                      value: "profile",
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.person_outline, color: Colors.blue),
+                                          SizedBox(width: 10),
+                                          Text("View Profile"),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: "logout",
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.logout, color: Colors.red),
+                                          SizedBox(width: 10),
+                                          Text("Logout"),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                  child: ClipOval(
+                                    child: SizedBox(
+                                      width: 30,
+                                      height: 30,
+                                      child: (profilePhotoUrl != null && profilePhotoUrl!.isNotEmpty)
+                                          ? Image.network(
+                                              profilePhotoUrl!,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, __, ___) => Container(
+                                                color: Colors.white,
+                                                child: const Icon(Icons.person, size: 16, color: Colors.blue),
+                                              ),
+                                            )
+                                          : Container(
+                                              color: Colors.white,
+                                              child: const Icon(Icons.person, size: 16, color: Colors.blue),
+                                            ),
+                                    ),
                                   ),
                                 ),
                               ],
-                            ),
+                            )
                           ],
                         ),
 
