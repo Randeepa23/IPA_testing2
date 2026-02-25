@@ -46,7 +46,7 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
     nameController.text = widget.user['name'] ?? '';
     employeeController.text = widget.user['employeeCode'] ?? '';
     departmentController.text = widget.user['department'] ?? '';
-    contactController.text = widget.user['primaryContact'] ?? '';
+    contactController.text = widget.user['phone'] ?? '';
   }
 
   Future<void> _submitForm() async {
