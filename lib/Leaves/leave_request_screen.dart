@@ -201,45 +201,57 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                               ),
                               const SizedBox(width: 12),
                               Expanded(
-                                child: ElevatedButton(
-                                  onPressed: () async {
-                                    if (!formKey.currentState!.validate()) return;
-
-                                    final comment = controller.text.trim();
-                                    final leaveId = int.parse(r["leave_request_id"].toString());
-
-                                    try {
-                                      await ApiService.rejectLeave(
-                                        managerId: widget.managerId,
-                                        leaveRequestId: leaveId,
-                                        comment: comment,
-                                      );
-
-                                      if (mounted) Navigator.pop(ctx);
-                                      await _loadManagerRequests();
-
-                                      if (mounted) {
-                                        TopBanner.show(
-                                        context,
-                                        title: "Reject Request",
-                                        message: "Your pending leave request has been rejected successfully.",
-                                        icon: Icons.cancel,
-                                        );
-                                      }
-                                    } catch (e) {
-                                      if (mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text("Reject failed: $e")),
-                                        );
-                                      }
-                                    }
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFD32F2F),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [Color(0xFFD10A0A), Color(0xFF5B0000)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: const Text("Reject", style: TextStyle(color: Colors.white)),
+                                  child: ElevatedButton(
+                                    onPressed: () async {
+                                      if (!formKey.currentState!.validate()) return;
+
+                                      final comment = controller.text.trim();
+                                      final leaveId = int.parse(r["leave_request_id"].toString());
+
+                                      try {
+                                        await ApiService.rejectLeave(
+                                          managerId: widget.managerId,
+                                          leaveRequestId: leaveId,
+                                          comment: comment,
+                                        );
+
+                                        if (mounted) Navigator.pop(ctx);
+                                        await _loadManagerRequests();
+
+                                        if (mounted) {
+                                          TopBanner.show(
+                                          context,
+                                          title: "Reject Request",
+                                          message: "Your pending leave request has been rejected successfully.",
+                                          icon: Icons.cancel,
+                                          );
+                                        }
+                                      } catch (e) {
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text("Reject failed: $e")),
+                                          );
+                                        }
+                                      }
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.transparent,
+                                      shadowColor: Colors.transparent,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      elevation: 0,
+                                    ),
+                                    child: const Text("Reject", style: TextStyle(color: Colors.white)),
+                                  ),
                                 ),
                               ),
                             ],
@@ -327,41 +339,53 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: ElevatedButton(
-                                onPressed: () async {
-                                  final leaveId = int.parse(r["leave_request_id"].toString());
-
-                                  try {
-                                    await ApiService.approveLeave(
-                                      managerId: widget.managerId,
-                                      leaveRequestId: leaveId,
-                                    );
-
-                                    if (mounted) Navigator.pop(ctx);
-                                    await _loadManagerRequests();
-
-                                    if (mounted) {
-                                        TopBanner.show(
-                                        context,
-                                        title: "Accept Request",
-                                        message: "Your pending leave request has been accepted successfully.",
-                                        icon: Icons.check_circle,
-                                        );
-                                    }
-                                  } catch (e) {
-                                    if (mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text("Approve failed: $e")),
-                                      );
-                                    }
-                                  }
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF2E7D32),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF2E7D32), Color(0xFF1B5E20)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Text("Approve", style: TextStyle(color: Colors.white)),
+                                child: ElevatedButton(
+                                  onPressed: () async {
+                                    final leaveId = int.parse(r["leave_request_id"].toString());
+
+                                    try {
+                                      await ApiService.approveLeave(
+                                        managerId: widget.managerId,
+                                        leaveRequestId: leaveId,
+                                      );
+
+                                      if (mounted) Navigator.pop(ctx);
+                                      await _loadManagerRequests();
+
+                                      if (mounted) {
+                                          TopBanner.show(
+                                          context,
+                                          title: "Accept Request",
+                                          message: "Your pending leave request has been accepted successfully.",
+                                          icon: Icons.check_circle,
+                                          );
+                                      }
+                                    } catch (e) {
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text("Approve failed: $e")),
+                                        );
+                                      }
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    elevation: 0,
+                                  ),
+                                  child: const Text("Approve", style: TextStyle(color: Colors.white)),
+                                ),
                               ),
                             ),
                           ],
@@ -588,31 +612,55 @@ class _LeaveRequestCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: ElevatedButton(
-                  onPressed: onReject,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD32F2F),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFD10A0A), Color(0xFF5B0000)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    "Reject",
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                  child: ElevatedButton(
+                    onPressed: onReject,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      "Reject",
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                    ),
                   ),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: ElevatedButton(
-                  onPressed: onApprove,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E7D32),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF2E7D32), Color(0xFF1B5E20)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    "Approve",
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                  child: ElevatedButton(
+                    onPressed: onApprove,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      "Approve",
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                    ),
                   ),
                 ),
               ),

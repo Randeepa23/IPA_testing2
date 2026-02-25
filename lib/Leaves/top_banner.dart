@@ -119,10 +119,10 @@ class _TopBannerWidgetState extends State<_TopBannerWidget>
         widget.icon == Icons.cancel || widget.icon == Icons.error || widget.icon == Icons.error_outline;
 
     final Color bgColor = isSuccess
-        ? const Color.fromARGB(255, 14, 81, 168) // green
+        ? const Color(0xFF2E7D32) // solid green for success
         : isError
-            ? const Color(0xFFDB4437) // red
-            : const Color.fromARGB(255, 33, 232, 26); // blue / info
+            ? const Color(0xFFC62828) // solid red for error
+            : const Color(0xFF1565C0); // solid blue for info / default/ default / info
 
     final Color textColor = Colors.white;
 
