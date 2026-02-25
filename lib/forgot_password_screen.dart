@@ -376,14 +376,38 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             ),
                           ),
                           validator: (v) {
-                            final value = (v ?? '').trim();
-                            if (value.isEmpty) return "New password is required";
-                            if (value.length < 6) return "Minimum 6 characters";
-                            if (value == "Test@123") {
-                              return "Cannot use default password";
-                            }
-                            return null;
-                          },
+                          final value = (v ?? '').trim();
+
+                          if (value.isEmpty) {
+                            return "New password is required";
+                          }
+
+                          if (value.length < 6) {
+                            return "Password must be at least 6 characters";
+                          }
+
+                          if (!RegExp(r'[A-Z]').hasMatch(value)) {
+                            return "Must contain at least one uppercase letter";
+                          }
+
+                          if (!RegExp(r'[a-z]').hasMatch(value)) {
+                            return "Must contain at least one lowercase letter";
+                          }
+
+                          if (!RegExp(r'[0-9]').hasMatch(value)) {
+                            return "Must contain at least one number";
+                          }
+
+                          if (!RegExp(r'[!@#\$&*~^%()_+\-=\[\]{};:"\\|,.<>\/?]').hasMatch(value)) {
+                            return "Must contain at least one special character";
+                          }
+
+                          if (value == "Test@123") {
+                            return "Cannot use default password";
+                          }
+
+                          return null;
+                        },
                         ),
                         if (_newPasswordError != null) ...[
                           const SizedBox(height: 8),

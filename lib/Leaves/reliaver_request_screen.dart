@@ -304,100 +304,121 @@ void _showErrorBanner(String title, String message) {
           Row(
             children: [
               Expanded(
-                child: ElevatedButton(
-                  onPressed: () => _showDeclineDialog(
-                    employeeName: name,
-                    initialNote: "",
-                    onDecline: (comment) async {
-                      if (leaveRequestId <= 0 || relieverId.isEmpty) return;
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFD10A0A), Color(0xFF5B0000)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: ElevatedButton(
+                    onPressed: () => _showDeclineDialog(
+                      employeeName: name,
+                      initialNote: "",
+                      onDecline: (comment) async {
+                        if (leaveRequestId <= 0 || relieverId.isEmpty) return;
 
-                     final res = await ApiService.relieverDecline(
-                        leaveRequestId: leaveRequestId,
-                        relieverId: relieverId,
-                        comment: comment,
-                      );
-
-                      if (!mounted) return;
-
-                      if (res["success"] == true) {
-                      TopBanner.show(
-                        context,
-                        title: "Request Declined",
-                        message: "Your pending leave request has been canceled successfully.",
-                        icon: Icons.cancel,
-                        isSuccess: true,
-                      );
-
-                        // refresh list
-                        await _loadRelieverRequests();
-                      } else {
-                        _showErrorBanner(
-                          "Decline failed",
-                          res["message"]?.toString() ?? "Please try again.",
+                       final res = await ApiService.relieverDecline(
+                          leaveRequestId: leaveRequestId,
+                          relieverId: relieverId,
+                          comment: comment,
                         );
-                      }
-                      await _loadRelieverRequests();
-                    },
-                  ),
 
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFB10F0F),
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: const Text(
-                    "Decline\nCoverage",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.white, height: 1.1),
+                        if (!mounted) return;
+
+                        if (res["success"] == true) {
+                        TopBanner.show(
+                          context,
+                          title: "Request Declined",
+                          message: "Your pending leave request has been canceled successfully.",
+                          icon: Icons.cancel,
+                          isSuccess: true,
+                        );
+
+                          // refresh list
+                          await _loadRelieverRequests();
+                        } else {
+                          _showErrorBanner(
+                            "Decline failed",
+                            res["message"]?.toString() ?? "Please try again.",
+                          );
+                        }
+                        await _loadRelieverRequests();
+                      },
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: const Text(
+                      "Decline\nCoverage",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.white, height: 1.1),
+                    ),
                   ),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: ElevatedButton(
-                  onPressed: () => _showAcceptDialog(
-                    employeeName: name,
-                    initialNote: "",
-                    onAccept: (comment) async {
-                      if (leaveRequestId <= 0 || relieverId.isEmpty) return;
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF2E7D32), Color(0xFF1B5E20)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: ElevatedButton(
+                    onPressed: () => _showAcceptDialog(
+                      employeeName: name,
+                      initialNote: "",
+                      onAccept: (comment) async {
+                        if (leaveRequestId <= 0 || relieverId.isEmpty) return;
 
-                      final res = await ApiService.relieverAccept(
-                        leaveRequestId: leaveRequestId,
-                        relieverId: relieverId,
-                        comment: comment,
-                      );
-
-                      if (!mounted) return;
-                     if (res["success"] == true) {
-                      TopBanner.show(
-                        context,
-                        title: "Request Accepted and Forwarded",
-                        message: "Your pending leave request has been accepted successfully.",
-                        icon: Icons.check_circle,
-                      );
-
-                        // refresh list
-                        await _loadRelieverRequests();
-                      } else {
-                        _showSuccessBanner(
-                          "Accept failed",
-                          res["message"]?.toString() ?? "Please try again.",
+                        final res = await ApiService.relieverAccept(
+                          leaveRequestId: leaveRequestId,
+                          relieverId: relieverId,
+                          comment: comment,
                         );
-                      }
-                      await _loadRelieverRequests();
-                    },
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0A8F2E),
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: const Text(
-                    "Accept and\nForward",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.white, height: 1.1),
+
+                        if (!mounted) return;
+                       if (res["success"] == true) {
+                        TopBanner.show(
+                          context,
+                          title: "Request Accepted and Forwarded",
+                          message: "Your pending leave request has been accepted successfully.",
+                          icon: Icons.check_circle,
+                        );
+
+                          // refresh list
+                          await _loadRelieverRequests();
+                        } else {
+                          _showSuccessBanner(
+                            "Accept failed",
+                            res["message"]?.toString() ?? "Please try again.",
+                          );
+                        }
+                        await _loadRelieverRequests();
+                      },
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: const Text(
+                      "Accept and\nForward",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.white, height: 1.1),
+                    ),
                   ),
                 ),
               ),
@@ -547,21 +568,33 @@ void _showErrorBanner(String title, String message) {
                               ),
                               const SizedBox(width: 12),
                               Expanded(
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    if (!formKey.currentState!.validate()) return;
-                                    final comment = controller.text.trim();
-                                    Navigator.pop(ctx);
-                                    onDecline(comment);
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFD32F2F),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [Color(0xFFD10A0A), Color(0xFF5B0000)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: const Text(
-                                    "Decline",
-                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      if (!formKey.currentState!.validate()) return;
+                                      final comment = controller.text.trim();
+                                      Navigator.pop(ctx);
+                                      onDecline(comment);
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.transparent,
+                                      shadowColor: Colors.transparent,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      elevation: 0,
+                                    ),
+                                    child: const Text(
+                                      "Decline",
+                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -664,21 +697,33 @@ void _showErrorBanner(String title, String message) {
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  final comment = controller.text.trim();
-                                  Navigator.pop(ctx);
-
-                                  onAccept(comment);
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color.fromARGB(255, 57, 138, 60),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF2E7D32), Color(0xFF1B5E20)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Text(
-                                  "Accept & Forward",
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    final comment = controller.text.trim();
+                                    Navigator.pop(ctx);
+
+                                    onAccept(comment);
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    elevation: 0,
+                                  ),
+                                  child: const Text(
+                                    "Accept & Forward",
+                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                                  ),
                                 ),
                               ),
                             ),
