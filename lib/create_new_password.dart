@@ -30,7 +30,6 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
 
   bool _obscureNew = true;
   bool _obscureConfirm = true;
-  bool _obscureRecovery = true;
   bool _isSubmitting = false; // Show loading state while submitting
 
   @override
@@ -41,25 +40,25 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
     super.dispose();
   }
 
-    // Generate a random recovery key
-    String _generateRecoveryKey({int length = 12}) {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    final rand = DateTime.now().microsecondsSinceEpoch;
+  // Generate a random recovery key
+  //   String _generateRecoveryKey({int length = 12}) {
+  //   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  //   final rand = DateTime.now().microsecondsSinceEpoch;
 
-    return List.generate(
-      length,
-      (i) => chars[(rand + i * 7) % chars.length],
-    ).join();
-  }
-    // Generate a random recovery key when the screen is loaded
-    @override
-    void initState() {
-      super.initState();
+  //   return List.generate(
+  //     length,
+  //     (i) => chars[(rand + i * 7) % chars.length],
+  //   ).join();
+  // }
+  //   // Generate a random recovery key when the screen is loaded
+  //   @override
+  //   void initState() {
+  //     super.initState();
 
-      if (_recoveryKeyController.text.isEmpty) {
-        _recoveryKeyController.text = _generateRecoveryKey(length: 12);
-      }
-  }
+  //     if (_recoveryKeyController.text.isEmpty) {
+  //       _recoveryKeyController.text = _generateRecoveryKey(length: 12);
+  //     }
+  // }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -224,46 +223,45 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-
                         SizedBox(height: sectionGap),
-                        
-                            TextFormField(
-                              controller: _recoveryKeyController,
-                              textCapitalization: TextCapitalization.characters,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.allow(RegExp(r'[A-Z]')),
-                              ],
-                              decoration: InputDecoration(
-                                labelText: 'Recovery Name',
-                                filled: true,
-                                fillColor: Colors.grey.shade100,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                  borderSide: BorderSide.none,
-                                ),
-                                suffixIcon: IconButton( icon: Icon( 
-                                  _obscureRecovery ? Icons.visibility_off : Icons.visibility, 
-                                  ), 
-                                  onPressed: () { 
-                                    setState(() => _obscureRecovery = !_obscureRecovery
-                                      ); 
-                                    }, 
-                                  ), 
-                              ),
-                              validator: (v) {
-                                final value = (v ?? '').trim();
+                        TextFormField(
+                          controller: _recoveryKeyController,
+                          textCapitalization: TextCapitalization.none, // user types normally
+                          inputFormatters: [
+                            // Allow letters only (upper + lower)
+                            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z]')),
 
-                                if (value.isEmpty) {
-                                  return 'Recovery key is required';
-                                }
-
-                                if (!RegExp(r'^[A-Z]{6,}$').hasMatch(value)) {
-                                  return 'Use only capital letters (minimum 6)';
-                                }
-
-                                return null;
-                              },
+                            // Convert everything to UPPERCASE
+                            TextInputFormatter.withFunction((oldValue, newValue) {
+                              return newValue.copyWith(
+                                text: newValue.text.toUpperCase(),
+                                selection: newValue.selection,
+                              );
+                            }),
+                          ],
+                          decoration: InputDecoration(
+                            labelText: 'Recovery Name',
+                            filled: true,
+                            fillColor: Colors.grey.shade100,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: BorderSide.none,
                             ),
+                          ),
+                          validator: (v) {
+                            final value = (v ?? '').trim();
+
+                            if (value.isEmpty) {
+                              return 'Recovery key is required';
+                            }
+
+                            if (!RegExp(r'^[A-Z]{6,}$').hasMatch(value)) {
+                              return 'Use only capital letters (minimum 6)';
+                            }
+
+                            return null;
+                          },
+                        ),
                             const SizedBox(height: 6),
                             Text(
                               'Important: Please remember this recovery key. If you forget your password later, you must use this key to reset and log in again.',
