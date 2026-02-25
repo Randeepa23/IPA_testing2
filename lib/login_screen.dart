@@ -277,32 +277,45 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: SizedBox(
                           width: (w * 0.45).clamp(150.0, 220.0),
                           height: 48,
-                          child: ElevatedButton(
-                            onPressed: _isLoggingIn ? null : _loginApi,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF0060A6),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFF0060A6),
+Color(0xFF003580),],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
-                              elevation: 0,
+                              borderRadius: BorderRadius.circular(14),
                             ),
-                            child: _isLoggingIn
-                                ? const SizedBox(
-                                    width: 22,
-                                    height: 22,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.5,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            child: ElevatedButton(
+                              onPressed: _isLoggingIn ? null : _loginApi,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                              child: _isLoggingIn
+                                  ? const SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.5,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(Colors.white),
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Login',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
-                                  )
-                                : const Text(
-                                    'Login',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
+                            ),
                           ),
                         ),
                       ),
