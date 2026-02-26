@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../ui/dialogs/start_trip_dialog.dart';
 import '../ui/dialogs/stop_trip_dialog.dart';
 import '../Services/vehicle_api_service.dart';
+import '../ui/dialogs/generate_trip_code_dialog.dart';
+import '../Leaves/top_banner.dart';
 
 class AssignedShuttleTripScreen extends StatefulWidget {
   final Map<String, dynamic> user; // must contain: employeeId, name, role
@@ -107,31 +109,93 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
     await _loadTripsByTab();
   }
 
-  // UI-only trip code generation (you can later call PHP update API here)
-  void _generateTripCodeAndMove(String id) {
-    final idx = trips.indexWhere((e) => e["id"] == id);
-    if (idx == -1) return;
+  // // UI-only trip code generation (you can later call PHP update API here)
+  // void _generateTripCodeAndMove(String id) {
+  //   final idx = trips.indexWhere((e) => e["id"] == id);
+  //   if (idx == -1) return;
 
-    final rnd = Random();
-    final numPart = (1000 + rnd.nextInt(9000)).toString();
-    final letters = String.fromCharCodes(
-      List.generate(4, (_) => 65 + rnd.nextInt(26)),
-    );
-    final code = "#$numPart$letters";
+  //   final rnd = Random();
+  //   final numPart = (1000 + rnd.nextInt(9000)).toString();
+  //   final letters = String.fromCharCodes(
+  //     List.generate(4, (_) => 65 + rnd.nextInt(26)),
+  //   );
+  //   final code = "#$numPart$letters";
 
-    setState(() {
-      trips[idx]["tripCode"] = code;
-      trips[idx]["status"] = "START_TRIP";
-      selectedTab = 1;
-    });
+  //   setState(() {
+  //     trips[idx]["tripCode"] = code;
+  //     trips[idx]["status"] = "START_TRIP";
+  //     selectedTab = 1;
+  //   });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Trip Code Generated: $code")),
-    );
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(content: Text("Trip Code Generated: $code")),
+  //   );
 
-    // TODO (optional): call API to update DB:
-    // await VehicleApiService.updateTripCode(tripId: int.parse(id), tripCode: code);
-  }
+  //   // TODO (optional): call API to update DB:
+  //   // await VehicleApiService.updateTripCode(tripId: int.parse(id), tripCode: code);
+  // }
+
+    // Generates a random trip code like #1234ABCD
+    String _generateTripCode() {
+      final rnd = Random();
+      final numPart = (1000 + rnd.nextInt(9000)).toString();
+      final letters = String.fromCharCodes(
+        List.generate(4, (_) => 65 + rnd.nextInt(26)),
+      );
+      return "#$numPart$letters";
+    }
+
+    // Confirmation dialog before generating trip code and moving to Start Trip
+    Future<void> _confirmGenerateAndUpdate(Map<String, dynamic> trip) async {
+      final tripId = int.tryParse(trip["id"].toString()) ?? 0;
+      if (tripId <= 0) return;
+
+      final code = _generateTripCode();
+
+      try {
+        setState(() => loading = true);
+
+        final res = await VehicleApiService.generateTripCode(
+          tripId: tripId,
+          tripCode: code,
+        );
+
+        if (res["success"] == true) {
+          setState(() => selectedTab = 1);
+          await _loadTripsByTab();
+
+          if (!mounted) return;
+
+          TopBanner.show(
+          context,
+          title: "Trip Code Generated",
+          message: "Your trip code has been generated successfully: $code.",
+          icon: Icons.check_circle,
+          isSuccess: true,
+          );
+        } else {
+          throw Exception(res["message"] ?? "Generate failed");
+        }
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Generate failed: $e")),
+        );
+      } finally {
+        if (mounted) setState(() => loading = false);
+      }
+    }
+
+    // Show dialog to confirm before generating trip code and moving to Start Trip
+    void _showGenerateTripDialog(Map<String, dynamic> trip) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => GenerateTripCodeDialog(
+          onGenerate: () => _confirmGenerateAndUpdate(trip),
+        ),
+      );
+    }
 
   @override
   Widget build(BuildContext context) {
@@ -201,7 +265,7 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
                 padding: const EdgeInsets.only(bottom: 14),
                 child: TripCard(
                   data: t,
-                  onGenerateTripCode: () => _generateTripCodeAndMove(t["id"]),
+                  onGenerateTripCode: () => _showGenerateTripDialog(t),
                 ),
               );
             },
