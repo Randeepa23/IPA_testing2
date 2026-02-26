@@ -613,9 +613,9 @@ class TripCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   _infoRow("Passengers", (data["passengers"] ?? "-").toString()),
                   const SizedBox(height: 8),
-                  _infoRow("Time", (data["time"] ?? "-").toString()),
+                  _infoRow("Assigned Time", (data["time"] ?? "-").toString()),
                   const SizedBox(height: 8),
-                  _infoRow("Start Date", (data["startDate"] ?? "-").toString()),
+                  _infoRow("Assigned Date", (data["assignedDate"] ?? "-").toString()),
                 ],
 
                 // ================= COMPLETED =================
