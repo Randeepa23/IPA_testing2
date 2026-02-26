@@ -7,6 +7,8 @@ class VehicleApiService {
 
   //Android Emulator → PC localhost
   static const String baseUrl = "http://10.0.2.2/test-2/vehicle";
+  //static const String baseUrl = "https://exploresuite.lk/mobile-api/vehicle";
+
 
 
     // For real device testing, use your PC's local network IP address
@@ -125,9 +127,18 @@ class VehicleApiService {
 
     final streamed = await req.send();
     final body = await streamed.stream.bytesToString();
-    
+
     if (body.trim().isEmpty) throw Exception("Empty response");
     return Map<String, dynamic>.from(jsonDecode(body));
   }
+
+  // API to fetch default managers for a given employee (used in Shuttle and Transfer Trip forms)
+  static Future<Map<String, dynamic>> getDefaultManagers({required int employeeId}) async {
+  final url = Uri.parse("$baseUrl/get_default_managers.php?employee_id=$employeeId");
+  final res = await http.get(url);
+
+  if (res.body.trim().isEmpty) throw Exception("Empty response");
+  return Map<String, dynamic>.from(jsonDecode(res.body));
+}
 
 }

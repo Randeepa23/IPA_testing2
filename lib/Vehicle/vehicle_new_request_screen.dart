@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../ui/dialogs/vehicle_submit_dialog.dart';
+import '../Services/vehicle_api_service.dart';
 
 class VehicleRequestFormScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -31,23 +32,66 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
   DateTime? toDate;
 
   // Manager
-  List<Map<String, String>> managers = [
-    {"id": "EMP-UUID-010", "name": "Srimal Perera"},
-    {"id": "EMP-UUID-011", "name": "Navodaya Silva"},
-  ];
+  List<Map<String, String>> managers = [];
   String? selectedManagerId;
+  bool loadingManagers = false;
 
   bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
+      _loadManagers();
 
     nameController.text = widget.user['name'] ?? '';
     employeeController.text = widget.user['employeeCode'] ?? '';
     departmentController.text = widget.user['department'] ?? '';
     contactController.text = widget.user['phone'] ?? '';
   }
+
+Future<void> _loadManagers() async {
+  try {
+    setState(() => loadingManagers = true);
+
+    final empId = widget.user["employee_id"]?.toString() ?? "";
+    if (empId.isEmpty) throw Exception("employee_id not found");
+
+    final res = await VehicleApiService.getDefaultManagers(employeeId: int.parse(empId));
+
+    if (res["success"] == true) {
+      final data = res["data"] ?? {};
+      final raw = List.from(data["managers"] ?? []);
+      final reportingId = data["reporting_manager_id"]?.toString();
+
+      final list = raw.map<Map<String, String>>((e) {
+        return {
+          "id": e["id"].toString(),
+          "name": (e["name"] ?? "").toString(),
+        };
+      }).toList();
+
+      setState(() {
+        managers = list;
+
+        // default selected = reporting manager if exists in list
+        if (reportingId != null && list.any((m) => m["id"] == reportingId)) {
+          selectedManagerId = reportingId;
+        } else if (list.isNotEmpty) {
+          selectedManagerId = list.first["id"];
+        }
+      });
+    } else {
+      throw Exception(res["message"] ?? "Failed");
+    }
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Load managers failed: $e")),
+    );
+  } finally {
+    if (mounted) setState(() => loadingManagers = false);
+  }
+}
 
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
@@ -232,23 +276,22 @@ void _showVehicleSubmitConfirmation() {
               // Approving Manager dropdown
               _sectionTitle("Select Approving Manager *"),
               const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: selectedManagerId,
-                dropdownColor: Colors.white,
-                decoration: _inputDecoration("Select Manager.."),
-                hint: const Text("Select Manager.."),
-                items: managers
-                    .map((m) => DropdownMenuItem(
-                          value: m["id"],
-                          child: Text(m["name"] ?? ""),
-                        ))
-                    .toList(),
-                onChanged: (v) => setState(() => selectedManagerId = v),
-                validator: (v) => v == null ? "Select a manager" : null,
-              ),
-
+DropdownButtonFormField<String>(
+  value: (selectedManagerId != null &&
+          managers.any((m) => m["id"] == selectedManagerId))
+      ? selectedManagerId
+      : null,
+  decoration: _inputDecoration("Select Manager"),
+  items: managers.map((m) {
+    return DropdownMenuItem<String>(
+      value: m["id"],
+      child: Text(m["name"] ?? "-"),
+    );
+  }).toList(),
+  onChanged: (v) => setState(() => selectedManagerId = v),
+  validator: (v) => v == null ? "Select manager" : null,
+),
               const SizedBox(height: 18),
-
               // Submit
               SizedBox(
                 height: 46,

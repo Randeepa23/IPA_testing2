@@ -360,7 +360,11 @@ class _AssignedTransferTripScreenState extends State<AssignedTransferTripScreen>
                 if (loading) {
                   return const Padding(
                     padding: EdgeInsets.only(top: 24),
-                    child: Center(child: CircularProgressIndicator()),
+                    child: Center(child: CircularProgressIndicator(
+                                color: Colors.blue,
+                                backgroundColor: Colors.white,
+                                strokeWidth: 4,
+                    )),
                   );
                 }
                 if (list.isEmpty) {
@@ -617,7 +621,7 @@ class TripCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   _infoRow("Time", (data["time"] ?? "-").toString()),
                   const SizedBox(height: 8),
-                  _infoRow("Start Date", (data["startDate"] ?? "-").toString()),
+                  _infoRow("Assigned Date", (data["assignedDate"] ?? "-").toString()),
                 ],
 
                 // ================= COMPLETED =================
