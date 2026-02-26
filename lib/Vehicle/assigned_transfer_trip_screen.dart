@@ -360,7 +360,11 @@ class _AssignedTransferTripScreenState extends State<AssignedTransferTripScreen>
                 if (loading) {
                   return const Padding(
                     padding: EdgeInsets.only(top: 24),
-                    child: Center(child: CircularProgressIndicator()),
+                    child: Center(child: CircularProgressIndicator(
+                                color: Colors.blue,
+                                backgroundColor: Colors.white,
+                                strokeWidth: 4,
+                    )),
                   );
                 }
                 if (list.isEmpty) {
