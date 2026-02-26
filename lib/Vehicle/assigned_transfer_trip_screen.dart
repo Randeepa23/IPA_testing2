@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../ui/dialogs/start_trip_dialog.dart';
@@ -86,9 +87,9 @@ class _AssignedTransferTripScreenState extends State<AssignedTransferTripScreen>
           "tripCode": e["trip_code"],
 
           // optional fields if you add later:
-          "startMeter": e["start_meter"],
-          "endMeter": e["end_meter"],
-          "odoDistance": e["odo_distance"],
+          "startMeter": (e["trip_start_odometer"] ?? "-").toString(),
+          "endMeter": (e["trip_end_odometer"] ?? "-").toString(),
+          "odoDistance": (e["distance_km"] ?? "-").toString(),
           "gpsDistance": e["gps_distance"],
         };
       }).toList();
@@ -109,6 +110,117 @@ class _AssignedTransferTripScreenState extends State<AssignedTransferTripScreen>
     await _loadTripsByTab();
   }
 
+
+        // When Start Trip is confirmed in dialog, call this to hit API and move to In Progress
+    Future<void> _startTripAndMoveToInProgress({
+      required Map<String, dynamic> trip,
+      required String meterReading,
+      required String fuelPercent,
+      required File meterPhoto,
+    }) async {
+      final tripId = int.tryParse(trip["id"].toString()) ?? 0;
+      if (tripId <= 0) return;
+
+      try {
+        setState(() => loading = true);
+
+        final res = await VehicleApiService.startTrip(
+          transportServiceId: tripId,
+          odometer: int.parse(meterReading),
+          fuelPercent: double.parse(fuelPercent),
+          photoFile: meterPhoto,
+        );
+
+        if (res["success"] == true) {
+          if (!mounted) return;
+
+          // move to tab 2 (IN_PROGRESS)
+          setState(() => selectedTab = 2);
+
+          // reload list based on tab
+          await _loadTripsByTab();
+
+          if (!mounted) return;
+
+          TopBanner.show(
+            context,
+            title: "Trip Started",
+            message: "Trip started successfully and moved to In Progress.",
+            icon: Icons.check_circle,
+            isSuccess: true,
+          );
+        } else {
+          throw Exception(res["message"] ?? "Start trip failed");
+        }
+      } catch (e) {
+        if (!mounted) return;
+        TopBanner.show(
+          context,
+          title: "Start Trip Failed",
+          message: e.toString(),
+          icon: Icons.error_outline,
+          isSuccess: false,
+        );
+      } finally {
+        if (mounted) setState(() => loading = false);
+      }
+    }
+
+        // When Stop Trip is confirmed in dialog, call this to hit API and move to Completed
+    Future<void> _stopTripAndMoveToCompleted({
+      required Map<String, dynamic> trip,
+      required String meterReading,
+      required String fuelPercent,
+      required File meterPhoto,
+    }) async {
+      final tripId = int.tryParse(trip["id"].toString()) ?? 0;
+      if (tripId <= 0) return;
+
+      try {
+        setState(() => loading = true);
+
+        final res = await VehicleApiService.stopTrip(
+          transportServiceId: tripId,
+          endOdometer: int.parse(meterReading),
+          endFuelPercent: double.parse(fuelPercent),
+          photoFile: meterPhoto,
+        );
+
+        if (res["success"] == true) {
+          if (!mounted) return;
+
+          // move to tab 2 (IN_PROGRESS)
+          setState(() => selectedTab = 3);
+
+          // reload list based on tab
+          await _loadTripsByTab();
+
+          if (!mounted) return;
+
+          TopBanner.show(
+            context,
+            title: "Trip Completed",
+            message: "Trip completed successfully.",
+            icon: Icons.check_circle,
+            isSuccess: true,
+          );
+        } else {
+          throw Exception(res["message"] ?? "Stop trip failed");
+        }
+      } catch (e) {
+        if (!mounted) return;
+        TopBanner.show(
+          context,
+          title: "Stop Trip Failed",
+          message: e.toString(),
+          icon: Icons.error_outline,
+          isSuccess: false,
+        );
+      } finally {
+        if (mounted) setState(() => loading = false);
+      }
+    }
+    
    // Generates a random trip code like #INDU1234 based on employee name and random number
     String _generateTripCode(String employeeName) {
       final rnd = Random();
@@ -500,9 +612,12 @@ class TripCard extends StatelessWidget {
                   _infoRow("Vehicle No", (data["vehicleNo"] ?? "-").toString()),
                   const SizedBox(height: 8),
                   _infoRow("Date", (data["date"] ?? "-").toString()),
+                   _infoRow("Start Meter", "${data["startMeter"]} km"),
+                  const SizedBox(height: 8),
+                  _infoRow("End Meter", "${data["endMeter"]} km"),
                   const SizedBox(height: 8),
                   _infoRow(
-                    "Odometer Distance",
+                    "Distance KM",
                     "${data["odoDistance"] ?? "-"} km",
                   ),
                   const SizedBox(height: 8),
@@ -524,58 +639,68 @@ class TripCard extends StatelessWidget {
 
                 if (isStartTrip) ...[
                   const SizedBox(height: 12),
-                  _gradientButton(
-                    text: "Start Trip (Enter Meter Reading)",
-                    colors: const [Color(0xFF1DB954), Color(0xFF0B7A34)],
-                    onTap: () {
-                      showStartTripDialog(
-                        context: context,
-                        vehicleNo: data["vehicleNo"],
-                        destination: data["dropoff"],
-                        isSubmitting: false,
-                        onConfirm: ({
-                          required meterReading,
-                          required fuelPercent,
-                          required meterPhoto,
-                        }) async {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Trip started")),
-                          );
 
-                          // TODO: call Start Trip API and then reload:
-                          // await VehicleApiService.startTrip(...);
-                          // ignore: use_build_context_synchronously
-                          // await _reloadFromOutside(context);
-                        },
-                      );
-                    },
+                  // For Start Trip, show the trip code prominently at the top
+                  Builder(
+                    builder: (context) => _gradientButton(
+                      text: "Start Trip (Enter Meter Reading)",
+                      colors: const [Color(0xFF1DB954), Color(0xFF0B7A34)],
+                      onTap: () {
+                        showStartTripDialog(
+                          context: context,
+                          vehicleNo: data["vehicleNo"] ?? "-",
+                          destination: data["dropoff"] ?? "-",
+                          onConfirm: ({
+                            required meterReading,
+                            required fuelPercent,
+                            required meterPhoto,
+                          }) async {
+                            // Call the parent state method
+                            final state = context.findAncestorStateOfType<_AssignedTransferTripScreenState>();
+                            await state?._startTripAndMoveToInProgress(
+                              trip: data,
+                              meterReading: meterReading,
+                              fuelPercent: fuelPercent,
+                              meterPhoto: meterPhoto,
+                            );
+                          },
+                          isSubmitting: false,
+                        );
+                      },
+                    ),
                   ),
                 ],
 
                 if (isInProgress) ...[
                   const SizedBox(height: 12),
-                  _gradientButton(
-                    text: "Stop Trip & Submit",
-                    colors: const [Color(0xFFD10A0A), Color(0xFF5B0000)],
-                    onTap: () {
-                      showStopTripDialog(
-                        context: context,
-                        vehicleNo: data["vehicleNo"],
-                        destination: data["dropoff"],
-                        isSubmitting: false,
-                        onConfirm: ({
-                          required meterReading,
-                          required fuelPercent,
-                          required meterPhoto,
-                        }) async {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Trip stopped")),
-                          );
-
-                          // TODO: call Stop Trip API and then reload
-                        },
-                      );
-                    },
+                  // For Stop Trip, show the trip code prominently at the top
+                  Builder(
+                    builder: (context) => _gradientButton(
+                      text: "Stop Trip & Submit (Enter Meter Reading)",
+                      colors: const [Color(0xFFD10A0A), Color(0xFF5B0000)],
+                      onTap: () {
+                        showStopTripDialog(
+                          context: context,
+                          vehicleNo: data["vehicleNo"] ?? "-",
+                          destination: data["dropoff"] ?? "-",
+                          onConfirm: ({
+                            required meterReading,
+                            required fuelPercent,
+                            required meterPhoto,
+                          }) async {
+                            // Call the parent state method
+                            final state = context.findAncestorStateOfType<_AssignedTransferTripScreenState>();
+                            await state?._stopTripAndMoveToCompleted(
+                              trip: data,
+                              meterReading: meterReading,
+                              fuelPercent: fuelPercent,
+                              meterPhoto: meterPhoto,
+                            );
+                          },
+                          isSubmitting: false,
+                        );
+                      },
+                    ),
                   ),
                 ],
               ],

@@ -107,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 childAspectRatio: 1.25,
                 children: [
                   _serviceCard(
-                    //imagePath: 'assets/7481040.png',
+                    imagePath: 'assets/456123.png',
                     label: "Apply Leaves",
                     onTap: () {
                       Navigator.push(
@@ -119,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   ),
                   _serviceCard(
-                    //imagePath: 'assets/vehicle1122.png',
+                  imagePath: 'assets/123456.png',
                     label: "Vehicle Request",
                     onTap: () {
                       Navigator.push(
@@ -131,8 +131,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   ),
                 _serviceCard(
+                  imagePath: 'assets/789123.png',
                   label: "Shift Schedule",
-                  isDisabled: true, // add this
+                  isDisabled: true, // add this 3063636.png
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -191,7 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   //Service Card Widget
   Widget _serviceCard({
-    //required String imagePath,
+    String? imagePath,
     required String label,
     required VoidCallback onTap,
     bool isDisabled = false,
@@ -224,12 +225,13 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Image.asset(
-            //   imagePath,
-            //   width: 54,
-            //   height: 54,
-            //   fit: BoxFit.contain,
-            // ),
+            if (imagePath != null)
+              Image.asset(
+                imagePath,
+                width: 75,
+                height: 75,
+                fit: BoxFit.contain,
+              ),
             const SizedBox(height: 10),
             Text(
               label,
