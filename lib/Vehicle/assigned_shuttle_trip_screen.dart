@@ -1,8 +1,11 @@
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../ui/dialogs/start_trip_dialog.dart';
 import '../ui/dialogs/stop_trip_dialog.dart';
 import '../Services/vehicle_api_service.dart';
+import '../ui/dialogs/generate_trip_code_dialog.dart';
+import '../Leaves/top_banner.dart';
 
 class AssignedShuttleTripScreen extends StatefulWidget {
   final Map<String, dynamic> user; // must contain: employeeId, name, role
@@ -72,7 +75,7 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
           "status": (e["status"] ?? "").toString(),
 
           "vehicleNo": (e["vehicle_no"] ?? "-").toString(),
-          "vehicleName": (e["vehicle_name"] ?? "Toyota KDH").toString(), // optional
+          "vehicleName": (e["vehicle_name"] ?? "-").toString(), // optional
 
           "pickup": (e["pickup_location"] ?? "-").toString(),
           "dropoff": (e["dropoff_location"] ?? "-").toString(),
@@ -84,9 +87,9 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
           "tripCode": e["trip_code"],
 
           // optional fields if you add later:
-          "startMeter": e["start_meter"],
-          "endMeter": e["end_meter"],
-          "odoDistance": e["odo_distance"],
+          "startMeter": (e["trip_start_odometer"] ?? "-").toString(),
+          "endMeter": (e["trip_end_odometer"] ?? "-").toString(),
+          "odoDistance": (e["distance_km"] ?? "-").toString(),
           "gpsDistance": e["gps_distance"],
         };
       }).toList();
@@ -107,31 +110,186 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
     await _loadTripsByTab();
   }
 
-  // UI-only trip code generation (you can later call PHP update API here)
-  void _generateTripCodeAndMove(String id) {
-    final idx = trips.indexWhere((e) => e["id"] == id);
-    if (idx == -1) return;
+    // When Start Trip is confirmed in dialog, call this to hit API and move to In Progress
+    Future<void> _startTripAndMoveToInProgress({
+      required Map<String, dynamic> trip,
+      required String meterReading,
+      required String fuelPercent,
+      required File meterPhoto,
+    }) async {
+      final tripId = int.tryParse(trip["id"].toString()) ?? 0;
+      if (tripId <= 0) return;
 
-    final rnd = Random();
-    final numPart = (1000 + rnd.nextInt(9000)).toString();
-    final letters = String.fromCharCodes(
-      List.generate(4, (_) => 65 + rnd.nextInt(26)),
-    );
-    final code = "#$numPart$letters";
+      try {
+        setState(() => loading = true);
 
-    setState(() {
-      trips[idx]["tripCode"] = code;
-      trips[idx]["status"] = "START_TRIP";
-      selectedTab = 1;
-    });
+        final res = await VehicleApiService.startTrip(
+          transportServiceId: tripId,
+          odometer: int.parse(meterReading),
+          fuelPercent: double.parse(fuelPercent),
+          photoFile: meterPhoto,
+        );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Trip Code Generated: $code")),
-    );
+        if (res["success"] == true) {
+          if (!mounted) return;
 
-    // TODO (optional): call API to update DB:
-    // await VehicleApiService.updateTripCode(tripId: int.parse(id), tripCode: code);
-  }
+          // move to tab 2 (IN_PROGRESS)
+          setState(() => selectedTab = 2);
+
+          // reload list based on tab
+          await _loadTripsByTab();
+
+          if (!mounted) return;
+
+          TopBanner.show(
+            context,
+            title: "Trip Started",
+            message: "Trip started successfully and moved to In Progress.",
+            icon: Icons.check_circle,
+            isSuccess: true,
+          );
+        } else {
+          throw Exception(res["message"] ?? "Start trip failed");
+        }
+      } catch (e) {
+        if (!mounted) return;
+        TopBanner.show(
+          context,
+          title: "Start Trip Failed",
+          message: e.toString(),
+          icon: Icons.error_outline,
+          isSuccess: false,
+        );
+      } finally {
+        if (mounted) setState(() => loading = false);
+      }
+    }
+
+    // When Stop Trip is confirmed in dialog, call this to hit API and move to Completed
+    Future<void> _stopTripAndMoveToCompleted({
+      required Map<String, dynamic> trip,
+      required String meterReading,
+      required String fuelPercent,
+      required File meterPhoto,
+    }) async {
+      final tripId = int.tryParse(trip["id"].toString()) ?? 0;
+      if (tripId <= 0) return;
+
+      try {
+        setState(() => loading = true);
+
+        final res = await VehicleApiService.stopTrip(
+          transportServiceId: tripId,
+          endOdometer: int.parse(meterReading),
+          endFuelPercent: double.parse(fuelPercent),
+          photoFile: meterPhoto,
+        );
+
+        if (res["success"] == true) {
+          if (!mounted) return;
+
+          // move to tab 2 (IN_PROGRESS)
+          setState(() => selectedTab = 3);
+
+          // reload list based on tab
+          await _loadTripsByTab();
+
+          if (!mounted) return;
+
+          TopBanner.show(
+            context,
+            title: "Trip Completed",
+            message: "Trip completed successfully.",
+            icon: Icons.check_circle,
+            isSuccess: true,
+          );
+        } else {
+          throw Exception(res["message"] ?? "Stop trip failed");
+        }
+      } catch (e) {
+        if (!mounted) return;
+        TopBanner.show(
+          context,
+          title: "Stop Trip Failed",
+          message: e.toString(),
+          icon: Icons.error_outline,
+          isSuccess: false,
+        );
+      } finally {
+        if (mounted) setState(() => loading = false);
+      }
+    }
+
+    // Generates a random trip code like #INDU1234 based on employee name and random number
+    String _generateTripCode(String employeeName) {
+      final rnd = Random();
+      // 1. Clean name (remove spaces, uppercase)
+      String cleanName = employeeName
+          .replaceAll(RegExp(r'\s+'), '')
+          .toUpperCase();
+      // 2. Ensure at least 4 characters
+      if (cleanName.length < 4) {
+        cleanName = cleanName.padRight(4, 'X');
+      }
+      // 3. Take first 4 letters
+      final namePart = cleanName.substring(0, 4);
+      // 4. Generate random 4-digit number
+      final numberPart = (1000 + rnd.nextInt(9000)).toString();
+      // 5. Combine
+      return "#$namePart$numberPart";
+    }
+
+    // Confirmation dialog before generating trip code and moving to Start Trip
+    Future<void> _confirmGenerateAndUpdate(Map<String, dynamic> trip) async {
+      final tripId = int.tryParse(trip["id"].toString()) ?? 0;
+      if (tripId <= 0) return;
+
+      final code = _generateTripCode(widget.user["name"]?.toString() ?? "USER");
+
+      try {
+        setState(() => loading = true);
+
+        final res = await VehicleApiService.generateTripCode(
+          tripId: tripId,
+          tripCode: code,
+        );
+
+        if (res["success"] == true) {
+          setState(() => selectedTab = 1);
+          await _loadTripsByTab();
+
+          if (!mounted) return;
+
+          TopBanner.show(
+          context,
+          title: "Trip Code Generated",
+          message: "Your trip code has been generated successfully: $code.",
+          icon: Icons.check_circle,
+          isSuccess: true,
+          );
+        } else {
+          throw Exception(res["message"] ?? "Generate failed");
+        }
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Generate failed: $e")),
+        );
+      } finally {
+        if (mounted) setState(() => loading = false);
+      }
+    }
+
+    // Show dialog to confirm before generating trip code and moving to Start Trip
+    void _showGenerateTripDialog(Map<String, dynamic> trip) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => GenerateTripCodeDialog(
+          onGenerate: () => _confirmGenerateAndUpdate(trip),
+        ),
+      );
+    }
 
   @override
   Widget build(BuildContext context) {
@@ -201,7 +359,7 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
                 padding: const EdgeInsets.only(bottom: 14),
                 child: TripCard(
                   data: t,
-                  onGenerateTripCode: () => _generateTripCodeAndMove(t["id"]),
+                  onGenerateTripCode: () => _showGenerateTripDialog(t),
                 ),
               );
             },
@@ -363,7 +521,7 @@ class TripCard extends StatelessWidget {
     final isInProgress = status == "IN_PROGRESS";
     final isCompleted = status == "COMPLETED";
 
-    final vehicleName = (data["vehicleName"] ?? "Toyota KDH").toString();
+    final vehicleName = (data["vehicleName"] ?? "-").toString();
 
     return Container(
       decoration: BoxDecoration(
@@ -454,8 +612,12 @@ class TripCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   _infoRow("Date", (data["date"] ?? "-").toString()),
                   const SizedBox(height: 8),
+                  _infoRow("Start Meter", "${data["startMeter"]} km"),
+                  const SizedBox(height: 8),
+                  _infoRow("End Meter", "${data["endMeter"]} km"),
+                  const SizedBox(height: 8),
                   _infoRow(
-                    "Odometer Distance",
+                    "Distance KM",
                     "${data["odoDistance"] ?? "-"} km",
                   ),
                   const SizedBox(height: 8),
@@ -477,58 +639,65 @@ class TripCard extends StatelessWidget {
 
                 if (isStartTrip) ...[
                   const SizedBox(height: 12),
-                  _gradientButton(
-                    text: "Start Trip (Enter Meter Reading)",
-                    colors: const [Color(0xFF1DB954), Color(0xFF0B7A34)],
-                    onTap: () {
-                      showStartTripDialog(
-                        context: context,
-                        vehicleNo: data["vehicleNo"],
-                        destination: data["dropoff"],
-                        isSubmitting: false,
-                        onConfirm: ({
-                          required meterReading,
-                          required fuelPercent,
-                          required meterPhoto,
-                        }) async {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Trip started")),
-                          );
-
-                          // TODO: call Start Trip API and then reload:
-                          // await VehicleApiService.startTrip(...);
-                          // ignore: use_build_context_synchronously
-                          // await _reloadFromOutside(context);
-                        },
-                      );
-                    },
+                  Builder(
+                    builder: (context) => _gradientButton(
+                      text: "Start Trip (Enter Meter Reading)",
+                      colors: const [Color(0xFF1DB954), Color(0xFF0B7A34)],
+                      onTap: () {
+                        showStartTripDialog(
+                          context: context,
+                          vehicleNo: data["vehicleNo"] ?? "-",
+                          destination: data["dropoff"] ?? "-",
+                          onConfirm: ({
+                            required meterReading,
+                            required fuelPercent,
+                            required meterPhoto,
+                          }) async {
+                            // Call the parent state method
+                            final state = context.findAncestorStateOfType<_AssignedShuttleTripScreenState>();
+                            await state?._startTripAndMoveToInProgress(
+                              trip: data,
+                              meterReading: meterReading,
+                              fuelPercent: fuelPercent,
+                              meterPhoto: meterPhoto,
+                            );
+                          },
+                          isSubmitting: false,
+                        );
+                      },
+                    ),
                   ),
                 ],
 
                 if (isInProgress) ...[
                   const SizedBox(height: 12),
-                  _gradientButton(
-                    text: "Stop Trip & Submit",
-                    colors: const [Color(0xFFD10A0A), Color(0xFF5B0000)],
-                    onTap: () {
-                      showStopTripDialog(
-                        context: context,
-                        vehicleNo: data["vehicleNo"],
-                        destination: data["dropoff"],
-                        isSubmitting: false,
-                        onConfirm: ({
-                          required meterReading,
-                          required fuelPercent,
-                          required meterPhoto,
-                        }) async {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Trip stopped")),
-                          );
-
-                          // TODO: call Stop Trip API and then reload
-                        },
-                      );
-                    },
+                  Builder(
+                    builder: (context) => _gradientButton(
+                      text: "Stop Trip & Submit (Enter Meter Reading)",
+                      colors: const [Color(0xFFD10A0A), Color(0xFF5B0000)],
+                      onTap: () {
+                        showStopTripDialog(
+                          context: context,
+                          vehicleNo: data["vehicleNo"] ?? "-",
+                          destination: data["dropoff"] ?? "-",
+                          onConfirm: ({
+                            required meterReading,
+                            required fuelPercent,
+                            required meterPhoto,
+                          }) async {
+                            // Call the parent state method
+                            final state = context.findAncestorStateOfType<_AssignedShuttleTripScreenState>();
+                            await state?._stopTripAndMoveToCompleted(
+                              trip: data,
+                              meterReading: meterReading,
+                              fuelPercent: fuelPercent,
+                              meterPhoto: meterPhoto,
+                            );
+                          },
+                          isSubmitting: false,
+                        );
+                      },
+                    ),
                   ),
                 ],
               ],

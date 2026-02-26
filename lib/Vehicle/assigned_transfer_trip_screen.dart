@@ -1,10 +1,14 @@
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../ui/dialogs/start_trip_dialog.dart';
 import '../ui/dialogs/stop_trip_dialog.dart';
+import '../Services/vehicle_api_service.dart';
+import '../Leaves/top_banner.dart';
+import '../ui/dialogs/generate_trip_code_dialog.dart';
 
 class AssignedTransferTripScreen extends StatefulWidget {
-  final Map<String, dynamic> user;
+  final Map<String, dynamic> user; // must contain: employeeId, name, role
   const AssignedTransferTripScreen({super.key, required this.user});
 
   @override
@@ -16,582 +20,788 @@ class _AssignedTransferTripScreenState extends State<AssignedTransferTripScreen>
   int selectedTab = 0; // 0 Assigned, 1 Start Trip, 2 In Progress, 3 Completed
   bool loading = false;
 
-    Future<void> _refreshTrips() async {
+  List<Map<String, dynamic>> trips = [];
+
+  String _statusFromTab(int tab) {
+    switch (tab) {
+      case 0:
+        return "ASSIGNED";
+      case 1:
+        return "START_TRIP";
+      case 2:
+        return "IN_PROGRESS";
+      default:
+        return "COMPLETED";
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTripsByTab();
+  }
+
+  Future<void> _loadTripsByTab() async {
+    try {
       setState(() => loading = true);
-      await Future.delayed(const Duration(seconds: 1));
-      setState(() => loading = false);
-    }
 
-    // Make it mutable (NOT final) because we update status + tripCode
-    late List<Map<String, dynamic>> trips = [
-      {
-        "id": "REQ-001",
-        "status": "ASSIGNED",
-        "vehicleNo": "VAN-1234",
-        "vehicleName": "Toyota KDH",
-        "pickup": "Explore Vacations Office - Seeduwa",
-        "dropoff": "Colombo Fort Railway Station",
-        "passengers": "12 pax",
-        "time": "08:00",
-        "date": "01/22/2026",
-        "tripCode": null, // generated later
-      },
-      {
-        "id": "REQ-002",
-        "status": "ASSIGNED",
-        "vehicleNo": "VAN-7777",
-        "vehicleName": "Toyota KDH",
-        "pickup": "Negombo",
-        "dropoff": "Colombo",
-        "passengers": "8 pax",
-        "time": "10:30",
-        "date": "01/22/2026",
-        "tripCode": null,
-      },
+      // SAME AS YOUR RELIEVER SCREEN
+      final employeeId = widget.user["employeeId"]?.toString() ?? "";
+      if (employeeId.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("employeeId not found in login data")),
+          );
+        }
+        return;
+      }
 
-      // This one already has code and waiting to start
-      {
-        "id": "REQ-003",
-        "status": "START_TRIP",
-        "vehicleNo": "VAN-9012",
-        "vehicleName": "Nissan Caravan",
-        "pickup": "Head Office",
-        "dropoff": "Kandy",
-        "passengers": "6 pax",
-        "time": "11:00",
-        "date": "01/22/2026",
-        "tripCode": "#0001AJITH",
-      },
+      final status = _statusFromTab(selectedTab);
 
-      {
-        "id": "REQ-004",
-        "status": "IN_PROGRESS",
-        "vehicleNo": "VAN-5555",
-        "vehicleName": "Nissan Caravan",
-        "pickup": "Seeduwa",
-        "dropoff": "Kandy",
-        "passengers": "10 pax",
-        "time": "12:30",
-        "date": "01/22/2026",
-        "tripCode": "#0002NAVO",
-        "startMeter": "32100",
-      },
-
-      {
-        "id": "REQ-005",
-        "status": "COMPLETED",
-        "vehicleNo": "VAN-8888",
-        "vehicleName": "Toyota KDH",
-        "pickup": "Colombo",
-        "dropoff": "Galle",
-        "passengers": "7 pax",
-        "time": "07:30",
-        "date": "01/21/2026",
-        "tripCode": "#0003INDU",
-        "startMeter": "45000",
-        "endMeter": "45200",
-        "odoDistance": "200",
-        "gpsDistance": "198",
-      },
-    ];
-
-    List<Map<String, dynamic>> _filteredTrips() {
-      final status = switch (selectedTab) {
-        0 => "ASSIGNED",
-        1 => "START_TRIP",
-        2 => "IN_PROGRESS",
-        _ => "COMPLETED",
-      };
-
-      return trips
-          .where((t) => (t["status"] ?? "") == status)
-          .map((e) => Map<String, dynamic>.from(e))
-          .toList();
-    }
-
-    // Generate Trip Code ONLY for ASSIGNED and move to START_TRIP
-    void _generateTripCodeAndMove(String id) {
-      final idx = trips.indexWhere((e) => e["id"] == id);
-      if (idx == -1) return;
-
-      // Generate code like #1234ABCD (dummy)
-      final rnd = Random();
-      final numPart = (1000 + rnd.nextInt(9000)).toString();
-      final letters = String.fromCharCodes(
-        List.generate(4, (_) => 65 + rnd.nextInt(26)),
+      // API returns: List<Map> (from transport_services table)
+      final rows = await VehicleApiService.fetchTransferTrips(
+        employeeId: employeeId, // String is OK (will be in URL)
+        status: status,
       );
-      final code = "#$numPart$letters";
 
-      setState(() {
-        trips[idx]["tripCode"] = code;
-        trips[idx]["status"] = "START_TRIP";
-        selectedTab = 1; // jump to Start Trip tab (optional)
-      });
+      // Map DB rows -> UI shape used in TripCard
+      final mapped = rows.map((e) {
+        final startAt = (e["assigned_start_at"] ?? "").toString();
+        final time = startAt.length >= 16 ? startAt.substring(11, 16) : "-";
+        final date = startAt.length >= 10 ? startAt.substring(0, 10) : "-";
 
+        return <String, dynamic>{
+          "id": e["id"].toString(),
+          "status": (e["status"] ?? "").toString(),
+
+          "vehicleNo": (e["vehicle_no"] ?? "-").toString(),
+          "vehicleName": (e["vehicle_name"] ?? "Toyota KDH").toString(), // optional
+
+          "pickup": (e["pickup_location"] ?? "-").toString(),
+          "dropoff": (e["dropoff_location"] ?? "-").toString(),
+
+          "passengers": "${e["passenger_count"] ?? "-"} pax",
+          "time": time,
+          "date": date,
+
+          "tripCode": e["trip_code"],
+
+          // optional fields if you add later:
+          "startMeter": (e["trip_start_odometer"] ?? "-").toString(),
+          "endMeter": (e["trip_end_odometer"] ?? "-").toString(),
+          "odoDistance": (e["distance_km"] ?? "-").toString(),
+          "gpsDistance": e["gps_distance"],
+        };
+      }).toList();
+
+      if (!mounted) return;
+      setState(() => trips = mapped);
+    } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Trip Code Generated: $code")),
+        SnackBar(content: Text("Failed to load trips: $e")),
+      );
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  Future<void> _refreshTrips() async {
+    await _loadTripsByTab();
+  }
+
+
+        // When Start Trip is confirmed in dialog, call this to hit API and move to In Progress
+    Future<void> _startTripAndMoveToInProgress({
+      required Map<String, dynamic> trip,
+      required String meterReading,
+      required String fuelPercent,
+      required File meterPhoto,
+    }) async {
+      final tripId = int.tryParse(trip["id"].toString()) ?? 0;
+      if (tripId <= 0) return;
+
+      try {
+        setState(() => loading = true);
+
+        final res = await VehicleApiService.startTrip(
+          transportServiceId: tripId,
+          odometer: int.parse(meterReading),
+          fuelPercent: double.parse(fuelPercent),
+          photoFile: meterPhoto,
+        );
+
+        if (res["success"] == true) {
+          if (!mounted) return;
+
+          // move to tab 2 (IN_PROGRESS)
+          setState(() => selectedTab = 2);
+
+          // reload list based on tab
+          await _loadTripsByTab();
+
+          if (!mounted) return;
+
+          TopBanner.show(
+            context,
+            title: "Trip Started",
+            message: "Trip started successfully and moved to In Progress.",
+            icon: Icons.check_circle,
+            isSuccess: true,
+          );
+        } else {
+          throw Exception(res["message"] ?? "Start trip failed");
+        }
+      } catch (e) {
+        if (!mounted) return;
+        TopBanner.show(
+          context,
+          title: "Start Trip Failed",
+          message: e.toString(),
+          icon: Icons.error_outline,
+          isSuccess: false,
+        );
+      } finally {
+        if (mounted) setState(() => loading = false);
+      }
+    }
+
+        // When Stop Trip is confirmed in dialog, call this to hit API and move to Completed
+    Future<void> _stopTripAndMoveToCompleted({
+      required Map<String, dynamic> trip,
+      required String meterReading,
+      required String fuelPercent,
+      required File meterPhoto,
+    }) async {
+      final tripId = int.tryParse(trip["id"].toString()) ?? 0;
+      if (tripId <= 0) return;
+
+      try {
+        setState(() => loading = true);
+
+        final res = await VehicleApiService.stopTrip(
+          transportServiceId: tripId,
+          endOdometer: int.parse(meterReading),
+          endFuelPercent: double.parse(fuelPercent),
+          photoFile: meterPhoto,
+        );
+
+        if (res["success"] == true) {
+          if (!mounted) return;
+
+          // move to tab 2 (IN_PROGRESS)
+          setState(() => selectedTab = 3);
+
+          // reload list based on tab
+          await _loadTripsByTab();
+
+          if (!mounted) return;
+
+          TopBanner.show(
+            context,
+            title: "Trip Completed",
+            message: "Trip completed successfully.",
+            icon: Icons.check_circle,
+            isSuccess: true,
+          );
+        } else {
+          throw Exception(res["message"] ?? "Stop trip failed");
+        }
+      } catch (e) {
+        if (!mounted) return;
+        TopBanner.show(
+          context,
+          title: "Stop Trip Failed",
+          message: e.toString(),
+          icon: Icons.error_outline,
+          isSuccess: false,
+        );
+      } finally {
+        if (mounted) setState(() => loading = false);
+      }
+    }
+    
+   // Generates a random trip code like #INDU1234 based on employee name and random number
+    String _generateTripCode(String employeeName) {
+      final rnd = Random();
+      // 1. Clean name (remove spaces, uppercase)
+      String cleanName = employeeName
+          .replaceAll(RegExp(r'\s+'), '')
+          .toUpperCase();
+      // 2. Ensure at least 4 characters
+      if (cleanName.length < 4) {
+        cleanName = cleanName.padRight(4, 'X');
+      }
+      // 3. Take first 4 letters
+      final namePart = cleanName.substring(0, 4);
+      // 4. Generate random 4-digit number
+      final numberPart = (1000 + rnd.nextInt(9000)).toString();
+      // 5. Combine
+      return "#$namePart$numberPart";
+    }
+
+    // Confirmation dialog before generating trip code and moving to Start Trip
+    Future<void> _confirmGenerateAndUpdate(Map<String, dynamic> trip) async {
+      final tripId = int.tryParse(trip["id"].toString()) ?? 0;
+      if (tripId <= 0) return;
+
+      final code = _generateTripCode(widget.user["name"]?.toString() ?? "USER");
+
+      try {
+        setState(() => loading = true);
+
+        final res = await VehicleApiService.generateTripCode(
+          tripId: tripId,
+          tripCode: code,
+        );
+
+        if (res["success"] == true) {
+          setState(() => selectedTab = 1);
+          await _loadTripsByTab();
+
+          if (!mounted) return;
+
+          TopBanner.show(
+          context,
+          title: "Trip Code Generated",
+          message: "Your trip code has been generated successfully: $code.",
+          icon: Icons.check_circle,
+          isSuccess: true,
+          );
+        } else {
+          throw Exception(res["message"] ?? "Generate failed");
+        }
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Generate failed: $e")),
+        );
+      } finally {
+        if (mounted) setState(() => loading = false);
+      }
+    }
+
+    // Show dialog to confirm before generating trip code and moving to Start Trip
+    void _showGenerateTripDialog(Map<String, dynamic> trip) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => GenerateTripCodeDialog(
+          onGenerate: () => _confirmGenerateAndUpdate(trip),
+        ),
       );
     }
 
-    @override
-    Widget build(BuildContext context) {
-      final list = _filteredTrips();
+  @override
+  Widget build(BuildContext context) {
+    final list = trips;
 
-      return Scaffold(
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
         backgroundColor: Colors.white,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          title: const Text(
-            "Assigned Transfer Trip",
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
+        title: const Text(
+          "Assigned Transfer Trip",
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
           ),
         ),
-        body: SafeArea(
-          child: RefreshIndicator(
-            color: Colors.blue,
-            backgroundColor: Colors.white,
-            onRefresh: _refreshTrips,
-            child: ListView.builder(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 16),
-              itemCount: list.length + 2,
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _Header(user: widget.user),
-                  );
-                }
-                if (index == 1) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _SegmentTabs(
-                      selectedIndex: selectedTab,
-                      onChanged: (i) => setState(() => selectedTab = i),
-                    ),
-                  );
-                }
-
-                final t = list[index - 2];
+      ),
+      body: SafeArea(
+        child: RefreshIndicator(
+          color: Colors.blue,
+          backgroundColor: Colors.white,
+          onRefresh: _refreshTrips,
+          child: ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 16),
+            itemCount: list.length + 3, // header + tabs + state row
+            itemBuilder: (context, index) {
+              if (index == 0) {
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: TripCard(
-                    data: t,
-                    onGenerateTripCode: () => _generateTripCodeAndMove(t["id"]),
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _Header(user: widget.user),
+                );
+              }
+
+              if (index == 1) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _SegmentTabs(
+                    selectedIndex: selectedTab,
+                    onChanged: (i) async {
+                      setState(() => selectedTab = i);
+                      await _loadTripsByTab();
+                    },
                   ),
                 );
-              },
-            ),
-          ),
-        ),
-      );
-    }
-  }
+              }
 
-  /// ------------------ Header ------------------
-  class _Header extends StatelessWidget {
-    final Map<String, dynamic> user;
-    const _Header({required this.user});
+              // loading / empty state line
+              if (index == 2) {
+                if (loading) {
+                  return const Padding(
+                    padding: EdgeInsets.only(top: 24),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                if (list.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.only(top: 24),
+                    child: Center(child: Text("No trips found")),
+                  );
+                }
+                return const SizedBox.shrink();
+              }
 
-    @override
-    Widget build(BuildContext context) {
-      final name = (user["name"] ?? "Nimal perera").toString();
-      final role = (user["role"] ?? "Driver").toString();
-
-      return Container(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE8EDF5)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Assigned Transfer Trip",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              "$name - $role",
-              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-            ),
-          ],
-        ),
-      );
-    }
-  }
-
-  /// ------------------ Tabs ------------------
-  class _SegmentTabs extends StatelessWidget {
-    final int selectedIndex;
-    final ValueChanged<int> onChanged;
-    const _SegmentTabs({required this.selectedIndex, required this.onChanged});
-
-    @override
-    Widget build(BuildContext context) {
-      return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            _chip("Assigned", 0),
-            const SizedBox(width: 8),
-            _chip("Start Trip", 1),
-            const SizedBox(width: 8),
-            _chip("In Progress", 2),
-            const SizedBox(width: 8),
-            _chip("Completed", 3),
-          ],
-        ),
-      );
-    }
-
-    Widget _chip(String text, int index) {
-      final active = selectedIndex == index;
-      return InkWell(
-        borderRadius: BorderRadius.circular(999),
-        onTap: () => onChanged(index),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-          decoration: BoxDecoration(
-            color: active ? const Color(0xFF0B5FA5) : Colors.white,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: const Color(0xFFE6ECF5)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(active ? 0.12 : 0.06),
-                blurRadius: 10,
-                offset: const Offset(0, 6),
-              )
-            ],
-          ),
-          child: Text(
-            text,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              color: active ? Colors.white : const Color(0xFF334155),
-            ),
-          ),
-        ),
-      );
-    }
-  }
-
-  /// ------------------ Trip Card ------------------
-  class TripCard extends StatelessWidget {
-    final Map<String, dynamic> data;
-    final VoidCallback onGenerateTripCode;
-
-    const TripCard({
-      super.key,
-      required this.data,
-      required this.onGenerateTripCode,
-    });
-
-      Widget _gradientButton({
-      required String text,
-      required VoidCallback onTap,
-      List<Color> colors = const [Color(0xFF1DB954), Color(0xFF0B7A34)],
-    }) {
-      return SizedBox(
-        width: double.infinity,
-        height: 44,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(10),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: colors,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.12),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
+              final t = list[index - 3];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: TripCard(
+                  data: t,
+                  onGenerateTripCode: () => _showGenerateTripDialog(t),
                 ),
-              ],
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              text,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-                fontSize: 12.8,
-              ),
-            ),
+              );
+            },
           ),
         ),
-      );
-    }
-    @override
-    Widget build(BuildContext context) {
-      final status = (data["status"] ?? "").toString();
-      final isAssigned = status == "ASSIGNED";
-      final isStartTrip = status == "START_TRIP";
-      final isInProgress = status == "IN_PROGRESS";
-      final isCompleted = status == "COMPLETED";
+      ),
+    );
+  }
+}
 
-      return Container(
+/// ------------------ Header ------------------
+class _Header extends StatelessWidget {
+  final Map<String, dynamic> user;
+  const _Header({required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    final name = (user["name"] ?? "_").toString();
+    final role = (user["role"] ?? "_").toString();
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE8EDF5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Assigned Transfer Trip",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            "$name - $role",
+            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// ------------------ Tabs ------------------
+class _SegmentTabs extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onChanged;
+  const _SegmentTabs({required this.selectedIndex, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _chip("Assigned", 0),
+          const SizedBox(width: 8),
+          _chip("Start Trip", 1),
+          const SizedBox(width: 8),
+          _chip("In Progress", 2),
+          const SizedBox(width: 8),
+          _chip("Completed", 3),
+        ],
+      ),
+    );
+  }
+
+  Widget _chip(String text, int index) {
+    final active = selectedIndex == index;
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: () => onChanged(index),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE8EDF5)),
+          color: active ? const Color(0xFF0B5FA5) : Colors.white,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: const Color(0xFFE6ECF5)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
-            ),
+              color: Colors.black.withOpacity(active ? 0.12 : 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 6),
+            )
           ],
         ),
-        child: Column(
-          children: [
-            // header
-            Container(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-              decoration: const BoxDecoration(
-                color: Color(0xFFF2F2F2),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
-              ),
-              child: Row(
-                children: [
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Transfer Trip",
-                            style: TextStyle(
-                                fontWeight: FontWeight.w900, fontSize: 14)),
-                        SizedBox(height: 2),
-                        Text("Toyota KDH",
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 11.5,
-                              color: Color(0xFF64748B),
-                            )),
-                      ],
-                    ),
-                  ),
-                  _statusPill(status),
-                ],
-              ),
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+            color: active ? Colors.white : const Color(0xFF334155),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// ------------------ Trip Card (SAME UI STYLE) ------------------
+class TripCard extends StatelessWidget {
+  final Map<String, dynamic> data;
+  final VoidCallback onGenerateTripCode;
+
+  const TripCard({
+    super.key,
+    required this.data,
+    required this.onGenerateTripCode,
+  });
+
+  Widget _gradientButton({
+    required String text,
+    required VoidCallback onTap,
+    List<Color> colors = const [Color(0xFF1DB954), Color(0xFF0B7A34)],
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      height: 44,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: colors,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.12),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: 12.8,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-              child: Column(
-                children: [
+  @override
+  Widget build(BuildContext context) {
+    final status = (data["status"] ?? "").toString();
+    final isAssigned = status == "ASSIGNED";
+    final isStartTrip = status == "START_TRIP";
+    final isInProgress = status == "IN_PROGRESS";
+    final isCompleted = status == "COMPLETED";
 
-                  // ================= NON-COMPLETED =================
-                  if (!isCompleted) ...[
+    final vehicleName = (data["vehicleName"] ?? "Toyota KDH").toString();
 
-                    // Shuttle ID only for Start / In Progress
-                    if (isStartTrip || isInProgress) ...[
-                      _infoRow(
-                        "Transfer Code",
-                        (data["tripCode"] ?? "-").toString(),
-                        highlight: true,
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE8EDF5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // header (same style)
+          Container(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF2F2F2),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Transfer Trip",
+                        style:
+                            TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 2),
+                      Text(
+                        vehicleName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11.5,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
                     ],
+                  ),
+                ),
+                _statusPill(status),
+              ],
+            ),
+          ),
 
-                    _infoRow("Pick up", (data["pickup"] ?? "-").toString()),
-                    const SizedBox(height: 8),
-                    _infoRow("Drop-off", (data["dropoff"] ?? "-").toString()),
-                    const SizedBox(height: 8),
-                    _infoRow("Vehicle No", (data["vehicleNo"] ?? "-").toString()),
-                    const SizedBox(height: 8),
-                    _infoRow("Passengers", (data["passengers"] ?? "-").toString()),
-                    const SizedBox(height: 8),
-                    _infoRow("Time", (data["time"] ?? "-").toString()),
-                    const SizedBox(height: 8),
-                    _infoRow("Date", (data["date"] ?? "-").toString()),
-                  ],
-
-                  // ================= COMPLETED =================
-                  if (isCompleted) ...[
-                    _infoRow("Pick up", (data["pickup"] ?? "-").toString()),
-                    const SizedBox(height: 8),
-                    _infoRow("Drop-off", (data["dropoff"] ?? "-").toString()),
-                    const SizedBox(height: 8),
-                    _infoRow("Vehicle No", (data["vehicleNo"] ?? "-").toString()),
-                    const SizedBox(height: 8),
-                    _infoRow("Date", (data["date"] ?? "-").toString()),
-                    const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+            child: Column(
+              children: [
+                // ================= NON-COMPLETED =================
+                if (!isCompleted) ...[
+                  // transfer code only for Start / In Progress
+                  if (isStartTrip || isInProgress) ...[
                     _infoRow(
-                      "Odometer Distance",
-                      "${data["odoDistance"] ?? "-"} km",
+                      "Transfer Code",
+                      (data["tripCode"] ?? "-").toString(),
+                      highlight: true,
                     ),
                     const SizedBox(height: 8),
-                    _infoRow(
-                      "GPS Distance",
-                      "${data["gpsDistance"] ?? "-"} km",
-                    ),
                   ],
 
-                  // ================= BUTTONS =================
-                  if (isAssigned) ...[
-                    const SizedBox(height: 12),
-                    _gradientButton(
-                      text: "Generate Trip Code",
-                      colors: const [Color(0xFF0B5FA5), Color(0xFF084C8A)],
-                      onTap: onGenerateTripCode,
-                    ),
-                  ],
+                  _infoRow("Pick up", (data["pickup"] ?? "-").toString()),
+                  const SizedBox(height: 8),
+                  _infoRow("Drop-off", (data["dropoff"] ?? "-").toString()),
+                  const SizedBox(height: 8),
+                  _infoRow("Vehicle No", (data["vehicleNo"] ?? "-").toString()),
+                  const SizedBox(height: 8),
+                  _infoRow("Passengers", (data["passengers"] ?? "-").toString()),
+                  const SizedBox(height: 8),
+                  _infoRow("Time", (data["time"] ?? "-").toString()),
+                  const SizedBox(height: 8),
+                  _infoRow("Date", (data["date"] ?? "-").toString()),
+                ],
 
-                  if (isStartTrip) ...[
-                    const SizedBox(height: 12),
-                    _gradientButton(
+                // ================= COMPLETED =================
+                if (isCompleted) ...[
+                  _infoRow("Pick up", (data["pickup"] ?? "-").toString()),
+                  const SizedBox(height: 8),
+                  _infoRow("Drop-off", (data["dropoff"] ?? "-").toString()),
+                  const SizedBox(height: 8),
+                  _infoRow("Vehicle No", (data["vehicleNo"] ?? "-").toString()),
+                  const SizedBox(height: 8),
+                  _infoRow("Date", (data["date"] ?? "-").toString()),
+                   _infoRow("Start Meter", "${data["startMeter"]} km"),
+                  const SizedBox(height: 8),
+                  _infoRow("End Meter", "${data["endMeter"]} km"),
+                  const SizedBox(height: 8),
+                  _infoRow(
+                    "Distance KM",
+                    "${data["odoDistance"] ?? "-"} km",
+                  ),
+                  const SizedBox(height: 8),
+                  _infoRow(
+                    "GPS Distance",
+                    "${data["gpsDistance"] ?? "-"} km",
+                  ),
+                ],
+
+                // ================= BUTTONS =================
+                if (isAssigned) ...[
+                  const SizedBox(height: 12),
+                  _gradientButton(
+                    text: "Generate Trip Code",
+                    colors: const [Color(0xFF0B5FA5), Color(0xFF084C8A)],
+                    onTap: onGenerateTripCode,
+                  ),
+                ],
+
+                if (isStartTrip) ...[
+                  const SizedBox(height: 12),
+
+                  // For Start Trip, show the trip code prominently at the top
+                  Builder(
+                    builder: (context) => _gradientButton(
                       text: "Start Trip (Enter Meter Reading)",
                       colors: const [Color(0xFF1DB954), Color(0xFF0B7A34)],
                       onTap: () {
                         showStartTripDialog(
                           context: context,
-                          vehicleNo: data["vehicleNo"],
-                          destination: data["dropoff"],
-                          isSubmitting: false,
+                          vehicleNo: data["vehicleNo"] ?? "-",
+                          destination: data["dropoff"] ?? "-",
                           onConfirm: ({
                             required meterReading,
                             required fuelPercent,
                             required meterPhoto,
                           }) async {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Trip started")),
+                            // Call the parent state method
+                            final state = context.findAncestorStateOfType<_AssignedTransferTripScreenState>();
+                            await state?._startTripAndMoveToInProgress(
+                              trip: data,
+                              meterReading: meterReading,
+                              fuelPercent: fuelPercent,
+                              meterPhoto: meterPhoto,
                             );
                           },
+                          isSubmitting: false,
                         );
                       },
                     ),
-                  ],
+                  ),
+                ],
 
-                  if (isInProgress) ...[
-                    const SizedBox(height: 12),
-                    _gradientButton(
-                      text: "Stop Trip & Submit",
+                if (isInProgress) ...[
+                  const SizedBox(height: 12),
+                  // For Stop Trip, show the trip code prominently at the top
+                  Builder(
+                    builder: (context) => _gradientButton(
+                      text: "Stop Trip & Submit (Enter Meter Reading)",
                       colors: const [Color(0xFFD10A0A), Color(0xFF5B0000)],
                       onTap: () {
                         showStopTripDialog(
                           context: context,
-                          vehicleNo: data["vehicleNo"],
-                          destination: data["dropoff"],
-                          isSubmitting: false,
+                          vehicleNo: data["vehicleNo"] ?? "-",
+                          destination: data["dropoff"] ?? "-",
                           onConfirm: ({
                             required meterReading,
                             required fuelPercent,
                             required meterPhoto,
                           }) async {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Trip stopped")),
+                            // Call the parent state method
+                            final state = context.findAncestorStateOfType<_AssignedTransferTripScreenState>();
+                            await state?._stopTripAndMoveToCompleted(
+                              trip: data,
+                              meterReading: meterReading,
+                              fuelPercent: fuelPercent,
+                              meterPhoto: meterPhoto,
                             );
                           },
+                          isSubmitting: false,
                         );
                       },
                     ),
-                  ],
-                ],
-              )
-            ),
-          ],
-        ),
-      );
-    }
-
-    // Left-aligned values (not centered / not right)
-    Widget _infoRow(String label, String value, {bool highlight = false}) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        decoration: BoxDecoration(
-          color: highlight ? const Color(0xFFD8E7F4) : Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFD7E3F3)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              flex: 4,
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF334155),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              flex: 6,
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 11.8,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF0F172A),
                   ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Same row UI
+  Widget _infoRow(String label, String value, {bool highlight = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: highlight ? const Color(0xFFD8E7F4) : Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFD7E3F3)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 4,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF334155),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            flex: 6,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 11.8,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF0F172A),
                 ),
               ),
             ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Same pill UI
+  Widget _statusPill(String status) {
+    final label = status == "ASSIGNED"
+        ? "Assigned"
+        : status == "START_TRIP"
+            ? "Start Trip"
+            : status == "IN_PROGRESS"
+                ? "In Progress"
+                : "Completed";
+
+    Color bg;
+    Color border;
+    Color text;
+
+    if (status == "ASSIGNED") {
+      bg = const Color(0xFFE5E5E5);
+      border = const Color(0xFFD3D3D3);
+      text = const Color(0xFF7A7A7A);
+    } else if (status == "START_TRIP") {
+      bg = const Color(0xFFEAF2FF);
+      border = const Color(0xFFBFD5FF);
+      text = const Color(0xFF0B5FA5);
+    } else if (status == "IN_PROGRESS") {
+      bg = const Color(0xFFE6E6E6);
+      border = const Color(0xFFD0D0D0);
+      text = const Color(0xFF7A7A7A);
+    } else {
+      bg = const Color(0xFFCDEED3);
+      border = const Color(0xFF9AD7A6);
+      text = const Color(0xFF2E7D32);
     }
 
-      Widget _statusPill(String status) {
-        final label = status == "ASSIGNED"
-            ? "Assigned"
-            : status == "START_TRIP"
-                ? "Start Trip"
-                : status == "IN_PROGRESS"
-                    ? "In Progress"
-                    : "Completed";
-
-        Color bg;
-        Color border;
-        Color text;
-
-        if (status == "ASSIGNED") {
-          bg = const Color(0xFFE5E5E5);
-          border = const Color(0xFFD3D3D3);
-          text = const Color(0xFF7A7A7A);
-        } else if (status == "START_TRIP") {
-          bg = const Color(0xFFEAF2FF);
-          border = const Color(0xFFBFD5FF);
-          text = const Color(0xFF0B5FA5);
-        } else if (status == "IN_PROGRESS") {
-          bg = const Color(0xFFE6E6E6);
-          border = const Color(0xFFD0D0D0);
-          text = const Color(0xFF7A7A7A);
-        } else {
-          bg = const Color(0xFFCDEED3);
-          border = const Color(0xFF9AD7A6);
-          text = const Color(0xFF2E7D32);
-        }
-
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: border),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900, color: text),
-          ),
-        );
-      }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: border),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11.5,
+          fontWeight: FontWeight.w900,
+          color: text,
+        ),
+      ),
+    );
+  }
 }
