@@ -6,8 +6,9 @@ import '../Leaves/top_banner.dart';
 
 class VehicleRequestFormScreen extends StatefulWidget {
   final Map<String, dynamic> user;
+  final VoidCallback? onRequestSubmitted;
 
-  const VehicleRequestFormScreen({super.key, required this.user});
+  const VehicleRequestFormScreen({super.key, required this.user, this.onRequestSubmitted});
 
   @override
   State<VehicleRequestFormScreen> createState() => _VehicleRequestFormScreenState();
@@ -153,7 +154,11 @@ Future<void> _submitForm() async {
             icon: Icons.check_circle,
             isSuccess: true,
       );
-      Navigator.pop(context);
+      if (widget.onRequestSubmitted != null) {
+        widget.onRequestSubmitted!();
+      } else {
+        Navigator.pop(context);
+      }
     } else {
       throw Exception(res["message"] ?? "Submission failed");
     }

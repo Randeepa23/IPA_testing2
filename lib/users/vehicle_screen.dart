@@ -14,6 +14,14 @@ class VehicleScreen extends StatefulWidget {
 
 class _VehicleScreenState extends State<VehicleScreen> {
   late int selectedTab;
+  int _tripsRefreshKey = 0;
+
+  void _onRequestSubmitted() {
+    setState(() {
+      selectedTab = 1;
+      _tripsRefreshKey++;
+    });
+  }
 
   @override
   void initState() {
@@ -93,8 +101,8 @@ class _VehicleScreenState extends State<VehicleScreen> {
             child: IndexedStack(
               index: selectedTab,
               children: [
-                VehicleRequestFormScreen(user: widget.user),
-                MyTripsScreen(user: widget.user),
+                VehicleRequestFormScreen(user: widget.user, onRequestSubmitted: _onRequestSubmitted),
+                MyTripsScreen(key: ValueKey(_tripsRefreshKey), user: widget.user),
                 VehicleRequestScreen(),
               ],
             ),

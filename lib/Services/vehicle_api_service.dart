@@ -189,4 +189,31 @@ class VehicleApiService {
     return Map<String, dynamic>.from(decoded);
   }
 
+  static Future<Map<String, dynamic>> getMyTrips({required String employeeId}) async {
+  final url = Uri.parse("$baseUrl/get_my_trips.php?employee_id=$employeeId");
+  final res = await http.get(url, headers: {"Accept": "application/json"});
+
+  final body = res.body.trim();
+  if (body.isEmpty) throw Exception("EMPTY response");
+  if (!body.startsWith("{") && !body.startsWith("[")) {
+    throw Exception("Non-JSON: $body");
+  }
+  return Map<String, dynamic>.from(jsonDecode(body));
+}
+static Future<Map<String, dynamic>> cancelTrip({required String id}) async {
+  final url = Uri.parse("$baseUrl/cancel_trip.php");
+  final res = await http.post(
+    url,
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+    },
+    body: jsonEncode({"id": int.parse(id)}),
+  );
+
+  final body = res.body.trim();
+  if (body.isEmpty) throw Exception("EMPTY response");
+  return Map<String, dynamic>.from(jsonDecode(body));
+}
+
 }
