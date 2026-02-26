@@ -103,7 +103,11 @@ class _VehicleScreenState extends State<VehicleScreen> {
               children: [
                 VehicleRequestFormScreen(user: widget.user, onRequestSubmitted: _onRequestSubmitted),
                 MyTripsScreen(key: ValueKey(_tripsRefreshKey), user: widget.user),
-                VehicleRequestScreen(),
+                VehicleRequestScreen(
+                  managerId: widget.user["employeeId"]?.toString() ??
+                      widget.user["employee_id"]?.toString() ??
+                      "",
+                ),
               ],
             ),
           ),
