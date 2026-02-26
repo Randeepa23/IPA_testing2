@@ -141,4 +141,79 @@ class VehicleApiService {
   return Map<String, dynamic>.from(jsonDecode(res.body));
 }
 
+ /// Create Vehicle Request -> inserts into office (type = transfer)
+  static Future<Map<String, dynamic>> createOfficeVehicleRequest({
+    required String employeeId,
+    required String managerId,
+    required String vehicleNo,
+    required String fromDate,     // yyyy-MM-dd
+    required String toDate,       // yyyy-MM-dd
+    required String destination,
+    required String contactNo,
+  required String employeeName,
+    String reason = "Office Service",
+  }) async {
+    final url = Uri.parse("$baseUrl/create_office_vehicle_request.php");
+
+    final res = await http.post(
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: jsonEncode({
+        "contact_no": contactNo,
+        "employee_id": employeeId,
+        "manager_id": managerId,
+        "vehicle_no": vehicleNo,
+        "from_date": fromDate,
+        "to_date": toDate,
+        "destination": destination,
+        "chauffer_phone": contactNo,
+        "chauffer_name": employeeName,
+        "reason": reason,
+      }),
+    );
+
+    if (res.body.trim().isEmpty) {
+      throw Exception("Server returned EMPTY response");
+    }
+
+    final decoded = jsonDecode(res.body);
+
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+
+    // fallback if API returns object but decoded as Map<dynamic,dynamic>
+    return Map<String, dynamic>.from(decoded);
+  }
+
+  static Future<Map<String, dynamic>> getMyTrips({required String employeeId}) async {
+  final url = Uri.parse("$baseUrl/get_my_trips.php?employee_id=$employeeId");
+  final res = await http.get(url, headers: {"Accept": "application/json"});
+
+  final body = res.body.trim();
+  if (body.isEmpty) throw Exception("EMPTY response");
+  if (!body.startsWith("{") && !body.startsWith("[")) {
+    throw Exception("Non-JSON: $body");
+  }
+  return Map<String, dynamic>.from(jsonDecode(body));
+}
+static Future<Map<String, dynamic>> cancelTrip({required String id}) async {
+  final url = Uri.parse("$baseUrl/cancel_trip.php");
+  final res = await http.post(
+    url,
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+    },
+    body: jsonEncode({"id": int.parse(id)}),
+  );
+
+  final body = res.body.trim();
+  if (body.isEmpty) throw Exception("EMPTY response");
+  return Map<String, dynamic>.from(jsonDecode(body));
+}
+
 }
