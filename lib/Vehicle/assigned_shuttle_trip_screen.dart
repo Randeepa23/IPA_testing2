@@ -165,7 +165,8 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
       }
     }
 
-        Future<void> _stopTripAndMoveToCompleted({
+    // When Stop Trip is confirmed in dialog, call this to hit API and move to Completed
+    Future<void> _stopTripAndMoveToCompleted({
       required Map<String, dynamic> trip,
       required String meterReading,
       required String fuelPercent,

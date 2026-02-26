@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../ui/dialogs/start_trip_dialog.dart';
 import '../ui/dialogs/stop_trip_dialog.dart';
 import '../Services/vehicle_api_service.dart';
+import '../Leaves/top_banner.dart';
+import '../ui/dialogs/generate_trip_code_dialog.dart';
 
 class AssignedTransferTripScreen extends StatefulWidget {
   final Map<String, dynamic> user; // must contain: employeeId, name, role
@@ -107,31 +109,76 @@ class _AssignedTransferTripScreenState extends State<AssignedTransferTripScreen>
     await _loadTripsByTab();
   }
 
-  // UI-only trip code generation (you can later call PHP update API here)
-  void _generateTripCodeAndMove(String id) {
-    final idx = trips.indexWhere((e) => e["id"] == id);
-    if (idx == -1) return;
+   // Generates a random trip code like #INDU1234 based on employee name and random number
+    String _generateTripCode(String employeeName) {
+      final rnd = Random();
+      // 1. Clean name (remove spaces, uppercase)
+      String cleanName = employeeName
+          .replaceAll(RegExp(r'\s+'), '')
+          .toUpperCase();
+      // 2. Ensure at least 4 characters
+      if (cleanName.length < 4) {
+        cleanName = cleanName.padRight(4, 'X');
+      }
+      // 3. Take first 4 letters
+      final namePart = cleanName.substring(0, 4);
+      // 4. Generate random 4-digit number
+      final numberPart = (1000 + rnd.nextInt(9000)).toString();
+      // 5. Combine
+      return "#$namePart$numberPart";
+    }
 
-    final rnd = Random();
-    final numPart = (1000 + rnd.nextInt(9000)).toString();
-    final letters = String.fromCharCodes(
-      List.generate(4, (_) => 65 + rnd.nextInt(26)),
-    );
-    final code = "#$numPart$letters";
+    // Confirmation dialog before generating trip code and moving to Start Trip
+    Future<void> _confirmGenerateAndUpdate(Map<String, dynamic> trip) async {
+      final tripId = int.tryParse(trip["id"].toString()) ?? 0;
+      if (tripId <= 0) return;
 
-    setState(() {
-      trips[idx]["tripCode"] = code;
-      trips[idx]["status"] = "START_TRIP";
-      selectedTab = 1;
-    });
+      final code = _generateTripCode(widget.user["name"]?.toString() ?? "USER");
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Trip Code Generated: $code")),
-    );
+      try {
+        setState(() => loading = true);
 
-    // TODO (optional): call API to update DB:
-    // await VehicleApiService.updateTripCode(tripId: int.parse(id), tripCode: code);
-  }
+        final res = await VehicleApiService.generateTripCode(
+          tripId: tripId,
+          tripCode: code,
+        );
+
+        if (res["success"] == true) {
+          setState(() => selectedTab = 1);
+          await _loadTripsByTab();
+
+          if (!mounted) return;
+
+          TopBanner.show(
+          context,
+          title: "Trip Code Generated",
+          message: "Your trip code has been generated successfully: $code.",
+          icon: Icons.check_circle,
+          isSuccess: true,
+          );
+        } else {
+          throw Exception(res["message"] ?? "Generate failed");
+        }
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Generate failed: $e")),
+        );
+      } finally {
+        if (mounted) setState(() => loading = false);
+      }
+    }
+
+    // Show dialog to confirm before generating trip code and moving to Start Trip
+    void _showGenerateTripDialog(Map<String, dynamic> trip) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => GenerateTripCodeDialog(
+          onGenerate: () => _confirmGenerateAndUpdate(trip),
+        ),
+      );
+    }
 
   @override
   Widget build(BuildContext context) {
@@ -201,7 +248,7 @@ class _AssignedTransferTripScreenState extends State<AssignedTransferTripScreen>
                 padding: const EdgeInsets.only(bottom: 14),
                 child: TripCard(
                   data: t,
-                  onGenerateTripCode: () => _generateTripCodeAndMove(t["id"]),
+                  onGenerateTripCode: () => _showGenerateTripDialog(t),
                 ),
               );
             },
@@ -394,7 +441,7 @@ class TripCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        "Shuttle Trip",
+                        "Transfer Trip",
                         style:
                             TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
                       ),
