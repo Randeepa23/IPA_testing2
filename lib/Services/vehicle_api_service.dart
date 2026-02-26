@@ -1,5 +1,6 @@
 // import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 
 class VehicleApiService {
@@ -36,6 +37,8 @@ class VehicleApiService {
           .toList();
     }
 
+
+    // For Transfer Trips, we can reuse the same API as Shuttle Trips, just with different endpoint and parameters.
     static Future<List<Map<String, dynamic>>> fetchTransferTrips({
       required String employeeId,
       required String status,
@@ -62,6 +65,7 @@ class VehicleApiService {
           .toList();
     }
 
+    // API to generate trip code (for both Shuttle and Transfer, since it's the same code generation logic)
     static Future<Map<String, dynamic>> generateTripCode({
     required int tripId,
     required String tripCode,
@@ -77,6 +81,53 @@ class VehicleApiService {
     if (res.body.trim().isEmpty) throw Exception("Empty response");
 
     return Map<String, dynamic>.from(jsonDecode(res.body));
+  }
+
+  // Start Trip API with multipart/form-data for photo upload
+  static Future<Map<String, dynamic>> startTrip({
+    required int transportServiceId,
+    required int odometer,
+    required double fuelPercent,
+    required File photoFile,
+  }) async {
+    final uri = Uri.parse("$baseUrl/start_trip.php");
+
+    final req = http.MultipartRequest("POST", uri);
+    req.fields["transport_service_id"] = transportServiceId.toString();
+    req.fields["odometer"] = odometer.toString();
+    req.fields["fuel_percent"] = fuelPercent.toString();
+
+    req.files.add(await http.MultipartFile.fromPath("photo", photoFile.path));
+
+    final streamed = await req.send();
+    final body = await streamed.stream.bytesToString();
+
+    if (body.trim().isEmpty) throw Exception("Empty response");
+    final json = jsonDecode(body);
+
+    return Map<String, dynamic>.from(json);
+  }
+
+    // For Stop Trip, we can reuse the same API as Shuttle and Transfer, just with different transport_service_id and endpoint
+    static Future<Map<String, dynamic>> stopTrip({
+    required int transportServiceId,
+    required int endOdometer,
+    required double endFuelPercent,
+    required File photoFile,
+  }) async {
+    final uri = Uri.parse("$baseUrl/stop_trip.php");
+
+    final req = http.MultipartRequest("POST", uri);
+    req.fields["transport_service_id"] = transportServiceId.toString();
+    req.fields["end_odometer"] = endOdometer.toString();
+    req.fields["end_fuel_percent"] = endFuelPercent.toString();
+    req.files.add(await http.MultipartFile.fromPath("photo", photoFile.path));
+
+    final streamed = await req.send();
+    final body = await streamed.stream.bytesToString();
+    
+    if (body.trim().isEmpty) throw Exception("Empty response");
+    return Map<String, dynamic>.from(jsonDecode(body));
   }
 
 }
