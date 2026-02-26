@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../ui/dialogs/vehicle_submit_dialog.dart';
 import '../Services/vehicle_api_service.dart';
+import '../Leaves/top_banner.dart';
 
 class VehicleRequestFormScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -34,7 +35,8 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
   // Manager
   List<Map<String, String>> managers = [];
   String? selectedManagerId;
-  bool loadingManagers = false;
+  bool loadingManagers = true;
+  String? managerError;
 
   bool _isSubmitting = false;
 
@@ -51,74 +53,118 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
 
 Future<void> _loadManagers() async {
   try {
-    setState(() => loadingManagers = true);
+    setState(() {
+      loadingManagers = true;
+      managerError = null;
+    });
 
-    final empId = widget.user["employee_id"]?.toString() ?? "";
-    if (empId.isEmpty) throw Exception("employee_id not found");
+    final empId = widget.user["employee_id"]?.toString()
+        ?? widget.user["employeeId"]?.toString()
+        ?? "";
+
+    if (empId.isEmpty) throw Exception("employee_id missing in login data");
 
     final res = await VehicleApiService.getDefaultManagers(employeeId: int.parse(empId));
 
-    if (res["success"] == true) {
-      final data = res["data"] ?? {};
-      final raw = List.from(data["managers"] ?? []);
-      final reportingId = data["reporting_manager_id"]?.toString();
-
-      final list = raw.map<Map<String, String>>((e) {
-        return {
-          "id": e["id"].toString(),
-          "name": (e["name"] ?? "").toString(),
-        };
-      }).toList();
-
-      setState(() {
-        managers = list;
-
-        // default selected = reporting manager if exists in list
-        if (reportingId != null && list.any((m) => m["id"] == reportingId)) {
-          selectedManagerId = reportingId;
-        } else if (list.isNotEmpty) {
-          selectedManagerId = list.first["id"];
-        }
-      });
-    } else {
-      throw Exception(res["message"] ?? "Failed");
+    if (res["success"] != true) {
+      throw Exception(res["message"] ?? "API failed");
     }
+
+    final data = res["data"] ?? {};
+    final raw = List.from(data["managers"] ?? []);
+    final reportingId = data["reporting_manager_id"]?.toString();
+
+    final list = raw.map<Map<String, String>>((e) {
+      return {
+        "id": e["id"].toString(),
+        "name": (e["name"] ?? "").toString(),
+      };
+    }).toList();
+
+    // DEBUG (check in console)
+    print("Managers loaded: $list");
+    print("Reporting manager: $reportingId");
+
+    String? defaultId;
+
+    if (reportingId != null && list.any((m) => m["id"] == reportingId)) {
+      defaultId = reportingId;
+    } else if (list.isNotEmpty) {
+      defaultId = list.first["id"];
+    }
+
+    setState(() {
+      managers = list;
+      selectedManagerId = defaultId;
+      loadingManagers = false;
+    });
   } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Load managers failed: $e")),
-    );
-  } finally {
-    if (mounted) setState(() => loadingManagers = false);
+    setState(() {
+      loadingManagers = false;
+      managerError = e.toString();
+      managers = [];
+      selectedManagerId = null;
+    });
   }
 }
 
-  Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate()) return;
+Future<void> _submitForm() async {
+  if (!_formKey.currentState!.validate()) return;
+  if (fromDate == null || toDate == null) return;
 
-    if (fromDate == null || toDate == null) return;
+  setState(() => _isSubmitting = true);
 
-    setState(() => _isSubmitting = true);
-
-    try {
-      final vehicleNo = "${vehiclePrefixController.text.trim()}-${vehicleNumberController.text.trim()}";
-
-      // TODO: call API here
-      // final res = await ApiService.createVehicleRequest(...)
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Submitted: $vehicleNo")),
-      );
-
-      Navigator.pop(context);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
+  try {
+    String _employeeIdFromUser() {
+      final u = widget.user;
+      final v = u["employee_id"] ?? u["employeeId"] ?? u["id"] ?? u["user_id"];
+      return (v ?? "").toString().trim();
     }
+    final empId = _employeeIdFromUser();
+    final managerId = selectedManagerId!;
+    final employeeName = nameController.text.trim();
+    final employeePhone = contactController.text.trim();
+
+    final vehicleNo =
+        "${vehiclePrefixController.text.trim()}-${vehicleNumberController.text.trim()}";
+
+    final fromDateTxt = DateFormat("yyyy-MM-dd").format(fromDate!);
+    final toDateTxt = DateFormat("yyyy-MM-dd").format(toDate!);
+
+    final res = await VehicleApiService.createOfficeVehicleRequest(
+      employeeId: empId,
+      managerId: managerId,
+      vehicleNo: vehicleNo,
+      fromDate: fromDateTxt,
+      toDate: toDateTxt,
+      destination: destinationController.text.trim(),
+      contactNo: employeePhone,
+      employeeName: employeeName,
+      reason: "Office Service",
+    );
+
+    if (res["success"] == true) {
+          if (!mounted) return;
+
+          TopBanner.show(
+            context,
+            title: "Request Submitted",
+            message: "Your vehicle request has been submitted successfully.",
+            icon: Icons.check_circle,
+            isSuccess: true,
+      );
+      Navigator.pop(context);
+    } else {
+      throw Exception(res["message"] ?? "Submission failed");
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error: $e")),
+    );
+  } finally {
+    if (mounted) setState(() => _isSubmitting = false);
   }
+}
 void _showVehicleSubmitConfirmation() {
 
   final vehicleNoTxt =
@@ -276,21 +322,21 @@ void _showVehicleSubmitConfirmation() {
               // Approving Manager dropdown
               _sectionTitle("Select Approving Manager *"),
               const SizedBox(height: 8),
-DropdownButtonFormField<String>(
-  value: (selectedManagerId != null &&
-          managers.any((m) => m["id"] == selectedManagerId))
-      ? selectedManagerId
-      : null,
-  decoration: _inputDecoration("Select Manager"),
-  items: managers.map((m) {
-    return DropdownMenuItem<String>(
-      value: m["id"],
-      child: Text(m["name"] ?? "-"),
-    );
-  }).toList(),
-  onChanged: (v) => setState(() => selectedManagerId = v),
-  validator: (v) => v == null ? "Select manager" : null,
-),
+                DropdownButtonFormField<String>(
+                  value: (selectedManagerId != null &&
+                          managers.any((m) => m["id"] == selectedManagerId))
+                      ? selectedManagerId
+                      : null,
+                  decoration: _inputDecoration("Select Manager"),
+                  items: managers.map((m) {
+                    return DropdownMenuItem<String>(
+                      value: m["id"],
+                      child: Text(m["name"] ?? "-"),
+                    );
+                  }).toList(),
+                  onChanged: (v) => setState(() => selectedManagerId = v),
+                  validator: (v) => v == null ? "Select manager" : null,
+                ),
               const SizedBox(height: 18),
               // Submit
               SizedBox(
