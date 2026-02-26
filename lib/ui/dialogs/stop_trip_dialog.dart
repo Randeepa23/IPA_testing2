@@ -28,6 +28,7 @@ Future<void> showStopTripDialog({
     builder: (ctx) {
       final w = MediaQuery.of(ctx).size.width;
       final dialogW = (w * 0.92).clamp(290.0, 440.0);
+      bool submitting = isSubmitting;
 
       Future<void> pickPhoto(ImageSource source) async {
         final x = await ImagePicker().pickImage(source: source, imageQuality: 80);
@@ -210,74 +211,78 @@ Future<void> showStopTripDialog({
 
                             const SizedBox(height: 14),
 
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton(
-                                    onPressed: () => Navigator.pop(ctx),
-                                    style: OutlinedButton.styleFrom(
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
-                                    ),
-                                    child: const Text("Cancel"),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: SizedBox(
-                                    height: 46,
-                                    child: DecoratedBox(
-                                      decoration: BoxDecoration(
-                                        gradient: isSubmitting
-                                            ? null
-                                            : const LinearGradient(
-                                                colors: [Color(0xFF1565C0), Color(0xFF003580)],
-                                                begin: Alignment.topLeft,
-                                                end: Alignment.bottomRight,
-                                              ),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: ElevatedButton(
-                                        onPressed: isSubmitting
-                                            ? null
-                                            : () async {
-                                                if (!formKey.currentState!.validate()) return;
-                                                if (photoFile == null) {
-                                                  ScaffoldMessenger.of(ctx).showSnackBar(
-                                                    const SnackBar(content: Text("Please upload meter photo")),
-                                                  );
-                                                  return;
-                                                }
-
-                                                await onConfirm(
-                                                  meterReading: meterCtrl.text.trim(),
-                                                  fuelPercent: fuelCtrl.text.trim(),
-                                                  meterPhoto: photoFile!,
-                                                );
-
-                                                if (ctx.mounted) Navigator.pop(ctx);
-                                              },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.transparent,
-                                          shadowColor: Colors.transparent,
+                            StatefulBuilder(
+                              builder: (context, setState) {
+                                return Row(
+                                  children: [
+                                    Expanded(
+                                      child: OutlinedButton(
+                                        onPressed: submitting ? null : () => Navigator.pop(ctx),
+                                        style: OutlinedButton.styleFrom(
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                          elevation: 0,
+                                          padding: const EdgeInsets.symmetric(vertical: 12),
                                         ),
-                                        child: isSubmitting
-                                            ? const SizedBox(
-                                                height: 20,
-                                                width: 20,
-                                                child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
-                                              )
-                                            : const Text(
-                                                "Stop Trip Now",
-                                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
-                                              ),
+                                        child: const Text("Cancel"),
                                       ),
                                     ),
-                                  ),
-                                ),
-                              ],
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: SizedBox(
+                                        height: 46,
+                                        child: DecoratedBox(
+                                          decoration: BoxDecoration(
+                                            gradient: submitting
+                                                ? null
+                                                : const LinearGradient(
+                                                    colors: [Color(0xFF1565C0), Color(0xFF003580)],
+                                                    begin: Alignment.topLeft,
+                                                    end: Alignment.bottomRight,
+                                                  ),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: ElevatedButton(
+                                            onPressed: submitting
+                                                ? null
+                                                : () async {
+                                                    if (!formKey.currentState!.validate()) return;
+                                                    if (photoFile == null) {
+                                                      ScaffoldMessenger.of(ctx).showSnackBar(
+                                                        const SnackBar(content: Text("Please upload meter photo")),
+                                                      );
+                                                      return;
+                                                    }
+
+                                                    setState(() => submitting = true);
+                                                    await onConfirm(
+                                                      meterReading: meterCtrl.text.trim(),
+                                                      fuelPercent: fuelCtrl.text.trim(),
+                                                      meterPhoto: photoFile!,
+                                                    );
+                                                    if (ctx.mounted) Navigator.pop(ctx);
+                                                  },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.transparent,
+                                              shadowColor: Colors.transparent,
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                              elevation: 0,
+                                            ),
+                                            child: submitting
+                                                ? const SizedBox(
+                                                    height: 20,
+                                                    width: 20,
+                                                    child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                                                  )
+                                                : const Text(
+                                                    "Stop Trip Now",
+                                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+                                                  ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
                             ),
                           ],
                         ),

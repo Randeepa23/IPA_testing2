@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../ui/dialogs/start_trip_dialog.dart';
@@ -192,6 +193,102 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
         );
       },
     );
+  }
+
+  Future<void> _startTripAndMoveToInProgress({
+    required Map<String, dynamic> trip,
+    required String meterReading,
+    required String fuelPercent,
+    required File meterPhoto,
+  }) async {
+    final tripId = int.tryParse((trip["id"] ?? trip["transport_service_id"] ?? "0").toString()) ?? 0;
+    if (tripId <= 0) return;
+
+    try {
+      setState(() => loading = true);
+
+      final res = await VehicleApiService.startTrip(
+        transportServiceId: tripId,
+        odometer: int.parse(meterReading),
+        fuelPercent: double.parse(fuelPercent),
+        photoFile: meterPhoto,
+      );
+
+      if (res["success"] == true) {
+        if (!mounted) return;
+        setState(() => selectedTab = 2);
+        await _refreshTrips();
+        if (!mounted) return;
+        TopBanner.show(
+          context,
+          title: "Trip Started",
+          message: "Trip started successfully and moved to In Progress.",
+          icon: Icons.check_circle,
+          isSuccess: true,
+        );
+      } else {
+        throw Exception(res["message"] ?? "Start trip failed");
+      }
+    } catch (e) {
+      if (!mounted) return;
+      TopBanner.show(
+        context,
+        title: "Start Trip Failed",
+        message: e.toString(),
+        icon: Icons.error_outline,
+        isSuccess: false,
+      );
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  Future<void> _stopTripAndMoveToCompleted({
+    required Map<String, dynamic> trip,
+    required String meterReading,
+    required String fuelPercent,
+    required File meterPhoto,
+  }) async {
+    final tripId = int.tryParse((trip["id"] ?? trip["transport_service_id"] ?? "0").toString()) ?? 0;
+    if (tripId <= 0) return;
+
+    try {
+      setState(() => loading = true);
+
+      final res = await VehicleApiService.stopTrip(
+        transportServiceId: tripId,
+        endOdometer: int.parse(meterReading),
+        endFuelPercent: double.parse(fuelPercent),
+        photoFile: meterPhoto,
+      );
+
+      if (res["success"] == true) {
+        if (!mounted) return;
+        setState(() => selectedTab = 3);
+        await _refreshTrips();
+        if (!mounted) return;
+        TopBanner.show(
+          context,
+          title: "Trip Completed",
+          message: "Trip completed successfully.",
+          icon: Icons.check_circle,
+          isSuccess: true,
+        );
+      } else {
+        throw Exception(res["message"] ?? "Stop trip failed");
+      }
+    } catch (e) {
+      if (!mounted) return;
+      TopBanner.show(
+        context,
+        title: "Stop Trip Failed",
+        message: e.toString(),
+        icon: Icons.error_outline,
+        isSuccess: false,
+      );
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
   }
 
   Future<void> _cancelTrip(Map<String, dynamic> t) async {
@@ -466,7 +563,7 @@ class TripCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
             child: Column(
               children: [
-                // ✅ PENDING: only Reason, Destination, From, To (NO Trip Code)
+                // PENDING: only Reason, Destination, From, To (NO Trip Code)
                 if (isPending) ...[
                   _infoRow("Reason", (data["reason"] ?? "").toString()),
                   const SizedBox(height: 8),
@@ -485,7 +582,7 @@ class TripCard extends StatelessWidget {
                   ],
                 ],
 
-                // ✅ APPROVED: show Trip Code + Approved By ONLY here
+                // APPROVED: show Trip Code + Approved By ONLY here
                 if (isApproved) ...[
                   _infoRow("Trip Code", (data["tripCode"] ?? "").toString(), highlight: true),
                   const SizedBox(height: 8),
@@ -499,29 +596,35 @@ class TripCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   _infoRow("Approved By", (data["approvedBy"] ?? "").toString()),
                   const SizedBox(height: 12),
-                  _gradientButton(
-                    text: "Start Trip (Enter Meter Reading)",
-                    onTap: () {
-                      showStartTripDialog(
-                        context: context,
-                        vehicleNo: data["vehicleNo"],
-                        destination: data["destination"],
-                        isSubmitting: false,
-                        onConfirm: ({
-                          required meterReading,
-                          required fuelPercent,
-                          required meterPhoto,
-                        }) async {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Trip started successfully")),
-                          );
-                        },
-                      );
-                    },
+                  Builder(
+                    builder: (ctx) => _gradientButton(
+                      text: "Start Trip (Enter Meter Reading)",
+                      onTap: () {
+                        showStartTripDialog(
+                          context: ctx,
+                          vehicleNo: (data["vehicleNo"] ?? "-").toString(),
+                          destination: (data["destination"] ?? "-").toString(),
+                          isSubmitting: false,
+                          onConfirm: ({
+                            required meterReading,
+                            required fuelPercent,
+                            required meterPhoto,
+                          }) async {
+                            final state = ctx.findAncestorStateOfType<_MyTripsScreenState>();
+                            await state?._startTripAndMoveToInProgress(
+                              trip: data,
+                              meterReading: meterReading,
+                              fuelPercent: fuelPercent,
+                              meterPhoto: meterPhoto,
+                            );
+                          },
+                        );
+                      },
+                    ),
                   ),
                 ],
 
-                // ✅ IN_PROGRESS: show Trip Code + Start Meter details
+                // IN_PROGRESS: show Trip Code + Start Meter details
                 if (isInProgress) ...[
                   _infoRow("Trip Code", (data["tripCode"] ?? "").toString(), highlight: true),
                   const SizedBox(height: 8),
@@ -531,30 +634,36 @@ class TripCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   _infoRow("Start Meter", "${data["startMeter"] ?? "-"} km"),
                   const SizedBox(height: 12),
-                  _gradientButton(
-                    text: "Stop Trip & Submit",
-                    colors: const [Color(0xFFD10A0A), Color(0xFF5B0000)],
-                    onTap: () {
-                      showStopTripDialog(
-                        context: context,
-                        vehicleNo: data["vehicleNo"],
-                        destination: data["destination"],
-                        isSubmitting: false,
-                        onConfirm: ({
-                          required meterReading,
-                          required fuelPercent,
-                          required meterPhoto,
-                        }) async {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Trip stopped successfully")),
-                          );
-                        },
-                      );
-                    },
+                  Builder(
+                    builder: (ctx) => _gradientButton(
+                      text: "Stop Trip & Submit (Enter Meter Reading)",
+                      colors: const [Color(0xFFD10A0A), Color(0xFF5B0000)],
+                      onTap: () {
+                        showStopTripDialog(
+                          context: ctx,
+                          vehicleNo: (data["vehicleNo"] ?? "-").toString(),
+                          destination: (data["destination"] ?? "-").toString(),
+                          isSubmitting: false,
+                          onConfirm: ({
+                            required meterReading,
+                            required fuelPercent,
+                            required meterPhoto,
+                          }) async {
+                            final state = ctx.findAncestorStateOfType<_MyTripsScreenState>();
+                            await state?._stopTripAndMoveToCompleted(
+                              trip: data,
+                              meterReading: meterReading,
+                              fuelPercent: fuelPercent,
+                              meterPhoto: meterPhoto,
+                            );
+                          },
+                        );
+                      },
+                    ),
                   ),
                 ],
 
-                // ✅ COMPLETED: keep your full details (ok)
+                // COMPLETED: keep your full details (ok)
                 if (isCompleted) ...[
                   _infoRow("Trip Code", (data["tripCode"] ?? "").toString(), highlight: true),
                   const SizedBox(height: 8),

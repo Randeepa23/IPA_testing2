@@ -297,7 +297,7 @@ class _VehicleRequestScreenState extends State<VehicleRequestScreen> {
                                   onPressed: () async {
                                     final requestId = int.parse(r["request_id"].toString());
                                     final employeeName = (r["employee_name"] ?? r["employeeName"] ?? "USER").toString();
-                                    final tripCode = _generateTripCode(employeeName);
+                                    final code = _generateTripCode(employeeName);
 
                                     try {
                                       await VehicleApiService.approveVehicleRequest(
@@ -311,7 +311,7 @@ class _VehicleRequestScreenState extends State<VehicleRequestScreen> {
                                         TopBanner.show(
                                           context,
                                           title: "Request Approved",
-                                          message: "Vehicle request approved successfully. Trip Code: $tripCode",
+                                          message: "Vehicle request approved successfully. Trip Code: $code",
                                           icon: Icons.check_circle,
                                           isSuccess: true,
                                         );
