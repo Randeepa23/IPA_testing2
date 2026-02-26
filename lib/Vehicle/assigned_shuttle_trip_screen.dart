@@ -66,9 +66,22 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
 
       // Map DB rows -> UI shape used in TripCard
       final mapped = rows.map((e) {
+        String _getDate(String v) => v.length >= 10 ? v.substring(0, 10) : "-";
+
+        String _getTime(String v) => v.length >= 16 ? v.substring(11, 16) : "-";
+
+        // START
         final startAt = (e["assigned_start_at"] ?? "").toString();
-        final time = startAt.length >= 16 ? startAt.substring(11, 16) : "-";
-        final date = startAt.length >= 10 ? startAt.substring(0, 10) : "-";
+        final assignedStartDate = _getDate(startAt);
+        final startTime = _getTime(startAt);
+
+        // STOP
+        final stopAt = (e["trip_start_datetime"] ?? "").toString();
+        final startDate = _getDate(stopAt);
+
+        // END
+        final endAt = (e["trip_end_datetime"] ?? "").toString();
+        final endDate = _getDate(endAt);
 
         return <String, dynamic>{
           "id": e["id"].toString(),
@@ -81,8 +94,11 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
           "dropoff": (e["dropoff_location"] ?? "-").toString(),
 
           "passengers": "${e["passenger_count"] ?? "-"} pax",
-          "time": time,
-          "date": date,
+          "time": startTime,
+          "assignedDate": assignedStartDate,
+
+          "startDate": startDate,
+          "endDate": endDate,
 
           "tripCode": e["trip_code"],
 
@@ -599,7 +615,7 @@ class TripCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   _infoRow("Time", (data["time"] ?? "-").toString()),
                   const SizedBox(height: 8),
-                  _infoRow("Date", (data["date"] ?? "-").toString()),
+                  _infoRow("Start Date", (data["startDate"] ?? "-").toString()),
                 ],
 
                 // ================= COMPLETED =================
@@ -610,7 +626,9 @@ class TripCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   _infoRow("Vehicle No", (data["vehicleNo"] ?? "-").toString()),
                   const SizedBox(height: 8),
-                  _infoRow("Date", (data["date"] ?? "-").toString()),
+                  _infoRow("Start Date", (data["startDate"] ?? "-").toString()),
+                  const SizedBox(height: 8),
+                  _infoRow("End Date", (data["endDate"] ?? "-").toString()),
                   const SizedBox(height: 8),
                   _infoRow("Start Meter", "${data["startMeter"]} km"),
                   const SizedBox(height: 8),
