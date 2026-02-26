@@ -216,4 +216,49 @@ static Future<Map<String, dynamic>> cancelTrip({required String id}) async {
   return Map<String, dynamic>.from(jsonDecode(body));
 }
 
+static Future<List<Map<String, dynamic>>> fetchManagerVehicleRequests({
+  required String managerId,
+}) async {
+  final url = Uri.parse("$baseUrl/get_manager_vehicle_requests.php?manager_id=$managerId");
+  final res = await http.get(url, headers: {"Accept": "application/json"});
+
+  final decoded = jsonDecode(res.body);
+  if (decoded["success"] != true) {
+    throw Exception(decoded["message"] ?? "API failed");
+  }
+
+  return List<Map<String, dynamic>>.from(decoded["data"] ?? []);
+}
+
+static Future<void> approveVehicleRequest({required int requestId}) async {
+  final url = Uri.parse("$baseUrl/approve_vehicle_request.php");
+  final res = await http.post(
+    url,
+    headers: {"Content-Type": "application/json", "Accept": "application/json"},
+    body: jsonEncode({"request_id": requestId}),
+  );
+
+  final decoded = jsonDecode(res.body);
+  if (decoded["success"] != true) {
+    throw Exception(decoded["message"] ?? "Approve failed");
+  }
+}
+
+static Future<void> rejectVehicleRequest({
+  required int requestId,
+  required String comment,
+}) async {
+  final url = Uri.parse("$baseUrl/reject_vehicle_request.php");
+  final res = await http.post(
+    url,
+    headers: {"Content-Type": "application/json", "Accept": "application/json"},
+    body: jsonEncode({"request_id": requestId, "comment": comment}),
+  );
+
+  final decoded = jsonDecode(res.body);
+  if (decoded["success"] != true) {
+    throw Exception(decoded["message"] ?? "Reject failed");
+  }
+}
+
 }
