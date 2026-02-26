@@ -195,28 +195,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    if (leaveBalance == null || leaveBalance!.isEmpty) {
-      return _infoCard(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-        children: const [
-          Text("No leave data"),
-        ],
-      );
-    }
-
+    // When user has no leave balance data, show 0/0 for each type (same as dashboard)
+    final balance = leaveBalance ?? {};
     double d(dynamic v) => double.tryParse(v?.toString() ?? "0") ?? 0;
 
-    final annualRemaining = d(leaveBalance!["annual_days"]);
-    final sickRemaining = d(leaveBalance!["sick_days"]);
-    final casualRemaining = d(leaveBalance!["casual_days"]);
+    final annualRemaining = d(balance["annual_days"]);
+    final medicalRemaining = d(balance["medical_days"]);
+    final casualRemaining = d(balance["casual_days"]);
 
-    // Use totals from API if available; otherwise fallback
-    final annualTotal = d(leaveBalance!["annual_total"]) == 0 ? 20.0 : d(leaveBalance!["annual_total"]);
-    final sickTotal = d(leaveBalance!["sick_total"]) == 0 ? 10.0 : d(leaveBalance!["sick_total"]);
-    final casualTotal = d(leaveBalance!["casual_total"]) == 0 ? 5.0 : d(leaveBalance!["casual_total"]);
+    // Use API totals; when user has no leaves of any type, show 0/0
+    final annualTotal = d(balance["annual_total"]);
+    final medicalTotal = d(balance["medical_total"]);
+    final casualTotal = d(balance["casual_total"]);
 
     final annualUsed = (annualTotal - annualRemaining).clamp(0, annualTotal).toInt();
-    final sickUsed = (sickTotal - sickRemaining).clamp(0, sickTotal).toInt();
+    final medicalUsed = (medicalTotal - medicalRemaining).clamp(0, medicalTotal).toInt();
     final casualUsed = (casualTotal - casualRemaining).clamp(0, casualTotal).toInt();
 
     return _infoCard(
@@ -224,7 +217,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         _LeaveBar(title: 'Annual Leaves', used: annualUsed, total: annualTotal.toInt()),
         const SizedBox(height: 12),
-        _LeaveBar(title: 'Medical Leaves', used: sickUsed, total: sickTotal.toInt()),
+        _LeaveBar(title: 'Medical Leaves', used: medicalUsed, total: medicalTotal.toInt()),
         const SizedBox(height: 12),
         _LeaveBar(title: 'Casual Leaves', used: casualUsed, total: casualTotal.toInt()),
       ],

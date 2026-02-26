@@ -592,14 +592,9 @@ Future<void> _loadManagerRequestCount() async {
       );
     }
 
-    if (leaveBalance == null || leaveBalance!.isEmpty) {
-      return Text(
-        "No leave balance data",
-        style: GoogleFonts.poppins(color: Colors.white),
-      );
-    }
-
-    return _leaveBalanceCard(leaveBalance!);
+    // When user has no leave balance data, show 0/0 for each type
+    final data = leaveBalance ?? {};
+    return _leaveBalanceCard(Map<String, dynamic>.from(data));
   }
 
   // Leave Balance Card
@@ -609,16 +604,16 @@ Future<void> _loadManagerRequestCount() async {
     double d(dynamic v) => double.tryParse(v?.toString() ?? "0") ?? 0;
 
     final annualRemaining = d(balance["annual_days"]);
-    final sickRemaining = d(balance["sick_days"]);
+    final medicalRemaining = d(balance["medical_days"]);
     final casualRemaining = d(balance["casual_days"]);
 
-    // If your API returns totals, use them. Otherwise fallback.
-    final annualTotal = d(balance["annual_total"]) == 0 ? 20.0 : d(balance["annual_total"]);
-    final sickTotal = d(balance["sick_total"]) == 0 ? 10.0 : d(balance["sick_total"]);
-    final casualTotal = d(balance["casual_total"]) == 0 ? 5.0 : d(balance["casual_total"]);
+    // Use API totals; when user has no leaves of any type, show 0/0
+    final annualTotal = d(balance["annual_total"]);
+    final medicalTotal = d(balance["medical_total"]);
+    final casualTotal = d(balance["casual_total"]);
 
     final annualUsed = (annualTotal - annualRemaining).clamp(0, annualTotal);
-    final sickUsed = (sickTotal - sickRemaining).clamp(0, sickTotal);
+    final medicalUsed = (medicalTotal - medicalRemaining).clamp(0, medicalTotal);
     final casualUsed = (casualTotal - casualRemaining).clamp(0, casualTotal);
 
     return Card(
@@ -649,7 +644,7 @@ Future<void> _loadManagerRequestCount() async {
             const SizedBox(height: 10),
 
             _progressRow('Annual Leave', annualUsed.toInt(), annualTotal.toInt()),
-            _progressRow('Sick Leave', sickUsed.toInt(), sickTotal.toInt()),
+            _progressRow('Medical Leave', medicalUsed.toInt(), medicalTotal.toInt()),
             _progressRow('Casual Leave', casualUsed.toInt(), casualTotal.toInt()),
           ],
         ),
