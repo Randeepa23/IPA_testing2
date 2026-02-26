@@ -36,4 +36,30 @@ static Future<List<Map<String, dynamic>>> fetchShuttleTrips({
         .toList();
   }
 
+  static Future<List<Map<String, dynamic>>> fetchTransferTrips({
+    required String employeeId,
+    required String status,
+  }) async {
+    final uri = Uri.parse(
+      "$baseUrl/get_transfer_trips.php?employee_id=$employeeId&status=$status",
+    );
+
+    final res = await http.get(uri);
+
+    if (res.body.trim().isEmpty) {
+      throw Exception("Server returned EMPTY response");
+    }
+
+    final json = jsonDecode(res.body);
+
+    if (json["success"] != true) {
+      throw Exception(json["message"] ?? "API error");
+    }
+
+    final List list = json["data"] ?? [];
+    return list
+        .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
 }
