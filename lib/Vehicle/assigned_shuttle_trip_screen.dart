@@ -75,7 +75,7 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
           "status": (e["status"] ?? "").toString(),
 
           "vehicleNo": (e["vehicle_no"] ?? "-").toString(),
-          "vehicleName": (e["vehicle_name"] ?? "Toyota KDH").toString(), // optional
+          "vehicleName": (e["vehicle_name"] ?? "-").toString(), // optional
 
           "pickup": (e["pickup_location"] ?? "-").toString(),
           "dropoff": (e["dropoff_location"] ?? "-").toString(),
@@ -219,14 +219,23 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
       }
     }
 
-    // Generates a random trip code like #1234ABCD
-    String _generateTripCode() {
+    // Generates a random trip code like #INDU1234 based on employee name and random number
+    String _generateTripCode(String employeeName) {
       final rnd = Random();
-      final numPart = (1000 + rnd.nextInt(9000)).toString();
-      final letters = String.fromCharCodes(
-        List.generate(4, (_) => 65 + rnd.nextInt(26)),
-      );
-      return "#$numPart$letters";
+      // 1. Clean name (remove spaces, uppercase)
+      String cleanName = employeeName
+          .replaceAll(RegExp(r'\s+'), '')
+          .toUpperCase();
+      // 2. Ensure at least 4 characters
+      if (cleanName.length < 4) {
+        cleanName = cleanName.padRight(4, 'X');
+      }
+      // 3. Take first 4 letters
+      final namePart = cleanName.substring(0, 4);
+      // 4. Generate random 4-digit number
+      final numberPart = (1000 + rnd.nextInt(9000)).toString();
+      // 5. Combine
+      return "#$namePart$numberPart";
     }
 
     // Confirmation dialog before generating trip code and moving to Start Trip
@@ -234,7 +243,7 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
       final tripId = int.tryParse(trip["id"].toString()) ?? 0;
       if (tripId <= 0) return;
 
-      final code = _generateTripCode();
+      final code = _generateTripCode(widget.user["name"]?.toString() ?? "USER");
 
       try {
         setState(() => loading = true);
@@ -511,7 +520,7 @@ class TripCard extends StatelessWidget {
     final isInProgress = status == "IN_PROGRESS";
     final isCompleted = status == "COMPLETED";
 
-    final vehicleName = (data["vehicleName"] ?? "Toyota KDH").toString();
+    final vehicleName = (data["vehicleName"] ?? "-").toString();
 
     return Container(
       decoration: BoxDecoration(
@@ -602,6 +611,10 @@ class TripCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   _infoRow("Date", (data["date"] ?? "-").toString()),
                   const SizedBox(height: 8),
+                  _infoRow("Start Meter", "${data["startMeter"]} km"),
+                  const SizedBox(height: 8),
+                  _infoRow("End Meter", "${data["endMeter"]} km"),
+                  const SizedBox(height: 8),
                   _infoRow(
                     "Distance KM",
                     "${data["odoDistance"] ?? "-"} km",
@@ -685,29 +698,6 @@ class TripCard extends StatelessWidget {
                       },
                     ),
                   ),
-                  // _gradientButton(
-                  //   text: "Stop Trip & Submit",
-                  //   colors: const [Color(0xFFD10A0A), Color(0xFF5B0000)],
-                  //   onTap: () {
-                  //     showStopTripDialog(
-                  //       context: context,
-                  //       vehicleNo: data["vehicleNo"],
-                  //       destination: data["dropoff"],
-                  //       isSubmitting: false,
-                  //       onConfirm: ({
-                  //         required meterReading,
-                  //         required fuelPercent,
-                  //         required meterPhoto,
-                  //       }) async {
-                  //         ScaffoldMessenger.of(context).showSnackBar(
-                  //           const SnackBar(content: Text("Trip stopped")),
-                  //         );
-
-                  //         // TODO: call Stop Trip API and then reload
-                  //       },
-                  //     );
-                  //   },
-                  // ),
                 ],
               ],
             ),
