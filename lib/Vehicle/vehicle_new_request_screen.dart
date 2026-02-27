@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../ui/dialogs/vehicle_submit_dialog.dart';
 import '../Services/vehicle_api_service.dart';
@@ -235,7 +236,7 @@ void _showVehicleSubmitConfirmation() {
               const SizedBox(height: 16),
 
               // Vehicle number
-              _sectionTitle("Vehicle Number *"),
+              _sectionTitle("Vehicle Number * (e.g. ABC-1234)"),
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -243,9 +244,23 @@ void _showVehicleSubmitConfirmation() {
                     flex: 4,
                     child: TextFormField(
                       controller: vehiclePrefixController,
-                      decoration: _inputDecoration("Enter Later"),
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: _inputDecoration("ABC").copyWith(counterText: ""),
+                      maxLength: 3,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z]')),
+                        TextInputFormatter.withFunction((oldValue, newValue) {
+                          return TextEditingValue(
+                            text: newValue.text.toUpperCase(),
+                            selection: newValue.selection,
+                          );
+                        }),
+                      ],
                       validator: (v) {
-                        if (v == null || v.trim().isEmpty) return "Required";
+                        final s = (v ?? "").trim();
+                        if (s.isEmpty) return "Required";
+                        if (s.length != 3) return "Exactly 3 letters";
+                        if (!RegExp(r'^[A-Z]{3}$').hasMatch(s)) return "Letters only";
                         return null;
                       },
                     ),
@@ -259,11 +274,16 @@ void _showVehicleSubmitConfirmation() {
                     child: TextFormField(
                       controller: vehicleNumberController,
                       keyboardType: TextInputType.number,
-                      decoration: _inputDecoration("Enter Numbers"),
-                      // Only validate if prefix is entered
+                      decoration: _inputDecoration("1234").copyWith(counterText: ""),
+                      maxLength: 4,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
                       validator: (v) {
-                        if (v == null || v.trim().isEmpty) return "Required";
-                        if (!RegExp(r'^\d+$').hasMatch(v.trim())) return "Only numbers";
+                        final s = (v ?? "").trim();
+                        if (s.isEmpty) return "Required";
+                        if (s.length != 4) return "Exactly 4 digits";
+                        if (!RegExp(r'^\d{4}$').hasMatch(s)) return "Numbers only";
                         return null;
                       },
                     ),
