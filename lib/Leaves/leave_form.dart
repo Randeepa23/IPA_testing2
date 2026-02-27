@@ -59,6 +59,9 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
   // show loading on Send button
   bool _isSubmitting = false;
 
+  // Cache for profile photo futures to avoid redundant API calls
+  final Map<int, Future<Map<String, dynamic>?>> _photoFutureCache = {};
+
   
 
 @override
@@ -183,6 +186,15 @@ int _leaveTypeToId(String type) {
 }
 
 
+  // Fetch profile photo with caching to optimize performance
+  Future<Map<String, dynamic>?> _getPhotoFuture(int employeeId) {
+    return _photoFutureCache.putIfAbsent(
+      employeeId,
+      () => ApiService.getProfilePhoto(employeeId: employeeId),
+    );
+  }
+
+
 //Call the submit confirmation dialog
 void _showSubmitConfirmation() {
   final leaveType = selectedLeaveType ?? "Leave";
@@ -229,6 +241,9 @@ void _showSubmitConfirmation() {
 
         if (res["success"] == true) {
           final list = List<Map<String, dynamic>>.from(res["members"] ?? []);
+
+          // Clear photo cache to avoid showing wrong photos after date change
+          _photoFutureCache.clear();
 
           setState(() {
             availableMembers = list
@@ -599,19 +614,63 @@ void _showSubmitConfirmation() {
                     border: Border.all(color: const Color(0xFFE1E6EF)),
                   ),
                   child: Column(
+                    // Radio button on RIGHT, Photo on LEFT, Name in middle
                     children: availableMembers.map((m) {
-                      return RadioListTile<String>(
-                        dense: true,
-                        title: Text(
-                          m['name']!,
-                          style: const TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w800),
-                        ),
-                        value: m['id']!,
-                        groupValue: selectedMember,
-                        onChanged: (v) => setState(() => selectedMember = v),
-                        activeColor: blue,
-                      );
+                    final empId = int.tryParse(m["id"] ?? "") ?? 0;
+                    return RadioListTile<String>(
+                      value: m['id']!,
+                      groupValue: selectedMember,
+                      onChanged: (v) => setState(() => selectedMember = v),
+                      activeColor: blue,
+
+                      // radio button on RIGHT
+                      controlAffinity: ListTileControlAffinity.trailing,
+
+                      // Photo on LEFT
+                      secondary: FutureBuilder<Map<String, dynamic>?>(
+                        future: empId > 0 ? _getPhotoFuture(empId) : Future.value(null),
+                        builder: (context, snap) {
+                          final url = (snap.data?["fileUrl"] ?? "").toString().trim();
+
+                          if (snap.connectionState == ConnectionState.waiting) {
+                            return const CircleAvatar(
+                              radius: 18,
+                              backgroundColor: Color(0xFFEAF1FF),
+                              child: SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  color: Colors.blue,
+                                  backgroundColor: Colors.white,
+                                  strokeWidth: 2
+                                ),
+                              ),
+                            );
+                          }
+
+                          if (url.isNotEmpty) {
+                            return CircleAvatar(
+                              radius: 18,
+                              backgroundColor: const Color(0xFFEAF1FF),
+                              backgroundImage: NetworkImage(url),
+                            );
+                          }
+
+                          return const CircleAvatar(
+                            radius: 18,
+                            backgroundColor: Color(0xFFEAF1FF),
+                            child: Icon(Icons.person, size: 18, color: Colors.black54),
+                          );
+                        },
+                      ),
+
+                      // Name in middle
+                      title: Text(
+                        m['name']!,
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                      ),
+
+                    );
                     }).toList(),
                   ),
                 )
