@@ -5,12 +5,18 @@ import 'package:device_preview/device_preview.dart';
 import 'splash_screen.dart';
 
 void main() {
-  runApp(
-    DevicePreview(
-      enabled: !kReleaseMode, // ON in debug, OFF in release
-      builder: (context) => const MyApp(),
-    ),
-  );
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (kReleaseMode) {
+    runApp(const MyApp());
+  } else {
+    runApp(
+      DevicePreview(
+        enabled: true,
+        builder: (context) => const MyApp(),
+      ),
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {
