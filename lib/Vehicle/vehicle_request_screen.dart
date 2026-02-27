@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../Services/vehicle_api_service.dart';
 import '../Leaves/top_banner.dart';
+import '../Services/api_service.dart';
 
 class VehicleRequestScreen extends StatefulWidget {
   final String managerId;
@@ -44,6 +45,15 @@ class _VehicleRequestScreenState extends State<VehicleRequestScreen> {
       });
     }
   }
+
+  final Map<int, Future<Map<String, dynamic>?>> _photoFutureCache = {};
+
+    Future<Map<String, dynamic>?> _getPhotoFuture(int employeeId) {
+      return _photoFutureCache.putIfAbsent(
+        employeeId,
+        () => ApiService.getProfilePhoto(employeeId: employeeId),
+      );
+    }
 
   // ====================== REJECT POPUP ======================
   Future<void> _showRejectDialog(BuildContext context, Map<String, dynamic> r) async {
@@ -396,6 +406,8 @@ class _VehicleRequestScreenState extends State<VehicleRequestScreen> {
                       data: r,
                       onReject: () => _showRejectDialog(context, r),
                       onApprove: () => _showApproveDialog(context, r),
+                      getPhoto: _getPhotoFuture,
+
                     ),
                   )),
           ],
@@ -410,11 +422,15 @@ class _VehicleRequestCard extends StatelessWidget {
   final Map<String, dynamic> data;
   final VoidCallback onReject;
   final VoidCallback onApprove;
+  final Future<Map<String, dynamic>?> Function(int employeeId) getPhoto;
+
 
   const _VehicleRequestCard({
     required this.data,
     required this.onReject,
     required this.onApprove,
+    required this.getPhoto,
+
   });
 
   @override
@@ -453,10 +469,42 @@ class _VehicleRequestCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const CircleAvatar(
-                radius: 18,
-                backgroundColor: Color(0xFFEAF1FF),
-                child: Icon(Icons.person, color: Color(0xFF1E88E5)),
+              Builder(
+                builder: (context) {
+                  final int empId = int.tryParse((data["employee_id"] ?? data["employeeId"] ?? "0").toString()) ?? 0;
+                  return FutureBuilder<Map<String, dynamic>?>(
+                    future: empId > 0 ? getPhoto(empId) : Future.value(null),
+                    builder: (context, snap) {
+                      final url = (snap.data?["fileUrl"] ?? "").toString().trim();
+
+                      if (snap.connectionState == ConnectionState.waiting) {
+                        return const CircleAvatar(
+                          radius: 18,
+                          backgroundColor: Color(0xFFEAF1FF),
+                          child: SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        );
+                      }
+
+                      if (url.isNotEmpty) {
+                        return CircleAvatar(
+                          radius: 18,
+                          backgroundColor: const Color(0xFFEAF1FF),
+                          backgroundImage: NetworkImage(url),
+                        );
+                      }
+
+                      return const CircleAvatar(
+                        radius: 18,
+                        backgroundColor: Color(0xFFEAF1FF),
+                        child: Icon(Icons.person, color: Color(0xFF1E88E5)),
+                      );
+                    },
+                  );
+                },
               ),
               const SizedBox(width: 10),
               Expanded(

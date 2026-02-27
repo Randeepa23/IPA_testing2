@@ -19,6 +19,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   bool loading = true;
   String? errorText;
 
+  final Map<int, Future<Map<String, dynamic>?>> _photoFutureCache = {};
+
   @override
   void initState() {
     super.initState();
@@ -43,6 +45,13 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         loading = false;
       });
     }
+  }
+
+  Future<Map<String, dynamic>?> _getPhotoFuture(int employeeId) {
+    return _photoFutureCache.putIfAbsent(
+      employeeId,
+      () => ApiService.getProfilePhoto(employeeId: employeeId),
+    );
   }
 
   @override
@@ -99,6 +108,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                       data: r,
                       onReject: () => _showRejectDialog(context, r),
                       onApprove: () => _showApproveDialog(context, r),
+                        getPhoto: _getPhotoFuture,
                     ),
                   )),
           ],
@@ -408,11 +418,15 @@ class _LeaveRequestCard extends StatelessWidget {
   final Map<String, dynamic> data;
   final VoidCallback onReject;
   final VoidCallback onApprove;
+  final Future<Map<String, dynamic>?> Function(int employeeId) getPhoto;
+
 
   const _LeaveRequestCard({
     required this.data,
     required this.onReject,
     required this.onApprove,
+    required this.getPhoto,
+
   });
 
   @override
@@ -448,10 +462,46 @@ class _LeaveRequestCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const CircleAvatar(
-                radius: 18,
-                backgroundColor: Color(0xFFEAF1FF),
-                child: Icon(Icons.person, color: Color(0xFF1E88E5)),
+              Builder(
+                builder: (context) {
+                final int empId = int.tryParse((data["employee_id"] ?? data["employeeId"] ?? "0").toString()) ?? 0;
+
+                return FutureBuilder<Map<String, dynamic>?>(
+                  future: empId > 0 ? getPhoto(empId) : Future.value(null),
+                  builder: (context, snap) {
+                    final url = (snap.data?["fileUrl"] ?? "").toString().trim();
+
+                    // loading
+                    if (snap.connectionState == ConnectionState.waiting) {
+                      return const CircleAvatar(
+                        radius: 18,
+                        backgroundColor: Color(0xFFEAF1FF),
+                        child: SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      );
+                    }
+
+                    // show photo
+                    if (url.isNotEmpty) {
+                      return CircleAvatar(
+                        radius: 18,
+                        backgroundColor: const Color(0xFFEAF1FF),
+                        backgroundImage: NetworkImage(url),
+                      );
+                    }
+
+                    // fallback
+                    return const CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Color(0xFFEAF1FF),
+                      child: Icon(Icons.person, color: Color(0xFF1E88E5)),
+                    );
+                  },
+                  );
+                },
               ),
               const SizedBox(width: 10),
               Expanded(

@@ -350,7 +350,11 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                   if (loading)
                     const Padding(
                       padding: EdgeInsets.only(bottom: 12),
-                      child: Center(child: CircularProgressIndicator()),
+                      child: Center(child: CircularProgressIndicator(
+                                color: Colors.blue,
+                                backgroundColor: Colors.white,
+                                strokeWidth: 4,
+                      )),
                     ),
                   if (errorText != null)
                     Padding(
@@ -594,7 +598,7 @@ class TripCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   _infoRow("To Date", (data["toDate"] ?? "").toString()),
                   const SizedBox(height: 8),
-                  _infoRow("Approved By", (data["approvedBy"] ?? "").toString()),
+                  _infoRow("Approved By", (data["approvedByName"] ?? "").toString()),
                   const SizedBox(height: 12),
                   Builder(
                     builder: (ctx) => _gradientButton(
@@ -671,11 +675,11 @@ class TripCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   _infoRow("Destination", (data["destination"] ?? "").toString()),
                   const SizedBox(height: 8),
-                  _infoRow("Start Meter", "${data["startMeter"] ?? "-"} km"),
+                  _infoRow("Start Meter", "${data["tripStartOdometer"] ?? "-"} km"),
                   const SizedBox(height: 8),
-                  _infoRow("End Meter", "${data["endMeter"] ?? "-"} km"),
+                  _infoRow("End Meter", "${data["tripEndOdometer"] ?? "-"} km"),
                   const SizedBox(height: 8),
-                  _infoRow("Distance Traveled by Odometer", "${data["odoDistance"] ?? "-"} km"),
+                  _infoRow("Distance Traveled by Odometer", "${data["distanceKm"] ?? "-"} km"),
                   const SizedBox(height: 8),
                   _infoRow("GPS Calculated Distance", "${data["gpsDistance"] ?? "-"} km"),
                 ],
