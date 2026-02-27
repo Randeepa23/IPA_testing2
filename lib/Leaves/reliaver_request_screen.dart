@@ -241,8 +241,9 @@ Future<Map<String, dynamic>?> _getPhotoFuture(int employeeId) {
                           height: 14,
                           child: CircularProgressIndicator(
                             color: Colors.blue,
-                            backgroundColor: Colors.white,
-                            strokeWidth: 2),
+                          backgroundColor: Colors.white,
+                          strokeWidth: 2
+                          ),
                         ),
                       ),
                     );

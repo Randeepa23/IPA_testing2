@@ -460,7 +460,7 @@ class _LeaveRequestCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Builder(
                 builder: (context) {
@@ -474,7 +474,7 @@ class _LeaveRequestCard extends StatelessWidget {
                     // loading
                     if (snap.connectionState == ConnectionState.waiting) {
                       return const CircleAvatar(
-                        radius: 18,
+                        radius: 22,
                         backgroundColor: Color(0xFFEAF1FF),
                         child: SizedBox(
                           width: 14,
@@ -491,7 +491,7 @@ class _LeaveRequestCard extends StatelessWidget {
                     // show photo
                     if (url.isNotEmpty) {
                       return CircleAvatar(
-                        radius: 18,
+                        radius: 22,
                         backgroundColor: const Color(0xFFEAF1FF),
                         backgroundImage: NetworkImage(url),
                       );
@@ -499,7 +499,7 @@ class _LeaveRequestCard extends StatelessWidget {
 
                     // fallback
                     return const CircleAvatar(
-                      radius: 18,
+                      radius: 22,
                       backgroundColor: Color(0xFFEAF1FF),
                       child: Icon(Icons.person, color: Color(0xFF1E88E5)),
                     );
@@ -541,7 +541,7 @@ class _LeaveRequestCard extends StatelessWidget {
                     ],
                   ),
 
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 0.5),
                     Text(
                       "${data["position"] ?? ""}\nEmployee ID: ${data["employeeId"] ?? ""}",
                       style: const TextStyle(
