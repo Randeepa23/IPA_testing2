@@ -40,26 +40,6 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
     super.dispose();
   }
 
-  // Generate a random recovery key
-  //   String _generateRecoveryKey({int length = 12}) {
-  //   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  //   final rand = DateTime.now().microsecondsSinceEpoch;
-
-  //   return List.generate(
-  //     length,
-  //     (i) => chars[(rand + i * 7) % chars.length],
-  //   ).join();
-  // }
-  //   // Generate a random recovery key when the screen is loaded
-  //   @override
-  //   void initState() {
-  //     super.initState();
-
-  //     if (_recoveryKeyController.text.isEmpty) {
-  //       _recoveryKeyController.text = _generateRecoveryKey(length: 12);
-  //     }
-  // }
-
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
