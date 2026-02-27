@@ -156,12 +156,26 @@ class _LoginScreenState extends State<LoginScreen> {
                       SizedBox(height: sectionGap),
 
                       //App Name
-                      Center(
+                      ShaderMask(
+                        shaderCallback: (bounds) => RadialGradient(
+                          center: const Alignment(0.0, 0.3), // move glow slightly downward
+                          radius: 1.2,
+                          colors: const [
+                            Color(0xFF42A5F5), // light blue (center glow)
+                            Color(0xFF0D47A1), // dark blue (edges)
+                          ],
+                          stops: const [0.2, 1.0],
+                        ).createShader(
+                          Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+                        ),
                         child: Text(
-                          'EES',
+                          'Explore Enterprise Suite',
+                          textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: (w * 0.08).clamp(24.0, 34.0),
-                            fontWeight: FontWeight.bold,
+                            fontSize: (w * 0.08).clamp(18.0, 34.0), // ⚠ fix: 0.6 was too large
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.3,
+                            color: Colors.white,
                           ),
                         ),
                       ),
@@ -281,8 +295,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
                                 colors: [
-                                  Color(0xFF0060A6),
-Color(0xFF003580),],
+                                  Color(0xFF0060A6),Color(0xFF003580),],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),

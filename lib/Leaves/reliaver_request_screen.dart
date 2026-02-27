@@ -40,6 +40,15 @@ void _showErrorBanner(String title, String message) {
   );
 }
 
+final Map<int, Future<Map<String, dynamic>?>> _photoFutureCache = {};
+
+Future<Map<String, dynamic>?> _getPhotoFuture(int employeeId) {
+  return _photoFutureCache.putIfAbsent(
+    employeeId,
+    () => ApiService.getProfilePhoto(employeeId: employeeId),
+  );
+}
+
 
   @override
   void initState() {
@@ -156,6 +165,7 @@ void _showErrorBanner(String title, String message) {
           ...requests.map((r) => Padding(
                 padding: const EdgeInsets.only(bottom: 14),
                 child: _requestCard(r, blue),
+
               )),
             ],
           ),
@@ -166,6 +176,9 @@ void _showErrorBanner(String title, String message) {
   // ---------------- CARD UI ----------------
 
   Widget _requestCard(Map<String, dynamic> r, Color blue) {
+
+    final int applicantEmpId =
+    int.tryParse((r["employeeId"] ?? r["applicant_employee_id"] ?? "0").toString()) ?? 0;
 
     String getStr(List<String> keys, {String fallback = "-"}) {
       for (final k in keys) {
@@ -191,6 +204,8 @@ void _showErrorBanner(String title, String message) {
     final applyOn = getStr(["applyOn", "requested_at"], fallback: "-");
     final status = getStr(["status"], fallback: "Awaiting Your Response");
 
+    print("RELIEVER ITEM keys: employee_id=${r["employee_id"]}, employee_code=${r["employee_code"]}, empNo=${r["empNo"]}, employeeId=${r["employeeId"]}");
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -210,14 +225,48 @@ void _showErrorBanner(String title, String message) {
         children: [
           Row(
             children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEAF1FF),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: const Icon(Icons.person, size: 18, color: Colors.black54),
+              FutureBuilder<Map<String, dynamic>?>(
+                future: applicantEmpId > 0 ? _getPhotoFuture(applicantEmpId) : Future.value(null),
+                builder: (context, snap) {
+                  final url = (snap.data?["fileUrl"] ?? "").toString().trim();
+
+                  if (snap.connectionState == ConnectionState.waiting) {
+                    return const SizedBox(
+                      width: 34,
+                      height: 34,
+                      child: CircleAvatar(
+                        backgroundColor: Color(0xFFEAF1FF),
+                        child: SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                    );
+                  }
+
+                  if (url.isNotEmpty) {
+                    return ClipOval(
+                      child: Image.network(
+                        url,
+                        width: 34,
+                        height: 34,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const CircleAvatar(
+                          radius: 17,
+                          backgroundColor: Color(0xFFEAF1FF),
+                          child: Icon(Icons.person, size: 18, color: Colors.black54),
+                        ),
+                      ),
+                    );
+                  }
+
+                  return const CircleAvatar(
+                    radius: 17,
+                    backgroundColor: Color(0xFFEAF1FF),
+                    child: Icon(Icons.person, size: 18, color: Colors.black54),
+                  );
+                },
               ),
               const SizedBox(width: 10),
               Expanded(
