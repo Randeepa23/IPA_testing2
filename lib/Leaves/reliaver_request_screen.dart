@@ -239,7 +239,10 @@ Future<Map<String, dynamic>?> _getPhotoFuture(int employeeId) {
                         child: SizedBox(
                           width: 14,
                           height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            color: Colors.blue,
+                            backgroundColor: Colors.white,
+                            strokeWidth: 2),
                         ),
                       ),
                     );

@@ -168,14 +168,16 @@ class _LoginScreenState extends State<LoginScreen> {
                         ).createShader(
                           Rect.fromLTWH(0, 0, bounds.width, bounds.height),
                         ),
-                        child: Text(
-                          'Explore Enterprise Suite',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: (w * 0.08).clamp(18.0, 34.0), // ⚠ fix: 0.6 was too large
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.3,
-                            color: Colors.white,
+                        child: Center(
+                          child: Text(
+                            'Enterprise Suite',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: (w * 0.08).clamp(18.0, 34.0), // ⚠ fix: 0.6 was too large
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.3,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
