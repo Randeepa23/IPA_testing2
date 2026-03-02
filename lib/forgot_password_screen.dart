@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+// import 'package:google_fonts/google_fonts.dart';
 import 'package:test_app/Services/api_service.dart';
 import 'login_screen.dart';
 import 'Leaves/top_banner.dart';
@@ -30,6 +30,26 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   String? _confirmPasswordError;
   String? _generalError; // General error shown at bottom for empty fields
   bool _isSubmitting = false; // Show loading state while submitting
+
+  InputDecoration _inputDecoration(String hint, IconData icon, {Widget? suffix}) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: Colors.grey.shade600),
+      prefixIcon: Icon(icon, color: Colors.grey.shade700),
+      suffixIcon: suffix,
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.blue, width: 1.4),
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -177,11 +197,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final w = size.width;
     final h = size.height;
 
-    // responsive values (same style as your login)
+    // responsive values (same as login screen)
     final horizontalPad = w > 600 ? 32.0 : 24.0;
-    final topGap = (h * 0.05).clamp(18.0, 40.0);
-    final sectionGap = (h * 0.02).clamp(14.0, 28.0);
     final logoWidth = (w * 0.65).clamp(200.0, 320.0);
+    final topGap = (h * 0.08).clamp(30.0, 80.0);
+    final sectionGap = (h * 0.01).clamp(12.0, 28.0);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -209,30 +229,42 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           ),
                         ),
 
-                        SizedBox(height: 40),
+                        SizedBox(height: sectionGap),
 
-                        Text(
-                          "Reset Password",
-                          style: GoogleFonts.actor(
-                            fontSize: (w * 0.07).clamp(22.0, 28.0),
-                            fontWeight: FontWeight.w700,
+                        // App Name / Title (same style as login)
+                        ShaderMask(
+                          shaderCallback: (bounds) => RadialGradient(
+                            center: const Alignment(0.0, 0.3),
+                            radius: 1.2,
+                            colors: const [
+                              Color(0xFF42A5F5),
+                              Color(0xFF0D47A1),
+                            ],
+                            stops: const [0.2, 1.0],
+                          ).createShader(
+                            Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Reset Password',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: (w * 0.08).clamp(18.0, 34.0),
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.3,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          "Enter your email and recovery key to reset your password.",
-                          style: GoogleFonts.actor(
-                            fontSize: 13,
-                            color: Colors.black54,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
 
+                        SizedBox(height: (h * 0.08).clamp(20.0, 60.0)),
                         SizedBox(height: sectionGap),
 
                         // Email Field
                         TextFormField(
                           controller: _emailController,
+                          style: const TextStyle(color: Colors.black, fontSize: 15),
                           keyboardType: TextInputType.emailAddress,
                           onChanged: (_) {
                             if (_emailError != null || _generalError != null) {
@@ -242,22 +274,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               });
                             }
                           },
-                          decoration: InputDecoration(
-                            labelText: 'Email',
-                            hintText: 'Enter your email address',
-                            prefixIcon: const Icon(Icons.email_outlined),
-                            filled: true,
-                            fillColor: Colors.grey.shade100,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: BorderSide.none,
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              borderSide: const BorderSide(color: Colors.blue, width: 1.2),
-                            ),
-                          ),
+                          decoration: _inputDecoration("Enter your email address", Icons.email_outlined),
                           validator: (v) {
                             final value = (v ?? '').trim();
                             if (value.isEmpty) return "Email is required";
@@ -273,7 +290,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               _emailError!,
                               style: const TextStyle(
                                 color: Colors.red,
-                                fontSize: 12,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -284,6 +301,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         // Recovery Key Field
                         TextFormField(
                           controller: _recoveryKeyController,
+                          style: const TextStyle(color: Colors.black, fontSize: 15),
                           obscureText: _obscureRecovery,
                           onChanged: (_) {
                             if (_recoveryKeyError != null || _generalError != null) {
@@ -293,28 +311,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               });
                             }
                           },
-                          decoration: InputDecoration(
-                            labelText: 'Recovery Key',
-                            hintText: 'Enter your recovery key',
-                            prefixIcon: const Icon(Icons.key_outlined),
-                            filled: true,
-                            fillColor: Colors.grey.shade100,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: BorderSide.none,
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              borderSide: const BorderSide(color: Colors.blue, width: 1.2),
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscureRecovery ? Icons.visibility_off : Icons.visibility,
-                              ),
-                              onPressed: () {
-                                setState(() => _obscureRecovery = !_obscureRecovery);
-                              },
+                          decoration: _inputDecoration(
+                            "Enter your recovery key",
+                            Icons.key_outlined,
+                            suffix: IconButton(
+                              icon: Icon(_obscureRecovery ? Icons.visibility_off : Icons.visibility),
+                              onPressed: () => setState(() => _obscureRecovery = !_obscureRecovery),
                             ),
                           ),
                           validator: (v) {
@@ -331,7 +333,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               _recoveryKeyError!,
                               style: const TextStyle(
                                 color: Colors.red,
-                                fontSize: 12,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -342,6 +344,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         // New Password Field
                         TextFormField(
                           controller: _newPassController,
+                          style: const TextStyle(color: Colors.black, fontSize: 15),
                           obscureText: _obscureNew,
                           onChanged: (_) {
                             if (_newPasswordError != null || _generalError != null) {
@@ -351,28 +354,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               });
                             }
                           },
-                          decoration: InputDecoration(
-                            labelText: 'New Password',
-                            hintText: 'Enter a new password',
-                            prefixIcon: const Icon(Icons.lock_outline),
-                            filled: true,
-                            fillColor: Colors.grey.shade100,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: BorderSide.none,
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              borderSide: const BorderSide(color: Colors.blue, width: 1.2),
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscureNew ? Icons.visibility_off : Icons.visibility,
-                              ),
-                              onPressed: () {
-                                setState(() => _obscureNew = !_obscureNew);
-                              },
+                          decoration: _inputDecoration(
+                            "Enter a new password",
+                            Icons.lock_outline,
+                            suffix: IconButton(
+                              icon: Icon(_obscureNew ? Icons.visibility_off : Icons.visibility),
+                              onPressed: () => setState(() => _obscureNew = !_obscureNew),
                             ),
                           ),
                           validator: (v) {
@@ -417,7 +404,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               _newPasswordError!,
                               style: const TextStyle(
                                 color: Colors.red,
-                                fontSize: 12,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -428,29 +415,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         // Confirm Password Field
                         TextFormField(
                           controller: _confirmPassController,
+                          style: const TextStyle(color: Colors.black, fontSize: 15),
                           obscureText: _obscureConfirm,
-                          decoration: InputDecoration(
-                            labelText: 'Confirm Password',
-                            hintText: 'Re-enter new password',
-                            prefixIcon: const Icon(Icons.lock_outline),
-                            filled: true,
-                            fillColor: Colors.grey.shade100,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: BorderSide.none,
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              borderSide: const BorderSide(color: Colors.blue, width: 1.2),
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscureConfirm ? Icons.visibility_off : Icons.visibility,
-                              ),
-                              onPressed: () {
-                                setState(() => _obscureConfirm = !_obscureConfirm);
-                              },
+                          decoration: _inputDecoration(
+                            "Re-enter new password",
+                            Icons.lock_outline,
+                            suffix: IconButton(
+                              icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility),
+                              onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
                             ),
                           ),
                           validator: (v) {
@@ -478,7 +450,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               _confirmPasswordError!,
                               style: const TextStyle(
                                 color: Colors.red,
-                                fontSize: 12,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -505,105 +477,76 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                         SizedBox(height: sectionGap),
 
-                        //Submit Button
+                        //Submit Button (same gradient style as login)
                         Center(
                           child: SizedBox(
-                            width: (w * 0.70).clamp(220.0, 360.0),
+                            width: (w * 0.45).clamp(150.0, 220.0),
                             height: 48,
-                            child: ElevatedButton(
-                              onPressed: _isSubmitting ? null : _submit,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF0060A6),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF0060A6),
+                                    Color(0xFF003580),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 ),
-                                elevation: 0,
+                                borderRadius: BorderRadius.circular(14),
                               ),
-                              child: _isSubmitting
-                                  ? const SizedBox(
-                                      width: 22,
-                                      height: 22,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2.5,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              child: ElevatedButton(
+                                onPressed: _isSubmitting ? null : _submit,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                child: _isSubmitting
+                                    ? const SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(Colors.white),
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Reset Password',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w700,
+                                        ),
                                       ),
-                                    )
-                                  : const Text(
-                                      'Reset Password',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
+                              ),
                             ),
                           ),
                         ),
 
                         const Spacer(),
 
-                        // Info notice about recovery key (card at bottom)
+                        // Short notice (same style as login)
                         Center(
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 420),
-                            child: Card(
-                              color: const Color(0xFFF5F9FF),
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                side: const BorderSide(
-                                  color: Color(0xFFCCE0F4),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
-                                ),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Icon(
-                                      Icons.info_outline,
-                                      size: 20,
-                                      color: Color(0xFF0060A6),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: const [
-                                          Text(
-                                            'Forgot your password?',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w600,
-                                              color: Color(0xFF003863),
-                                            ),
-                                          ),
-                                          SizedBox(height: 4),
-                                          Text(
-                                            'Contact your HR department to retrieve your recovery key. Make sure to create a strong password that only you know.',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: Color(0xFF4A4A4A),
-                                              height: 1.4,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                            child: Text(
+                              'Contact your HR department to retrieve your recovery key. Make sure to create a strong password that only you know.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: const Color.fromARGB(255, 101, 156, 182),
+                                height: 1.4,
                               ),
                             ),
                           ),
                         ),
 
-                        const SizedBox(height: 12),
+                        const Spacer(),
 
-                        // Footer (same style)
+                        // Footer (same as login)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 14),
                           child: Row(
@@ -617,7 +560,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               Padding(
                                 padding: EdgeInsets.symmetric(horizontal: 8),
                                 child: Text(
-                                  'Explore Holdings',
+                                  'Need Help',
                                   style: TextStyle(
                                     color: Color(0xFF0060A6),
                                     fontWeight: FontWeight.w600,

@@ -4,6 +4,9 @@ import 'package:intl/intl.dart';
 import '../ui/dialogs/vehicle_submit_dialog.dart';
 import '../Services/vehicle_api_service.dart';
 import '../Leaves/top_banner.dart';
+import 'dart:convert';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:http/http.dart' as http;
 
 class VehicleRequestFormScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -13,6 +16,44 @@ class VehicleRequestFormScreen extends StatefulWidget {
 
   @override
   State<VehicleRequestFormScreen> createState() => _VehicleRequestFormScreenState();
+}
+
+// Google Places API Key  
+const String googlePlacesKey = "YOUR_GOOGLE_API_KEY";
+
+class PlaceSuggestion {
+  final String description;
+  final String placeId;
+
+  PlaceSuggestion({required this.description, required this.placeId});
+
+  factory PlaceSuggestion.fromJson(Map<String, dynamic> json) {
+    return PlaceSuggestion(
+      description: json['description'],
+      placeId: json['place_id'],
+    );
+  }
+}
+
+Future<List<PlaceSuggestion>> fetchPlaceSuggestions(String input) async {
+  if (input.isEmpty) return [];
+
+  final url = Uri.parse(
+    "https://maps.googleapis.com/maps/api/place/autocomplete/json"
+    "?input=$input"
+    "&key=$googlePlacesKey"
+    "&components=country:lk",
+  );
+
+  final response = await http.get(url);
+  if (response.statusCode != 200) return [];
+
+  final data = json.decode(response.body);
+  if (data['status'] != 'OK') return [];
+
+  return (data['predictions'] as List)
+      .map((e) => PlaceSuggestion.fromJson(e))
+      .toList();
 }
 
 class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
@@ -330,16 +371,41 @@ void _showVehicleSubmitConfirmation() {
               ),
 
               const SizedBox(height: 16),
-
-              // Destination
+              
+              // Destination (Autocomplete)
               _sectionTitle("Destination *"),
               const SizedBox(height: 8),
-              TextFormField(
-                controller: destinationController,
-                decoration: _inputDecoration("Enter your destination").copyWith(
-                  prefixIcon: const Icon(Icons.location_on_outlined),
-                ),
-                validator: (v) => (v == null || v.trim().isEmpty) ? "Required" : null,
+
+              TypeAheadField<PlaceSuggestion>(
+                debounceDuration: const Duration(milliseconds: 300),
+                suggestionsCallback: (pattern) {
+                  return fetchPlaceSuggestions(pattern);
+                },
+                itemBuilder: (context, suggestion) {
+                  return ListTile(
+                    leading: const Icon(Icons.location_on_outlined),
+                    title: Text(suggestion.description),
+                  );
+                },
+                onSelected: (suggestion) {
+                  destinationController.text = suggestion.description;
+                },
+                builder: (context, textController, focusNode) {
+                  textController.text = destinationController.text;
+
+                  textController.addListener(() {
+                    destinationController.text = textController.text;
+                  });
+
+                  return TextFormField(
+                    controller: destinationController,
+                    focusNode: focusNode,
+                    decoration: _inputDecoration("Enter your destination").copyWith(
+                      prefixIcon: const Icon(Icons.location_on_outlined),
+                    ),
+                    validator: (v) => (v == null || v.trim().isEmpty) ? "Required" : null,
+                  );
+                },
               ),
 
               const SizedBox(height: 16),

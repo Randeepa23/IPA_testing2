@@ -59,6 +59,7 @@ dev_dependencies:
   url_launcher: ^6.3.0
   photo_view: ^0.15.0
   http: ^1.5.0
+  flutter_typeahead: ^5.2.0
   flutter_launcher_icons: "^0.14.4"
 
 flutter_launcher_icons:
