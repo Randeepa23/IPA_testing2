@@ -285,6 +285,7 @@ void _showVehicleSubmitConfirmation() {
                     flex: 4,
                     child: TextFormField(
                       controller: vehiclePrefixController,
+                      style: const TextStyle(color: Colors.black, fontSize: 15),
                       textCapitalization: TextCapitalization.characters,
                       decoration: _inputDecoration("ABC").copyWith(counterText: ""),
                       maxLength: 3,
@@ -314,6 +315,7 @@ void _showVehicleSubmitConfirmation() {
                     flex: 6,
                     child: TextFormField(
                       controller: vehicleNumberController,
+                      style: const TextStyle(color: Colors.black, fontSize: 15),
                       keyboardType: TextInputType.number,
                       decoration: _inputDecoration("1234").copyWith(counterText: ""),
                       maxLength: 4,
@@ -399,10 +401,9 @@ void _showVehicleSubmitConfirmation() {
 
                   return TextFormField(
                     controller: destinationController,
+                    style: const TextStyle(color: Colors.black, fontSize: 15),
                     focusNode: focusNode,
-                    decoration: _inputDecoration("Enter your destination").copyWith(
-                      prefixIcon: const Icon(Icons.location_on_outlined),
-                    ),
+                    decoration: _inputDecoration("Enter your destination", icon: Icons.location_on_outlined),
                     validator: (v) => (v == null || v.trim().isEmpty) ? "Required" : null,
                   );
                 },
@@ -418,7 +419,10 @@ void _showVehicleSubmitConfirmation() {
                           managers.any((m) => m["id"] == selectedManagerId))
                       ? selectedManagerId
                       : null,
-                  decoration: _inputDecoration("Select Manager"),
+                  dropdownColor: Colors.white,
+                  decoration: _dropdownDecoration().copyWith(
+                    hintText: "Select Manager",
+                  ),
                   items: managers.map((m) {
                     return DropdownMenuItem<String>(
                       value: m["id"],
@@ -488,36 +492,56 @@ void _showVehicleSubmitConfirmation() {
 
   Widget _readonlyInput({required String value}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade300, width: 1),
       ),
       child: Text(
         value,
         style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w800,
-          color: Color(0xFF1E2A3A),
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: Colors.black,
         ),
       ),
     );
   }
-  InputDecoration _inputDecoration(String hint) {
+  // Same input style as login/leave form - clear on all devices
+  InputDecoration _inputDecoration(String hint, {IconData? icon, Widget? suffix}) {
     return InputDecoration(
       hintText: hint,
+      hintStyle: TextStyle(color: Colors.grey.shade600),
+      prefixIcon: icon != null ? Icon(icon, color: Colors.grey.shade700) : null,
+      suffixIcon: suffix,
       filled: true,
       fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.blue, width: 1.2),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.blue, width: 1.4),
+      ),
+    );
+  }
+
+  InputDecoration _dropdownDecoration() {
+    return InputDecoration(
+      hintStyle: TextStyle(color: Colors.grey.shade600),
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.blue, width: 1.4),
       ),
     );
   }
@@ -530,9 +554,10 @@ void _showVehicleSubmitConfirmation() {
   }) {
     return TextFormField(
       readOnly: true,
-      decoration: _inputDecoration(label).copyWith(
-        hintText: label,
-        suffixIcon: const Icon(Icons.calendar_today),
+      style: const TextStyle(color: Colors.black, fontSize: 15),
+      decoration: _inputDecoration(
+        label,
+        suffix: Icon(Icons.calendar_today, color: Colors.grey.shade700),
       ),
       controller: TextEditingController(
         text: selected == null ? '' : DateFormat('MM/dd/yyyy').format(selected),
