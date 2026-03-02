@@ -62,7 +62,42 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
   // Cache for profile photo futures to avoid redundant API calls
   final Map<int, Future<Map<String, dynamic>?>> _photoFutureCache = {};
 
-  
+  // Same input style as login/forgot password - clear on all devices
+  InputDecoration _inputDecoration(String hint, {IconData? icon, Widget? suffix}) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: Colors.grey.shade600),
+      prefixIcon: icon != null ? Icon(icon, color: Colors.grey.shade700) : null,
+      suffixIcon: suffix,
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.blue, width: 1.4),
+      ),
+    );
+  }
+
+  InputDecoration _dropdownDecoration() {
+    return InputDecoration(
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.blue, width: 1.4),
+      ),
+    );
+  }
 
 @override
 void initState() {
@@ -328,23 +363,8 @@ void _showSubmitConfirmation() {
               DropdownButtonFormField<String>(
                 value: selectedLeaveType,
                 dropdownColor: Colors.white,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.blue, width: 1.2),
-                  ),
-                ),
-                hint: const Text('Select leave type'),
+                decoration: _dropdownDecoration(),
+                hint: Text('Select leave type', style: TextStyle(color: Colors.grey.shade600)),
                 items: leaveTypes
                     .map((t) => DropdownMenuItem(value: t, child: Text(t)))
                     .toList(),
@@ -386,21 +406,8 @@ void _showSubmitConfirmation() {
                 DropdownButtonFormField<String>(
                   value: halfDaySession,
                   dropdownColor: Colors.white,
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.blue, width: 1.2),
-                    ),
-                  ),
-                  hint: const Text('Select session'),
+                  decoration: _dropdownDecoration(),
+                  hint: Text('Select session', style: TextStyle(color: Colors.grey.shade600)),
                   items: const [
                     DropdownMenuItem(value: 'MORNING', child: Text('Morning')),
                     DropdownMenuItem(value: 'EVENING', child: Text('Evening')),
@@ -480,22 +487,8 @@ void _showSubmitConfirmation() {
                           DropdownButtonFormField<String>(
                             value: halfDaySession,
                             dropdownColor: Colors.white,
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: Colors.white,
-                              contentPadding:
-                                  const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Colors.blue, width: 1.2),
-                              ),
-                            ),
-                            hint: const Text('Select time'),
+                            decoration: _dropdownDecoration(),
+                            hint: Text('Select time', style: TextStyle(color: Colors.grey.shade600)),
                             items: const [
                               DropdownMenuItem(value: 'MORNING', child: Text('Morning')),
                               DropdownMenuItem(value: 'EVENING', child: Text('Evening')),
@@ -551,22 +544,9 @@ void _showSubmitConfirmation() {
               const SizedBox(height: 8),
               TextFormField(
                 controller: reasonController,
+                style: const TextStyle(color: Colors.black, fontSize: 15),
                 maxLines: 4,
-                decoration: InputDecoration(
-                  hintText: 'Enter reason for leave...',
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.all(14),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.blue, width: 1.2),
-                  ),
-                ),
+                decoration: _inputDecoration('Enter reason for leave...'),
                 validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
               ),
 
@@ -706,22 +686,9 @@ void _showSubmitConfirmation() {
               const SizedBox(height: 8),
               TextFormField(
                 controller: addressController,
+                style: const TextStyle(color: Colors.black, fontSize: 15),
                 maxLines: 2,
-                decoration: InputDecoration(
-                  hintText: 'Enter address while on leave...',
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.all(14),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.blue, width: 1.2),
-                  ),
-                ),
+                decoration: _inputDecoration('Enter address while on leave...'),
               ),
 
               const SizedBox(height: 16),
@@ -890,44 +857,31 @@ void _showSubmitConfirmation() {
 
   Widget _readonlyInput({required String value}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade300, width: 1),
       ),
       child: Text(
         value,
         style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w800,
-          color: Color(0xFF1E2A3A),
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: Colors.black,
         ),
       ),
     );
   }
 
-  // Keep your existing _buildDatePicker function (logic unchanged)
   Widget _buildDatePicker(
-      String label, DateTime? selected, Function(DateTime) onSelect) {
+      String hint, DateTime? selected, Function(DateTime) onSelect) {
     return TextFormField(
       readOnly: true,
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: Colors.white,
-        labelText: label,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-          
-        ),
-        focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: const BorderSide(color: Colors.blue, width: 1.2),
-        ),
-        suffixIcon: const Icon(Icons.calendar_today),
+      style: const TextStyle(color: Colors.black, fontSize: 15),
+      decoration: _inputDecoration(
+        hint,
+        suffix: Icon(Icons.calendar_today, color: Colors.grey.shade700),
       ),
       controller: TextEditingController(
         text: selected == null ? '' : DateFormat('yyyy-MM-dd').format(selected),

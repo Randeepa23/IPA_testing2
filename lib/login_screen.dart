@@ -35,6 +35,27 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+      InputDecoration _loginInputDecoration(String hint, IconData icon, {Widget? suffix}) {
+      return InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(color: Colors.grey.shade600),
+        prefixIcon: Icon(icon, color: Colors.grey.shade700),
+        suffixIcon: suffix,
+        filled: true,
+        fillColor: Colors.white, // <-- IMPORTANT (not grey.shade100)
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Colors.blue, width: 1.4),
+        ),
+      );
+    }
+
 
 
     Future<void> _loginApi() async {
@@ -126,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
     //responsive values
     final horizontalPad = w > 600 ? 32.0 : 24.0;
     final logoWidth = (w * 0.65).clamp(200.0, 320.0);
-    final topGap = (h * 0.05).clamp(18.0, 40.0);
+    final topGap = (h * 0.08).clamp(30.0, 80.0);
     final sectionGap = (h * 0.01).clamp(14.0, 28.0);
 
     return Scaffold(
@@ -182,28 +203,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
 
-                      SizedBox(height: 80),
-
+SizedBox(height: (h * 0.08).clamp(20.0, 60.0)),
                       SizedBox(height: sectionGap),
 
                       //Username Field
                       TextField(
                         controller: _usernameController,
-                        decoration: InputDecoration(
-                          hintText: "Enter username",
-                          prefixIcon: const Icon(Icons.person_outline),
-                          filled: true,
-                          fillColor: Colors.grey.shade100,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            borderSide: const BorderSide(color: Colors.blue, width: 1.2),
-                          ),
-                        ),
+                        style: const TextStyle(color: Colors.black, fontSize: 15), // <-- force text
+                        decoration: _loginInputDecoration("Enter username", Icons.person_outline),
                       ),
 
                       const SizedBox(height: 16),
@@ -211,39 +218,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       /// Password
                       TextField(
                         controller: _passwordController,
+                        style: const TextStyle(color: Colors.black, fontSize: 15),
                         obscureText: _obscurePassword,
                         onChanged: (_) {
-                          if (_loginError != null) {
-                            setState(() {
-                              _loginError = null;
-                            });
-                          }
+                          if (_loginError != null) setState(() => _loginError = null);
                         },
-                        decoration: InputDecoration(
-                          hintText: "Enter password",
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          filled: true,
-                          fillColor: Colors.grey.shade100,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            borderSide: const BorderSide(color: Colors.blue, width: 1.2),
-                          ),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
+                        decoration: _loginInputDecoration(
+                          "Enter password",
+                          Icons.lock_outline,
+                          suffix: IconButton(
+                            icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                           ),
                         ),
                       ),
