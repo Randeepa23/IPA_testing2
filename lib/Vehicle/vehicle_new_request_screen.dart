@@ -300,9 +300,17 @@ void _showVehicleSubmitConfirmation() {
                       ],
                       validator: (v) {
                         final s = (v ?? "").trim();
+
                         if (s.isEmpty) return "Required";
-                        if (s.length != 3) return "Exactly 3 letters";
-                        if (!RegExp(r'^[A-Z]{3}$').hasMatch(s)) return "Letters only";
+
+                        if (s.length < 2 || s.length > 3) {
+                          return "Enter 2 or 3 letters";
+                        }
+
+                        if (!RegExp(r'^[A-Z]{2,3}$').hasMatch(s)) {
+                          return "Letters only";
+                        }
+
                         return null;
                       },
                     ),
