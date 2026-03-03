@@ -4,6 +4,9 @@ import 'package:intl/intl.dart';
 import '../ui/dialogs/vehicle_submit_dialog.dart';
 import '../Services/vehicle_api_service.dart';
 import '../Leaves/top_banner.dart';
+import 'dart:convert';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:http/http.dart' as http;
 
 class VehicleRequestFormScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -13,6 +16,44 @@ class VehicleRequestFormScreen extends StatefulWidget {
 
   @override
   State<VehicleRequestFormScreen> createState() => _VehicleRequestFormScreenState();
+}
+
+// Google Places API Key  
+const String googlePlacesKey = "YOUR_GOOGLE_API_KEY";
+
+class PlaceSuggestion {
+  final String description;
+  final String placeId;
+
+  PlaceSuggestion({required this.description, required this.placeId});
+
+  factory PlaceSuggestion.fromJson(Map<String, dynamic> json) {
+    return PlaceSuggestion(
+      description: json['description'],
+      placeId: json['place_id'],
+    );
+  }
+}
+
+Future<List<PlaceSuggestion>> fetchPlaceSuggestions(String input) async {
+  if (input.isEmpty) return [];
+
+  final url = Uri.parse(
+    "https://maps.googleapis.com/maps/api/place/autocomplete/json"
+    "?input=$input"
+    "&key=$googlePlacesKey"
+    "&components=country:lk",
+  );
+
+  final response = await http.get(url);
+  if (response.statusCode != 200) return [];
+
+  final data = json.decode(response.body);
+  if (data['status'] != 'OK') return [];
+
+  return (data['predictions'] as List)
+      .map((e) => PlaceSuggestion.fromJson(e))
+      .toList();
 }
 
 class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
@@ -244,6 +285,7 @@ void _showVehicleSubmitConfirmation() {
                     flex: 4,
                     child: TextFormField(
                       controller: vehiclePrefixController,
+                      style: const TextStyle(color: Colors.black, fontSize: 15),
                       textCapitalization: TextCapitalization.characters,
                       decoration: _inputDecoration("ABC").copyWith(counterText: ""),
                       maxLength: 3,
@@ -258,9 +300,17 @@ void _showVehicleSubmitConfirmation() {
                       ],
                       validator: (v) {
                         final s = (v ?? "").trim();
+
                         if (s.isEmpty) return "Required";
-                        if (s.length != 3) return "Exactly 3 letters";
-                        if (!RegExp(r'^[A-Z]{3}$').hasMatch(s)) return "Letters only";
+
+                        if (s.length < 2 || s.length > 3) {
+                          return "Enter 2 or 3 letters";
+                        }
+
+                        if (!RegExp(r'^[A-Z]{2,3}$').hasMatch(s)) {
+                          return "Letters only";
+                        }
+
                         return null;
                       },
                     ),
@@ -273,6 +323,7 @@ void _showVehicleSubmitConfirmation() {
                     flex: 6,
                     child: TextFormField(
                       controller: vehicleNumberController,
+                      style: const TextStyle(color: Colors.black, fontSize: 15),
                       keyboardType: TextInputType.number,
                       decoration: _inputDecoration("1234").copyWith(counterText: ""),
                       maxLength: 4,
@@ -330,16 +381,40 @@ void _showVehicleSubmitConfirmation() {
               ),
 
               const SizedBox(height: 16),
-
-              // Destination
+              
+              // Destination (Autocomplete)
               _sectionTitle("Destination *"),
               const SizedBox(height: 8),
-              TextFormField(
-                controller: destinationController,
-                decoration: _inputDecoration("Enter your destination").copyWith(
-                  prefixIcon: const Icon(Icons.location_on_outlined),
-                ),
-                validator: (v) => (v == null || v.trim().isEmpty) ? "Required" : null,
+
+              TypeAheadField<PlaceSuggestion>(
+                debounceDuration: const Duration(milliseconds: 300),
+                suggestionsCallback: (pattern) {
+                  return fetchPlaceSuggestions(pattern);
+                },
+                itemBuilder: (context, suggestion) {
+                  return ListTile(
+                    leading: const Icon(Icons.location_on_outlined),
+                    title: Text(suggestion.description),
+                  );
+                },
+                onSelected: (suggestion) {
+                  destinationController.text = suggestion.description;
+                },
+                builder: (context, textController, focusNode) {
+                  textController.text = destinationController.text;
+
+                  textController.addListener(() {
+                    destinationController.text = textController.text;
+                  });
+
+                  return TextFormField(
+                    controller: destinationController,
+                    style: const TextStyle(color: Colors.black, fontSize: 15),
+                    focusNode: focusNode,
+                    decoration: _inputDecoration("Enter your destination", icon: Icons.location_on_outlined),
+                    validator: (v) => (v == null || v.trim().isEmpty) ? "Required" : null,
+                  );
+                },
               ),
 
               const SizedBox(height: 16),
@@ -352,7 +427,10 @@ void _showVehicleSubmitConfirmation() {
                           managers.any((m) => m["id"] == selectedManagerId))
                       ? selectedManagerId
                       : null,
-                  decoration: _inputDecoration("Select Manager"),
+                  dropdownColor: Colors.white,
+                  decoration: _dropdownDecoration().copyWith(
+                    hintText: "Select Manager",
+                  ),
                   items: managers.map((m) {
                     return DropdownMenuItem<String>(
                       value: m["id"],
@@ -422,36 +500,56 @@ void _showVehicleSubmitConfirmation() {
 
   Widget _readonlyInput({required String value}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade300, width: 1),
       ),
       child: Text(
         value,
         style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w800,
-          color: Color(0xFF1E2A3A),
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: Colors.black,
         ),
       ),
     );
   }
-  InputDecoration _inputDecoration(String hint) {
+  // Same input style as login/leave form - clear on all devices
+  InputDecoration _inputDecoration(String hint, {IconData? icon, Widget? suffix}) {
     return InputDecoration(
       hintText: hint,
+      hintStyle: TextStyle(color: Colors.grey.shade600),
+      prefixIcon: icon != null ? Icon(icon, color: Colors.grey.shade700) : null,
+      suffixIcon: suffix,
       filled: true,
       fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.blue, width: 1.2),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.blue, width: 1.4),
+      ),
+    );
+  }
+
+  InputDecoration _dropdownDecoration() {
+    return InputDecoration(
+      hintStyle: TextStyle(color: Colors.grey.shade600),
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.blue, width: 1.4),
       ),
     );
   }
@@ -464,9 +562,10 @@ void _showVehicleSubmitConfirmation() {
   }) {
     return TextFormField(
       readOnly: true,
-      decoration: _inputDecoration(label).copyWith(
-        hintText: label,
-        suffixIcon: const Icon(Icons.calendar_today),
+      style: const TextStyle(color: Colors.black, fontSize: 15),
+      decoration: _inputDecoration(
+        label,
+        suffix: Icon(Icons.calendar_today, color: Colors.grey.shade700),
       ),
       controller: TextEditingController(
         text: selected == null ? '' : DateFormat('MM/dd/yyyy').format(selected),
