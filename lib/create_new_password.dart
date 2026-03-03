@@ -141,6 +141,33 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
     }
   }
 
+    InputDecoration _inputDecoration(String label, {Widget? prefix, Widget? suffix, String? hint}) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      hintStyle: TextStyle(color: Colors.grey.shade600),
+      labelStyle: TextStyle(color: Colors.grey.shade700),
+      prefixIcon: prefix,
+      suffixIcon: suffix,
+
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(
+       horizontal: 14,
+       vertical: 12,
+        ),
+
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: const BorderSide(color: Colors.blue, width: 1.2),
+      ),
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -204,14 +231,14 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                           ),
                         ),
                         SizedBox(height: sectionGap),
+
+                        // Recovery Key (styled similar to login fields, but with uppercase only)
                         TextFormField(
                           controller: _recoveryKeyController,
-                          textCapitalization: TextCapitalization.none, // user types normally
+                          style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w600),
+                          textCapitalization: TextCapitalization.none,
                           inputFormatters: [
-                            // Allow letters only (upper + lower)
                             FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z]')),
-
-                            // Convert everything to UPPERCASE
                             TextInputFormatter.withFunction((oldValue, newValue) {
                               return newValue.copyWith(
                                 text: newValue.text.toUpperCase(),
@@ -219,26 +246,15 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                               );
                             }),
                           ],
-                          decoration: InputDecoration(
-                            labelText: 'Recovery Name',
-                            filled: true,
-                            fillColor: Colors.grey.shade100,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: BorderSide.none,
-                            ),
+                          decoration: _inputDecoration(
+                            "Recovery Name",
+                            prefix: const Icon(Icons.vpn_key_outlined),
+                            hint: "Enter recovery key",
                           ),
                           validator: (v) {
                             final value = (v ?? '').trim();
-
-                            if (value.isEmpty) {
-                              return 'Recovery key is required';
-                            }
-
-                            if (!RegExp(r'^[A-Z]{6,}$').hasMatch(value)) {
-                              return 'Use only capital letters (minimum 6)';
-                            }
-
+                            if (value.isEmpty) return 'Recovery key is required';
+                            if (!RegExp(r'^[A-Z]{6,}$').hasMatch(value)) return 'Use only capital letters (minimum 6)';
                             return null;
                           },
                         ),
@@ -253,31 +269,19 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                               ),
                             ),
 
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
+
                         // New Password (styled similar to login fields)
                         TextFormField(
                           controller: _newPassController,
+                          style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w600),
                           obscureText: _obscureNew,
-                          decoration: InputDecoration(
-                            labelText: 'New Password',
-                            filled: true,
-                            fillColor: Colors.grey.shade100,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: BorderSide.none,
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              borderSide: const BorderSide(color: Colors.blue, width: 1.2),
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscureNew ? Icons.visibility_off : Icons.visibility,
-                              ),
-                              onPressed: () {
-                                setState(() => _obscureNew = !_obscureNew);
-                              },
+                          decoration: _inputDecoration(
+                            "New Password",
+                            prefix: const Icon(Icons.lock_outline),
+                            suffix: IconButton(
+                              icon: Icon(_obscureNew ? Icons.visibility_off : Icons.visibility),
+                              onPressed: () => setState(() => _obscureNew = !_obscureNew),
                             ),
                           ),
                           validator: (v) {
@@ -315,32 +319,19 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                           },
                         ),
 
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 8),
 
                         // Confirm Password (styled similar to login fields)
                         TextFormField(
                           controller: _confirmPassController,
+                          style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w600),
                           obscureText: _obscureConfirm,
-                          decoration: InputDecoration(
-                            labelText: 'Confirm Password',
-                            filled: true,
-                            fillColor: Colors.grey.shade100,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: BorderSide.none,
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              borderSide: const BorderSide(color: Colors.blue, width: 1.2),
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscureConfirm ? Icons.visibility_off : Icons.visibility,
-                              ),
-                              onPressed: () {
-                                setState(() => _obscureConfirm = !_obscureConfirm);
-                              },
+                          decoration: _inputDecoration(
+                            "Confirm Password",
+                            prefix: const Icon(Icons.lock_outline),
+                            suffix: IconButton(
+                              icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility),
+                              onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
                             ),
                           ),
                           validator: (v) {

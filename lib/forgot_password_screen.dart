@@ -39,7 +39,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       suffixIcon: suffix,
       filled: true,
       fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: 12,
+      ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
@@ -514,7 +517,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                         ),
                                       )
                                     : const Text(
-                                        'Reset Password',
+                                        'Reset',
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 18,

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:device_preview/device_preview.dart';
-
 import 'splash_screen.dart';
 
 void main() {
@@ -27,7 +26,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
 
-      // ✅ REQUIRED for DevicePreview
+      //REQUIRED for DevicePreview
       useInheritedMediaQuery: true,
       locale: DevicePreview.locale(context),
       builder: DevicePreview.appBuilder,

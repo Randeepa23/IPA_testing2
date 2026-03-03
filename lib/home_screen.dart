@@ -137,8 +137,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
+                        backgroundColor: Color(0xFF1565C0),
                         content: Text("Shift Schedule is coming soon 🚧"),
-                        duration: Duration(seconds: 1),
+                        duration: Duration(seconds: 2),
                       ),
                     );
                   },
