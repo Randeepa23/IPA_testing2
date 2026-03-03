@@ -1,12 +1,58 @@
 import 'package:flutter/material.dart';
+import 'package:test_app/Services/vehicle_api_service.dart';
 import 'dart:ui';
 import '../users/vehicle_screen.dart';
 import '../Vehicle/assigned_shuttle_trip_screen.dart';
 import '../Vehicle/assigned_transfer_trip_screen.dart';
 
-class VehicleHomeScreen extends StatelessWidget {
+class VehicleHomeScreen extends StatefulWidget {
   final Map<String, dynamic> user;
   const VehicleHomeScreen({super.key, required this.user});
+
+  @override
+  State<VehicleHomeScreen> createState() => _VehicleHomeScreenState();
+}
+
+class _VehicleHomeScreenState extends State<VehicleHomeScreen> {
+
+    // For showing assigned trip counts on the home screen
+    int shuttleAssignedCount = 0;
+    int transferAssignedCount = 0;
+    bool firstLoad = true;
+
+    @override
+  void initState() {
+    super.initState();
+    _loadAssignedCounts();
+  }
+
+    Future<void> _loadAssignedCounts() async {
+      try {
+        final employeeId = widget.user["employeeId"]?.toString() ?? "";
+        if (employeeId.isEmpty) return;
+
+        final results = await Future.wait([
+          VehicleApiService.fetchShuttleAssignedCount(employeeId: employeeId),
+          VehicleApiService.fetchTransferAssignedCount(employeeId: employeeId),
+        ]);
+
+        if (!mounted) return;
+
+        setState(() {
+          shuttleAssignedCount = results[0];
+          transferAssignedCount = results[1];
+          firstLoad = false;
+
+        });
+      } catch (_) {
+        if (!mounted) return;
+        setState(() {
+          shuttleAssignedCount = 0;
+          transferAssignedCount = 0;
+          firstLoad = false;
+        });
+      }
+    }
 
   @override
   Widget build(BuildContext context) {
@@ -14,109 +60,143 @@ class VehicleHomeScreen extends StatelessWidget {
     final isTablet = w > 600;
 
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 252, 252, 252),
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: _TopHeader(isTablet: isTablet, user: user),
+  backgroundColor: Colors.white,
+  body: SafeArea(
+    child: RefreshIndicator(
+      onRefresh: _loadAssignedCounts,
+      color: Colors.blue,
+      backgroundColor: Colors.white,
+      strokeWidth: 2,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(
+            child: _TopHeader(isTablet: isTablet, user: widget.user),
+          ),
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              isTablet ? 24 : 16,
+              16,
+              isTablet ? 24 : 16,
+              24,
             ),
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(isTablet ? 24 : 16, 16, isTablet ? 24 : 16, 24),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate(
-                  [
-                    const SizedBox(height: 6),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate(
+                [
+                  const SizedBox(height: 6),
 
-                    // Title card
-                    _InfoBanner(
-                      title: "Vehicle Request System",
-                      subtitle: "Choose a service to continue",
-                      icon: Icons.directions_car_rounded,
-                    ),
+                  // Title card
+                  const _InfoBanner(
+                    title: "Vehicle Request System",
+                    subtitle: "Choose a service to continue",
+                    icon: Icons.directions_car_rounded,
+                  ),
 
-                    const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                    _ServiceCard(
-                      icon: Icons.apartment_rounded,
-                      title: "Office",
-                      subtitle:
-                          "Request a company vehicle for official use.\nRequires manager approval.",
-                      chipText: "Approval required",
-                      chipColor: const Color(0xFFFFF3CD),
-                      chipTextColor: const Color(0xFF8A5A00),
-                      primaryButtonText: "Request Vehicle",
-                      onPrimaryTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => VehicleScreen(user: user)),
-                        );
-                      },
-                    ),
+                  _ServiceCard(
+                    icon: Icons.apartment_rounded,
+                    title: "Office",
+                    subtitle:
+                        "Request a company vehicle for official use.\nRequires manager approval.",
+                    chipText: "Approval required",
+                    chipColor: const Color(0xFFFFF3CD),
+                    chipTextColor: const Color(0xFF8A5A00),
+                    primaryButtonText: "Request Vehicle",
+                    onPrimaryTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => VehicleScreen(user: widget.user),
+                        ),
+                      );
+                    },
+                  ),
 
-                    const SizedBox(height: 14),
+                  const SizedBox(height: 14),
 
-                    _ServiceCard(
-                      icon: Icons.route_rounded,
-                      title: "Shuttle",
-                      subtitle:
-                          "Regular office shuttle routes.\nVehicle and driver are auto-assigned.",
-                      chipText: "Auto assigned",
-                      chipColor: const Color(0xFFEAF1FF),
-                      chipTextColor: const Color(0xFF1E5BB8),
-                      primaryButtonText: "View Trips",
-                      onPrimaryTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => AssignedShuttleTripScreen (user: user)),
-                        );
-                      },
-                    ),
+                  _ServiceCard(
+                    icon: Icons.route_rounded,
+                    title: "Shuttle",
+                    subtitle:
+                        "Regular office shuttle routes.\nVehicle and driver are auto-assigned.",
+                    chipText: "Auto assigned",
+                    chipColor: const Color(0xFFEAF1FF),
+                    chipTextColor: const Color(0xFF1E5BB8),
+                    primaryButtonText: "View Trips",
+                    
+                    // Show assigned trip count badge only after first load (to avoid showing '0' during loading)
+                    badgeCount: shuttleAssignedCount,
 
-                    const SizedBox(height: 14),
+                    onPrimaryTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => AssignedShuttleTripScreen(user: widget.user),
+                        ),
+                      );
+                      if (!mounted) return;
+                      _loadAssignedCounts(); // refresh when coming back
+                    },
+                  ),
 
-                    _ServiceCard(
-                      icon: Icons.place_rounded,
-                      title: "Transfer",
-                      subtitle:
-                          "Point-to-point transport.\nVehicle and driver are auto-assigned.",
-                      chipText: "Quick request",
-                      chipColor: const Color(0xFFE8F8EE),
-                      chipTextColor: const Color(0xFF1E7D47),
-                      primaryButtonText: "View Trips",
-                      onPrimaryTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => AssignedTransferTripScreen (user: user)),
-                        );
-                      },
-                    ),
+                  const SizedBox(height: 14),
+
+                  _ServiceCard(
+                    icon: Icons.place_rounded,
+                    title: "Transfer",
+                    subtitle:
+                        "Point-to-point transport.\nVehicle and driver are auto-assigned.",
+                    chipText: "Quick request",
+                    chipColor: const Color(0xFFE8F8EE),
+                    chipTextColor: const Color(0xFF1E7D47),
+                    primaryButtonText: "View Trips",
+
+                    // Show assigned trip count badge only after first load (to avoid showing '0' during loading)
+                    badgeCount: transferAssignedCount,
+                    
+                    onPrimaryTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => AssignedTransferTripScreen(user: widget.user),
+                        ),
+                      );
+                      if (!mounted) return;
+                      _loadAssignedCounts();
+                    },
+                  ),
 
                   const SizedBox(height: 50),
-                   Row(
-                      children: const [
-                        Expanded(child: Divider(color: Color(0xFF2563EB), thickness: 1)),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8),
-                          child: Text(
-                            'Explore Holdings',
-                            style: TextStyle(
-                              color: Color(0xFF2563EB),
-                              fontWeight: FontWeight.w600,
-                            ),
+                  Row(
+                    children: const [
+                      Expanded(
+                        child: Divider(color: Color(0xFF2563EB), thickness: 1),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(
+                          'Explore Holdings',
+                          style: TextStyle(
+                            color: Color(0xFF2563EB),
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                        Expanded(child: Divider(color: Color(0xFF2563EB), thickness: 1)),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                      Expanded(
+                        child: Divider(color: Color(0xFF2563EB), thickness: 1),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
+    ),
+  ),
+);
   }
 }
 
@@ -264,6 +344,8 @@ class _ServiceCard extends StatelessWidget {
   final String primaryButtonText;
   final VoidCallback onPrimaryTap;
 
+  final int badgeCount;
+
   const _ServiceCard({
     required this.icon,
     required this.title,
@@ -273,101 +355,130 @@ class _ServiceCard extends StatelessWidget {
     required this.chipTextColor,
     required this.primaryButtonText,
     required this.onPrimaryTap,
-
+    this.badgeCount = 0,
   });
   
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE6ECF5)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                height: 44,
-                width: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3F6FF),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: const Color(0xFF1E88E5)),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE6ECF5)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF0F172A),
-                  ),
-                ),
-              ),
-              _Chip(text: chipText, bg: chipColor, fg: chipTextColor),
             ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            subtitle,
-            style: const TextStyle(
-              fontSize: 12.8,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF4B5563),
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF1565C0), Color(0xFF003580)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+              Row(
+                children: [
+                  Container(
+                    height: 44,
+                    width: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3F6FF),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    borderRadius: BorderRadius.circular(12),
+                    child: Icon(icon, color: const Color(0xFF1E88E5)),
                   ),
-                  child: ElevatedButton(
-                    onPressed: onPrimaryTap,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      elevation: 0,
-                    ),
+                  const SizedBox(width: 12),
+                  Expanded(
                     child: Text(
-                      primaryButtonText,
+                      title,
                       style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 12.8,
-                        color: Colors.white,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF0F172A),
                       ),
                     ),
                   ),
+                  _Chip(text: chipText, bg: chipColor, fg: chipTextColor),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontSize: 12.8,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF4B5563),
+                  height: 1.35,
                 ),
               ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF1565C0), Color(0xFF003580)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ElevatedButton(
+                        onPressed: onPrimaryTap,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          primaryButtonText,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12.8,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              )
             ],
-          )
-        ],
-      ),
+          ),
+        ),
+
+        // BADGE (top-right)
+        if (badgeCount > 0)
+          Positioned(
+            top: -6,
+            right: -6,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                "$badgeCount",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

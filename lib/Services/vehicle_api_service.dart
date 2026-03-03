@@ -6,8 +6,8 @@ import 'package:http/http.dart' as http;
 class VehicleApiService {
 
   //Android Emulator → PC localhost
-  //static const String baseUrl = "http://10.0.2.2/mobile-api/vehicle";
-  static const String baseUrl = "https://exploresuite.lk/mobile-api/vehicle";
+  static const String baseUrl = "http://10.0.2.2/mobile-api/vehicle";
+  //static const String baseUrl = "https://exploresuite.lk/mobile-api/vehicle";
 
 
 
@@ -65,6 +65,27 @@ class VehicleApiService {
       return list
           .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
           .toList();
+    }
+
+    // API to fetch count of assigned trips (for both Shuttle and Transfer, since it's the same logic just different endpoints)
+    static Future<int> fetchShuttleAssignedCount({
+      required String employeeId,
+    }) async {
+      final list = await fetchShuttleTrips(
+        employeeId: employeeId,
+        status: "ASSIGNED",
+      );
+      return list.length;
+    }
+
+    static Future<int> fetchTransferAssignedCount({
+      required String employeeId,
+    }) async {
+      final list = await fetchTransferTrips(
+        employeeId: employeeId,
+        status: "ASSIGNED",
+      );
+      return list.length;
     }
 
     // API to generate trip code (for both Shuttle and Transfer, since it's the same code generation logic)
