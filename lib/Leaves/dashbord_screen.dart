@@ -743,13 +743,13 @@ Future<void> _loadManagerRequestCount() async {
         icon: Icons.directions_car ,
         label: 'Vehicle Request',
         onTap: () {
-          // Navigator.push(
-          //   context,
-          //   MaterialPageRoute(
-          //     builder: (context) => UserScreen(user: widget.user, initialTab: 2),
-          //   ),
-          // );
-          print("Vehicle Request tapped");
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Color(0xFF1565C0),
+              content: Text("Vehicle Request is coming soon 🚧"),
+              duration: Duration(seconds: 2),
+            ),
+          );
         },
       ),
     ];
@@ -760,7 +760,7 @@ Future<void> _loadManagerRequestCount() async {
       actions.add(
         _QuickAction(
           icon: Icons.cabin,
-          label: 'Request',
+          label: 'Leave Request',
           badgeCount: managerBadgeCount,
           onTap: () async {          
             final prefs = await SharedPreferences.getInstance();

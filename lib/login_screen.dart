@@ -43,7 +43,10 @@ class _LoginScreenState extends State<LoginScreen> {
         suffixIcon: suffix,
         filled: true,
         fillColor: Colors.white, // <-- IMPORTANT (not grey.shade100)
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
 
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
