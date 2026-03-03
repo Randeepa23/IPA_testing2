@@ -18,13 +18,54 @@ class _VehicleHomeScreenState extends State<VehicleHomeScreen> {
     // For showing assigned trip counts on the home screen
     int shuttleAssignedCount = 0;
     int transferAssignedCount = 0;
+    int officeBadgeCount = 0;
+    bool officeBadgeHidden = false;
     bool firstLoad = true;
 
     @override
   void initState() {
     super.initState();
+    _loadOfficeBadgeCount();
     _loadAssignedCounts();
   }
+
+bool get isManager {
+  final id = widget.user["jobTitleId"]?.toString() ?? "";
+  return id == "3"; // example: HOD/Manager
+}
+
+    Future<void> _loadOfficeBadgeCount() async {
+      try {
+        final employeeId = widget.user["employeeId"]?.toString() ?? "";
+        if (employeeId.isEmpty) return;
+
+        // 1) employee side (my office pending)
+        final myRes = await VehicleApiService.getMyTrips(employeeId: employeeId);
+        final myList = List<Map<String, dynamic>>.from(myRes["data"] ?? []);
+
+        final myOfficePending = myList.where((e) {
+          final type = (e["reason"] ?? e["type"] ?? "").toString().toUpperCase().trim();
+          final status = (e["status"] ?? "").toString().toUpperCase().trim();
+          return type == "OFFICE" && status == "APPROVED";
+        }).length;
+
+        // 2) manager side
+        int managerPending = 0;
+        if (isManager) {
+          final mgrList = await VehicleApiService.fetchManagerVehicleRequests(managerId: employeeId);
+          managerPending = mgrList.where((e) {
+            final status = (e["status"] ?? "").toString().toUpperCase().trim();
+            return status == "PENDING";
+          }).length;
+        }
+
+        if (!mounted) return;
+        setState(() => officeBadgeCount = myOfficePending + managerPending);
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => officeBadgeCount = 0);
+      }
+    }
 
     Future<void> _loadAssignedCounts() async {
       try {
@@ -53,6 +94,7 @@ class _VehicleHomeScreenState extends State<VehicleHomeScreen> {
         });
       }
     }
+    
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +105,14 @@ class _VehicleHomeScreenState extends State<VehicleHomeScreen> {
   backgroundColor: Colors.white,
   body: SafeArea(
     child: RefreshIndicator(
-      onRefresh: _loadAssignedCounts,
+      onRefresh: () async {
+        setState(() => officeBadgeHidden = false);
+
+        await Future.wait([
+          _loadOfficeBadgeCount(),
+          _loadAssignedCounts(),
+        ]);
+      },
       color: Colors.blue,
       backgroundColor: Colors.white,
       strokeWidth: 2,
@@ -97,19 +146,25 @@ class _VehicleHomeScreenState extends State<VehicleHomeScreen> {
                   _ServiceCard(
                     icon: Icons.apartment_rounded,
                     title: "Office",
-                    subtitle:
-                        "Request a company vehicle for official use.\nRequires manager approval.",
+                    subtitle: "Request a company vehicle for official use.\nRequires manager approval.",
                     chipText: "Approval required",
                     chipColor: const Color(0xFFFFF3CD),
                     chipTextColor: const Color(0xFF8A5A00),
                     primaryButtonText: "Request Vehicle",
-                    onPrimaryTap: () {
-                      Navigator.push(
+
+                    badgeCount: officeBadgeHidden ? 0 : officeBadgeCount,
+
+                    onPrimaryTap: () async {
+                      // hide after open
+                      setState(() => officeBadgeHidden = true);
+
+                      await Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => VehicleScreen(user: widget.user),
-                        ),
+                        MaterialPageRoute(builder: (_) => VehicleScreen(user: widget.user)),
                       );
+
+                      if (!mounted) return;
+                      // do not reload here (only refresh will show again)
                     },
                   ),
 
