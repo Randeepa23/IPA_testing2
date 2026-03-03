@@ -19,7 +19,7 @@ class VehicleRequestFormScreen extends StatefulWidget {
 }
 
 // Google Places API Key  
-const String googlePlacesKey = "YOUR_GOOGLE_API_KEY";
+const String googlePlacesKey = "https://maps.googleapis.com/maps/api/js?key=AIzaSyAHmbwBrk0OKY0Nhp9FrR_zn8HKLGZ54OU&libraries=places%22></script>";
 
 class PlaceSuggestion {
   final String description;

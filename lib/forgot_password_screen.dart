@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 // import 'package:google_fonts/google_fonts.dart';
 import 'package:test_app/Services/api_service.dart';
 import 'login_screen.dart';
@@ -232,36 +233,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           ),
                         ),
 
+                        SizedBox(height: (h * 0.06).clamp(20.0, 60.0)),
+
                         SizedBox(height: sectionGap),
 
-                        // App Name / Title (same style as login)
-                        ShaderMask(
-                          shaderCallback: (bounds) => RadialGradient(
-                            center: const Alignment(0.0, 0.3),
-                            radius: 1.2,
-                            colors: const [
-                              Color(0xFF42A5F5),
-                              Color(0xFF0D47A1),
-                            ],
-                            stops: const [0.2, 1.0],
-                          ).createShader(
-                            Rect.fromLTWH(0, 0, bounds.width, bounds.height),
-                          ),
-                          child: Center(
-                            child: Text(
-                              'Reset Password',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: (w * 0.08).clamp(18.0, 34.0),
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 0.3,
-                                color: Colors.white,
-                              ),
-                            ),
+                        Text(
+                          "Reset Password",
+                          style: GoogleFonts.actor(
+                            fontSize: (w * 0.07).clamp(22.0, 28.0),
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
 
-                        SizedBox(height: (h * 0.08).clamp(20.0, 60.0)),
                         SizedBox(height: sectionGap),
 
                         // Email Field
