@@ -19,7 +19,7 @@ class VehicleRequestFormScreen extends StatefulWidget {
 }
 
 // Google Places API Key  
-const String googlePlacesKey = "https://maps.googleapis.com/maps/api/js?key=AIzaSyAHmbwBrk0OKY0Nhp9FrR_zn8HKLGZ54OU&libraries=places%22></script>";
+const String googlePlacesKey = "AIzaSyAHmbwBrk0OKY0Nhp9FrR_zn8HKLGZ54OU";
 
 class PlaceSuggestion {
   final String description;
@@ -36,23 +36,34 @@ class PlaceSuggestion {
 }
 
 Future<List<PlaceSuggestion>> fetchPlaceSuggestions(String input) async {
+  input = input.trim();
   if (input.isEmpty) return [];
 
-  final url = Uri.parse(
-    "https://maps.googleapis.com/maps/api/place/autocomplete/json"
-    "?input=$input"
-    "&key=$googlePlacesKey"
-    "&components=country:lk",
+  final uri = Uri.https(
+    "maps.googleapis.com",
+    "/maps/api/place/autocomplete/json",
+    {
+      "input": input,
+      "key": googlePlacesKey,
+      "components": "country:lk",
+    },
   );
 
-  final response = await http.get(url);
-  if (response.statusCode != 200) return [];
+  final res = await http.get(uri);
+  final body = res.body;
+  final data = jsonDecode(body) as Map<String, dynamic>;
 
-  final data = json.decode(response.body);
-  if (data['status'] != 'OK') return [];
+  final status = (data["status"] ?? "").toString();
+  final err = (data["error_message"] ?? "").toString();
 
-  return (data['predictions'] as List)
-      .map((e) => PlaceSuggestion.fromJson(e))
+  debugPrint("Places status=$status code=${res.statusCode} err=$err");
+
+  if (res.statusCode != 200) return [];
+  if (status != "OK") return [];
+
+  final preds = (data["predictions"] as List? ?? []);
+  return preds
+      .map((e) => PlaceSuggestion.fromJson(e as Map<String, dynamic>))
       .toList();
 }
 
@@ -64,6 +75,7 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
   final employeeController = TextEditingController();
   final departmentController = TextEditingController();
   final contactController = TextEditingController();
+  final FocusNode _destinationFocusNode = FocusNode();
 
   // Fields
   final destinationController = TextEditingController();
@@ -383,35 +395,42 @@ void _showVehicleSubmitConfirmation() {
               const SizedBox(height: 16),
               
               // Destination (Autocomplete)
-              _sectionTitle("Destination *"),
-              const SizedBox(height: 8),
-
               TypeAheadField<PlaceSuggestion>(
-                debounceDuration: const Duration(milliseconds: 300),
-                suggestionsCallback: (pattern) {
-                  return fetchPlaceSuggestions(pattern);
-                },
-                itemBuilder: (context, suggestion) {
-                  return ListTile(
-                    leading: const Icon(Icons.location_on_outlined),
-                    title: Text(suggestion.description),
-                  );
-                },
+                controller: destinationController, 
+                focusNode: _destinationFocusNode,          
+
+                debounceDuration: const Duration(milliseconds: 400),
+                suggestionsCallback: (pattern) async => fetchPlaceSuggestions(pattern),
+
+                loadingBuilder: (context) => const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: Colors.blue,
+                      backgroundColor: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                ),
+
+                itemBuilder: (context, suggestion) => ListTile(
+                  leading: const Icon(Icons.location_on_outlined),
+                  title: Text(suggestion.description),
+                ),
+
                 onSelected: (suggestion) {
-                  destinationController.text = suggestion.description;
+                  destinationController.text = suggestion.description; 
+                  _destinationFocusNode.unfocus();     
                 },
-                builder: (context, textController, focusNode) {
-                  textController.text = destinationController.text;
 
-                  textController.addListener(() {
-                    destinationController.text = textController.text;
-                  });
-
+                builder: (context, controller, focusNode) {
                   return TextFormField(
-                    controller: destinationController,
-                    style: const TextStyle(color: Colors.black, fontSize: 15),
+                    controller: controller,
                     focusNode: focusNode,
-                    decoration: _inputDecoration("Enter your destination", icon: Icons.location_on_outlined),
+                    decoration: _inputDecoration(
+                      "Enter your destination",
+                      icon: Icons.location_on_outlined,
+                    ),
                     validator: (v) => (v == null || v.trim().isEmpty) ? "Required" : null,
                   );
                 },

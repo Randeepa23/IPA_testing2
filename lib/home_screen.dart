@@ -144,6 +144,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
                   },
                 ),
+                _serviceCard(
+                  imagePath: 'assets/itSupport.png',
+                  label: "IT Support",
+                  isDisabled: true, // add this 3063636.png
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        backgroundColor: Color(0xFF1565C0),
+                        content: Text("IT Support is coming soon 🚧"),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                ),
                   const SizedBox.shrink(),
                 ],
               ),
