@@ -15,18 +15,30 @@ class VehicleHomeScreen extends StatefulWidget {
 
 class _VehicleHomeScreenState extends State<VehicleHomeScreen> {
 
-    // For showing assigned trip counts on the home screen
-    int shuttleAssignedCount = 0;
-    int transferAssignedCount = 0;
-    int officeBadgeCount = 0;
-    bool officeBadgeHidden = false;
-    bool firstLoad = true;
+  // For showing assigned trip counts on the home screen
+  int shuttleAssignedCount = 0;
+  int transferAssignedCount = 0;
+  int officeBadgeCount = 0;
+  bool officeBadgeHidden = false;
+  bool firstLoad = true; // show loader while initial API calls run
 
-    @override
+  @override
   void initState() {
     super.initState();
-    _loadOfficeBadgeCount();
-    _loadAssignedCounts();
+    _initHomeData();
+  }
+
+  Future<void> _initHomeData() async {
+    setState(() => firstLoad = true);
+    try {
+      await Future.wait([
+        _loadOfficeBadgeCount(),
+        _loadAssignedCounts(),
+      ]);
+    } finally {
+      if (!mounted) return;
+      setState(() => firstLoad = false);
+    }
   }
 
 bool get isManager {
@@ -67,33 +79,30 @@ bool get isManager {
       }
     }
 
-    Future<void> _loadAssignedCounts() async {
-      try {
-        final employeeId = widget.user["employeeId"]?.toString() ?? "";
-        if (employeeId.isEmpty) return;
+  Future<void> _loadAssignedCounts() async {
+    try {
+      final employeeId = widget.user["employeeId"]?.toString() ?? "";
+      if (employeeId.isEmpty) return;
 
-        final results = await Future.wait([
-          VehicleApiService.fetchShuttleAssignedCount(employeeId: employeeId),
-          VehicleApiService.fetchTransferAssignedCount(employeeId: employeeId),
-        ]);
+      final results = await Future.wait([
+        VehicleApiService.fetchShuttleAssignedCount(employeeId: employeeId),
+        VehicleApiService.fetchTransferAssignedCount(employeeId: employeeId),
+      ]);
 
-        if (!mounted) return;
+      if (!mounted) return;
 
-        setState(() {
-          shuttleAssignedCount = results[0];
-          transferAssignedCount = results[1];
-          firstLoad = false;
-
-        });
-      } catch (_) {
-        if (!mounted) return;
-        setState(() {
-          shuttleAssignedCount = 0;
-          transferAssignedCount = 0;
-          firstLoad = false;
-        });
-      }
+      setState(() {
+        shuttleAssignedCount = results[0];
+        transferAssignedCount = results[1];
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        shuttleAssignedCount = 0;
+        transferAssignedCount = 0;
+      });
     }
+  }
     
 
   @override
@@ -102,9 +111,17 @@ bool get isManager {
     final isTablet = w > 600;
 
     return Scaffold(
-  backgroundColor: Colors.white,
-  body: SafeArea(
-    child: RefreshIndicator(
+      backgroundColor: Colors.white,
+      body: firstLoad
+          ? const Center(
+              child: CircularProgressIndicator(
+                backgroundColor: Colors.white,
+                color: Colors.blue,
+                strokeWidth: 2.5,
+              ),
+            )
+          : SafeArea(
+      child: RefreshIndicator(
       onRefresh: () async {
         setState(() => officeBadgeHidden = false);
 
