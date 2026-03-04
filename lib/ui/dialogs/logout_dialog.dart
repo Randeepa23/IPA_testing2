@@ -71,6 +71,8 @@ class LogoutDialog extends StatelessWidget {
                           child: OutlinedButton(
                             onPressed: () => Navigator.pop(context),
                             style: OutlinedButton.styleFrom(
+                              foregroundColor: Color(0xFF0060A6), // Text color
+                              side: const BorderSide(color: Color.fromARGB(255, 196, 196, 196), width: 1.2),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),

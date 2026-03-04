@@ -179,8 +179,27 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                             controller: controller,
                             maxLines: 3,
                             decoration: InputDecoration(
-                              hintText: "Peak season - unable to approve...",
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              hintText: "Peak season - unable to approve...", 
+                                 
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(
+                              color: Colors.blue,
+                              width: 1.4,
+                            ),
+                          ),
+
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(
+                              color: Colors.grey,
+                              width: 1,
+                            ),
+                          ),
                             ),
                             validator: (v) {
                               if (v == null || v.trim().isEmpty) {
@@ -203,7 +222,11 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                 child: OutlinedButton(
                                   onPressed: () => Navigator.pop(ctx),
                                   style: OutlinedButton.styleFrom(
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    foregroundColor: Color(0xFF0060A6), // Text color
+                                    side: const BorderSide(color: Color.fromARGB(255, 196, 196, 196), width: 1.2),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
                                     padding: const EdgeInsets.symmetric(vertical: 12),
                                   ),
                                   child: const Text("Cancel"),
@@ -341,8 +364,12 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                               child: OutlinedButton(
                                 onPressed: () => Navigator.pop(ctx),
                                 style: OutlinedButton.styleFrom(
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  foregroundColor: Color(0xFF0060A6), // Text color
+                                  side: const BorderSide(color: Color.fromARGB(255, 196, 196, 196), width: 1.2),
+                                  shape: RoundedRectangleBorder(
+                                     borderRadius: BorderRadius.circular(12),
+                                  ),
+                                   padding: const EdgeInsets.symmetric(vertical: 12),
                                 ),
                                 child: const Text("Cancel"),
                               ),

@@ -40,7 +40,7 @@ Future<void> showLeaveSubmitDialog({
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.error_outline, color: Colors.red),
+                          const Icon(Icons.error_outline, color: Color(0xFF0060A6)),
                           const SizedBox(width: 10),
                           const Expanded(
                             child: Text("Apply Leave Request",
@@ -71,10 +71,10 @@ Future<void> showLeaveSubmitDialog({
                             Text(leaveType,
                                 style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
                             const SizedBox(height: 4),
-                            Text("$fromTxt to $toTxt",
+                            Text(daysTxt,
                                 style: const TextStyle(fontSize: 12, color: Color(0xFF6B7A90), fontWeight: FontWeight.w700)),
                             const SizedBox(height: 2),
-                            Text(daysTxt,
+                            Text("$fromTxt to $toTxt",
                                 style: const TextStyle(fontSize: 12, color: Color(0xFF6B7A90), fontWeight: FontWeight.w700)),
                           ],
                         ),
@@ -91,16 +91,20 @@ Future<void> showLeaveSubmitDialog({
 
                       Row(
                         children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => Navigator.pop(ctx),
-                              style: OutlinedButton.styleFrom(
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () => Navigator.pop(ctx),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Color(0xFF0060A6), // Text color
+                                    side: const BorderSide(color: Color.fromARGB(255, 196, 196, 196), width: 1.2),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                  child: const Text("Cancel"),
+                                ),
                               ),
-                              child: const Text("Cancel"),
-                            ),
-                          ),
                           const SizedBox(width: 12),
                           Expanded(
                               child: SizedBox(

@@ -117,7 +117,26 @@ class _VehicleRequestScreenState extends State<VehicleRequestScreen> {
                             maxLines: 3,
                             decoration: InputDecoration(
                               hintText: "Vehicle not available...",
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(
+                              color: Colors.blue,
+                              width: 1.4,
+                            ),
+                          ),
+
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(
+                              color: Colors.grey,
+                              width: 1,
+                            ),
+                          ),
                             ),
                             validator: (v) => (v == null || v.trim().isEmpty)
                                 ? "Comment is required for reject"
@@ -135,7 +154,11 @@ class _VehicleRequestScreenState extends State<VehicleRequestScreen> {
                                 child: OutlinedButton(
                                   onPressed: () => Navigator.pop(ctx),
                                   style: OutlinedButton.styleFrom(
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    foregroundColor: Color(0xFF0060A6), // Text color
+                                    side: const BorderSide(color: Color.fromARGB(255, 196, 196, 196), width: 1.2),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
                                     padding: const EdgeInsets.symmetric(vertical: 12),
                                   ),
                                   child: const Text("Cancel"),
@@ -282,16 +305,20 @@ class _VehicleRequestScreenState extends State<VehicleRequestScreen> {
                         const SizedBox(height: 16),
                         Row(
                           children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () => Navigator.pop(ctx),
-                                style: OutlinedButton.styleFrom(
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () => Navigator.pop(ctx),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Color(0xFF0060A6), // Text color
+                                    side: const BorderSide(color: Color.fromARGB(255, 196, 196, 196), width: 1.2),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                  child: const Text("Cancel"),
                                 ),
-                                child: const Text("Cancel"),
                               ),
-                            ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: DecoratedBox(

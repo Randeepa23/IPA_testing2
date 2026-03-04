@@ -17,7 +17,7 @@ class DashboardScreen extends StatefulWidget {
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
-
+ 
 class _DashboardScreenState extends State<DashboardScreen> {
 
   bool get isHod {
@@ -318,6 +318,8 @@ Future<void> _loadManagerRequestCount() async {
     }
   }
 
+  
+
   @override
   Widget build(BuildContext context) {
     final fullName = widget.user["name"] ?? "";
@@ -444,15 +446,41 @@ Future<void> _loadManagerRequestCount() async {
                                           ? Image.network(
                                               profilePhotoUrl!,
                                               fit: BoxFit.cover,
+                                              loadingBuilder: (context, child, progress) {
+                                                if (progress == null) return child;
+                                                return Container(
+                                                  color: Colors.white,
+                                                  alignment: Alignment.center,
+                                                  child: const SizedBox(
+                                                    width: 14,
+                                                    height: 14,
+                                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                                  ),
+                                                );
+                                              },
                                               errorBuilder: (_, __, ___) => Container(
                                                 color: Colors.white,
                                                 child: const Icon(Icons.person, size: 16, color: Colors.blue),
                                               ),
                                             )
-                                          : Container(
-                                              color: Colors.white,
-                                              child: const Icon(Icons.person, size: 16, color: Colors.blue),
-                                            ),
+                                          : (photoLoading
+                                              ? Container(
+                                                  color: Colors.white,
+                                                  alignment: Alignment.center,
+                                                  child: const SizedBox(
+                                                    width: 14,
+                                                    height: 14,
+                                                    child: CircularProgressIndicator(
+                                                      color: Colors.blue,
+                                                      backgroundColor: Colors.white,
+                                                      strokeWidth: 2
+                                                      ),
+                                                  ),
+                                                )
+                                              : Container(
+                                                  color: Colors.white,
+                                                  child: const Icon(Icons.person, size: 16, color: Colors.blue),
+                                                )),
                                     ),
                                   ),
                                 ),
@@ -742,15 +770,7 @@ Future<void> _loadManagerRequestCount() async {
           _QuickAction(
         icon: Icons.directions_car ,
         label: 'Vehicle Request',
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              backgroundColor: Color(0xFF1565C0),
-              content: Text("Vehicle Request is coming soon 🚧"),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        },
+         onTap: () => showBottomMessage("Vehicle Request is coming soon 🚧"),
       ),
     ];
 
@@ -791,7 +811,38 @@ Future<void> _loadManagerRequestCount() async {
   }
 
 
- // Recent request card — simple, user-friendly
+void showBottomMessage(String text) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: const Color(0xFF1E63B5),
+    shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(0)),
+      ),
+    builder: (sheetContext) {
+      Future.delayed(const Duration(seconds: 1), () {
+        if (Navigator.of(sheetContext).canPop()) {
+          Navigator.of(sheetContext).pop();
+        }
+      });
+
+      return Container(
+        width: double.infinity,
+        height: 70,
+        alignment: Alignment.center,
+        child: Text(
+          text,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      );
+    },
+  );
+}
+
+  // Recent request card — simple, user-friendly
   Widget _leaveStatus(String type, String date, String days, String status, Color color) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
