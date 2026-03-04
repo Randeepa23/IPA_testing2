@@ -159,7 +159,7 @@ Future<Map<String, dynamic>?> _getPhotoFuture(int employeeId) {
         else if (requests.isEmpty)
           const Padding(
             padding: EdgeInsets.only(top: 30),
-            child: Center(child: Text("No reliever requests")),
+            child: Center(child: Text("No reliever requests", style: TextStyle(color: Colors.grey))),
           )
         else
           ...requests.map((r) => Padding(

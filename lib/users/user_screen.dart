@@ -44,11 +44,15 @@ class _UserScreenState extends State<UserScreen> {
             backgroundColor: Colors.white,
               appBar: AppBar(
                   backgroundColor: Colors.white,
+                  iconTheme: const IconThemeData(
+                  color: Colors.black87,
+                ),
             title: Text(
         getAppBarTitle(),
         style: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w700,
+          color: Colors.black87,
         ),
       ),
 

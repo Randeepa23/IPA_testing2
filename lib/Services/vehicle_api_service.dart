@@ -194,7 +194,7 @@ class VehicleApiService {
         "chauffer_name": employeeName,
         "reason": reason,
       }),
-    );
+    ).timeout(const Duration(seconds: 12));
 
     if (res.body.trim().isEmpty) {
       throw Exception("Server returned EMPTY response");

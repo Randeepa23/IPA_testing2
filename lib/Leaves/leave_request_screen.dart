@@ -180,7 +180,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                             maxLines: 3,
                             decoration: InputDecoration(
                               hintText: "Peak season - unable to approve...", 
-                                 
+
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
@@ -544,7 +544,10 @@ class _LeaveRequestCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           data["employeeName"] ?? "",
-                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900, 
+                            fontSize: 13.5, color: Color(0xFF1E2A3A)
+                          ),
                         ),
                       ),
                       if (isSpecial)
