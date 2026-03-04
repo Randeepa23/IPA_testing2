@@ -594,7 +594,25 @@ Future<Map<String, dynamic>?> _getPhotoFuture(int employeeId) {
                             maxLines: 3,
                             decoration: InputDecoration(
                               hintText: "Explain why you cannot cover this leave...",
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: const BorderSide(
+                                  color: Colors.blue,
+                                  width: 1.4,
+                                ),
+                              ),
+
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: const BorderSide(
+                                  color: Colors.grey,
+                                  width: 1,
+                                ),
+                              ),
                             ),
                             validator: (v) {
                               if (v == null || v.trim().isEmpty) return "Comment is required for decline";
@@ -609,13 +627,13 @@ Future<Map<String, dynamic>?> _getPhotoFuture(int employeeId) {
                           const SizedBox(height: 16),
                           Row(
                             children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: () => Navigator.pop(ctx),
-                                  style: OutlinedButton.styleFrom(
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                  ),
+                             Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => Navigator.pop(ctx),
+                                style: OutlinedButton.styleFrom(
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
                                   child: const Text("Cancel"),
                                 ),
                               ),
@@ -726,9 +744,28 @@ Future<Map<String, dynamic>?> _getPhotoFuture(int employeeId) {
                           controller: controller,
                           maxLines: 3,
                           decoration: InputDecoration(
-                            hintText: "e.g. I will cover all responsibilities during these dates...",
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          hintText: "e.g. I will cover all responsibilities during these dates...",
+                          
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
                           ),
+
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(
+                              color: Colors.blue,
+                              width: 1.4,
+                            ),
+                          ),
+
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(
+                              color: Colors.grey,
+                              width: 1,
+                            ),
+                          ),
+                        ),
                         ),
                         const SizedBox(height: 12),
                         Text(
