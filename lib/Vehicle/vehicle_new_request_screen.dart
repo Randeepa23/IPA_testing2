@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:http/http.dart' as http;
 
+
 class VehicleRequestFormScreen extends StatefulWidget {
   final Map<String, dynamic> user;
   final VoidCallback? onRequestSubmitted;
@@ -392,6 +393,31 @@ void _showVehicleSubmitConfirmation() {
                 ],
               ),
 
+              const SizedBox(height: 10),
+
+                const SizedBox(height: 10),
+                if (fromDate != null && toDate != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEAF1FF),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Total Days',
+                          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                        ),
+                        Text(
+                          '${toDate!.difference(fromDate!).inDays + 1} days',
+                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900),
+                        ),
+                      ],
+                    ),
+                  ),
+
               const SizedBox(height: 16),
               
               // Destination (Autocomplete)
@@ -494,14 +520,14 @@ void _showVehicleSubmitConfirmation() {
                               color: Colors.white,
                             ),
                           ),
-                        ),
-                      ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-       );
+          ),
+        ),
+      );
     }
 
   // ---------------- UI HELPERS ----------------
