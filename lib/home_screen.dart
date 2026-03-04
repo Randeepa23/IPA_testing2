@@ -158,6 +158,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
                   },
                 ),
+                _serviceCard(
+                  imagePath: 'assets/1223211.png',
+                  label: "Inventory Management",
+                  isDisabled: true, // add this 3063636.png
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        backgroundColor: Color(0xFF1565C0),
+                        content: Text("Shift Schedule is coming soon 🚧"),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                ),
                   const SizedBox.shrink(),
                 ],
               ),
@@ -243,8 +257,8 @@ class _HomeScreenState extends State<HomeScreen> {
             if (imagePath != null)
               Image.asset(
                 imagePath,
-                width: 75,
-                height: 75,
+                width: 70,
+                height: 70,
                 fit: BoxFit.contain,
               ),
             const SizedBox(height: 10),

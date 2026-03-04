@@ -444,15 +444,41 @@ Future<void> _loadManagerRequestCount() async {
                                           ? Image.network(
                                               profilePhotoUrl!,
                                               fit: BoxFit.cover,
+                                              loadingBuilder: (context, child, progress) {
+                                                if (progress == null) return child;
+                                                return Container(
+                                                  color: Colors.white,
+                                                  alignment: Alignment.center,
+                                                  child: const SizedBox(
+                                                    width: 14,
+                                                    height: 14,
+                                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                                  ),
+                                                );
+                                              },
                                               errorBuilder: (_, __, ___) => Container(
                                                 color: Colors.white,
                                                 child: const Icon(Icons.person, size: 16, color: Colors.blue),
                                               ),
                                             )
-                                          : Container(
-                                              color: Colors.white,
-                                              child: const Icon(Icons.person, size: 16, color: Colors.blue),
-                                            ),
+                                          : (photoLoading
+                                              ? Container(
+                                                  color: Colors.white,
+                                                  alignment: Alignment.center,
+                                                  child: const SizedBox(
+                                                    width: 14,
+                                                    height: 14,
+                                                    child: CircularProgressIndicator(
+                                                      color: Colors.blue,
+                                                      backgroundColor: Colors.white,
+                                                      strokeWidth: 2
+                                                      ),
+                                                  ),
+                                                )
+                                              : Container(
+                                                  color: Colors.white,
+                                                  child: const Icon(Icons.person, size: 16, color: Colors.blue),
+                                                )),
                                     ),
                                   ),
                                 ),

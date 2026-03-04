@@ -285,11 +285,13 @@ static const String baseUrl = "https://exploresuite.lk/mobile-api/api";
       "halfDaySession": halfDaySession ?? "",
     };
 
-      final res = await http.post(
-        url,
-        headers: {"Content-Type": "application/json", "Accept": "application/json"},
-        body: jsonEncode(body),
-      );
+    final res = await http
+        .post(
+          url,
+          headers: {"Content-Type": "application/json", "Accept": "application/json"},
+          body: jsonEncode(body),
+        )
+        .timeout(const Duration(seconds: 15));
 
       if (res.body.trim().isEmpty) {
         throw Exception("EMPTY response");
