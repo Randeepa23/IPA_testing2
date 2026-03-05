@@ -195,11 +195,19 @@ Future<void> _submitForm() async {
         Future.delayed(const Duration(milliseconds: 1000), () {});
       }
       else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(res["message"] ?? "Failed")),
-            );
-          }
-        } catch (e) {
+      // ERROR MESSAGE FROM PHP
+      final msg = res["message"] ?? "Request failed";
+
+            TopBanner.show(
+              context,
+              title: "Leave Request Failed",
+              message: msg,
+              icon: Icons.warning_amber_rounded,
+              rightButtonText: "OK",
+              onRightTap: () {},
+              );
+            }
+          } catch (e) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("Error: $e")),
           );
@@ -770,7 +778,7 @@ void _showSubmitConfirmation() {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: ElevatedButton(
-                    onPressed: _showSubmitConfirmation,
+                    onPressed: _isSubmitting ? null : _showSubmitConfirmation,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
