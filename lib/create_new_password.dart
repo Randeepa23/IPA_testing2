@@ -217,6 +217,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                           style: GoogleFonts.actor(
                             fontSize: (w * 0.07).clamp(22.0, 28.0),
                             fontWeight: FontWeight.w700,
+                            color: const Color(0xFF003863),
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -226,7 +227,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                               : "Your new password must be different from previous one.",
                           style: GoogleFonts.actor(
                             fontSize: 13,
-                            color: Colors.black54,
+                            color: const Color.fromARGB(255, 101, 156, 182),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -248,8 +249,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                           ],
                           decoration: _inputDecoration(
                             "Recovery Name",
-                            prefix: const Icon(Icons.vpn_key_outlined),
-                            hint: "Enter recovery key",
+                            prefix: Icon(Icons.vpn_key_outlined,color: Colors.grey.shade700),
                           ),
                           validator: (v) {
                             final value = (v ?? '').trim();
@@ -263,7 +263,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                               'Important: Please remember this recovery key. If you forget your password later, you must use this key to reset and log in again.',
                               style: TextStyle(
                                 fontSize: 11.5,
-                                color: const Color.fromARGB(255, 223, 148, 148),
+                                color: const Color.fromARGB(255, 216, 108, 108),
                                 fontWeight: FontWeight.w500,
                                 height: 1.3,
                               ),
@@ -278,7 +278,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                           obscureText: _obscureNew,
                           decoration: _inputDecoration(
                             "New Password",
-                            prefix: const Icon(Icons.lock_outline),
+                            prefix: Icon(Icons.lock_outline, color: Colors.grey.shade700),
                             suffix: IconButton(
                               icon: Icon(_obscureNew ? Icons.visibility_off : Icons.visibility),
                               onPressed: () => setState(() => _obscureNew = !_obscureNew),
@@ -328,7 +328,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                           obscureText: _obscureConfirm,
                           decoration: _inputDecoration(
                             "Confirm Password",
-                            prefix: const Icon(Icons.lock_outline),
+                            prefix: Icon(Icons.lock_outline, color: Colors.grey.shade700),
                             suffix: IconButton(
                               icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility),
                               onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
@@ -346,37 +346,51 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
 
                         SizedBox(height: sectionGap),
 
-                        //Submit Button
+                        //Submit Button (match login gradient but keep same size)
                         Center(
                           child: SizedBox(
                             width: (w * 0.70).clamp(220.0, 360.0),
                             height: 48,
-                            child: ElevatedButton(
-                              onPressed: _isSubmitting ? null : _submit,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF0060A6),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF0060A6),
+                                    Color(0xFF003580),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 ),
-                                elevation: 0,
+                                borderRadius: BorderRadius.circular(14),
                               ),
-                              child: _isSubmitting
-                                  ? const SizedBox(
-                                      width: 22,
-                                      height: 22,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2.5,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              child: ElevatedButton(
+                                onPressed: _isSubmitting ? null : _submit,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  elevation: 0,
+                                ),
+                                child: _isSubmitting
+                                    ? const SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Update Password',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w800,
+                                        ),
                                       ),
-                                    )
-                                  : const Text(
-                                      'Update Password',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
+                              ),
                             ),
                           ),
                         ),

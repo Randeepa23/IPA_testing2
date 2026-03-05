@@ -242,6 +242,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           style: GoogleFonts.actor(
                             fontSize: (w * 0.07).clamp(22.0, 28.0),
                             fontWeight: FontWeight.w700,
+                            color: const Color(0xFF003863),
                           ),
                         ),
 
