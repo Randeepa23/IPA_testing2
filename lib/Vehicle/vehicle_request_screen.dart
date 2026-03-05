@@ -1,9 +1,10 @@
 import 'dart:math';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../Services/vehicle_api_service.dart';
 import '../Leaves/top_banner.dart';
 import '../Services/api_service.dart';
+import '../ui/dialogs/vehicle_reject_dialog.dart';
+import '../ui/dialogs/vehicle_approve_dialog.dart';
 
 class VehicleRequestScreen extends StatefulWidget {
   final String managerId;
@@ -55,182 +56,39 @@ class _VehicleRequestScreenState extends State<VehicleRequestScreen> {
       );
     }
 
-  // ====================== REJECT POPUP ======================
+  // ====================== REJECT POPUP (delegated to dialog file) ======================
   Future<void> _showRejectDialog(BuildContext context, Map<String, dynamic> r) async {
-    final controller = TextEditingController();
-    final formKey = GlobalKey<FormState>();
+    final requestId = int.parse(
+      (r["request_id"] ?? r["id"] ?? "0").toString(),
+    );
 
-    await showDialog(
+    await showVehicleRejectDialog(
       context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.black.withOpacity(0.15),
-      builder: (ctx) {
-        final w = MediaQuery.of(ctx).size.width;
-        final dialogW = (w * 0.92).clamp(280.0, 420.0);
+      initialNote: "",
+      onReject: (comment) async {
+        try {
+          await VehicleApiService.rejectVehicleRequest(
+            requestId: requestId,
+            comment: comment,
+          );
 
-        return Stack(
-          children: [
-            BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-              child: Container(color: Colors.transparent),
-            ),
-            Center(
-              child: Dialog(
-                insetPadding: const EdgeInsets.all(16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                child: SizedBox(
-                  width: dialogW,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-                    child: Form(
-                      key: formKey,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.error_outline, color: Colors.red),
-                              const SizedBox(width: 10),
-                              const Expanded(
-                                child: Text(
-                                  "Reject Vehicle Request",
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                                ),
-                              ),
-                              IconButton(
-                                onPressed: () => Navigator.pop(ctx),
-                                icon: const Icon(Icons.close),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            "This action cannot be undone.",
-                            style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(height: 12),
-                          const Text("Your Comment", style: TextStyle(fontWeight: FontWeight.w800)),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: controller,
-                            maxLines: 3,
-                            decoration: InputDecoration(
-                              hintText: "Vehicle not available...",
+          await _loadManagerVehicleRequests();
 
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: const BorderSide(
-                              color: Colors.blue,
-                              width: 1.4,
-                            ),
-                          ),
-
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: const BorderSide(
-                              color: Colors.grey,
-                              width: 1,
-                            ),
-                          ),
-                            ),
-                            validator: (v) => (v == null || v.trim().isEmpty)
-                                ? "Comment is required for reject"
-                                : null,
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            "Are you sure you want to reject this vehicle request?",
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: () => Navigator.pop(ctx),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: Color(0xFF0060A6), // Text color
-                                    side: const BorderSide(color: Color.fromARGB(255, 196, 196, 196), width: 1.2),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                  ),
-                                  child: const Text("Cancel"),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [Color(0xFFD10A0A), Color(0xFF5B0000)],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: ElevatedButton(
-                                    onPressed: () async {
-                                      if (!formKey.currentState!.validate()) return;
-
-                                      final comment = controller.text.trim();
-                                      final requestId = int.parse(
-                                        (r["request_id"] ?? r["id"] ?? "0").toString(),
-                                      );
-
-                                      try {
-                                        await VehicleApiService.rejectVehicleRequest(
-                                          requestId: requestId,
-                                          comment: comment,
-                                        );
-
-                                        if (mounted) Navigator.pop(ctx);
-                                        await _loadManagerVehicleRequests();
-
-                                        if (mounted) {
-                                          TopBanner.show(
-                                            context,
-                                            title: "Reject Request",
-                                            message: "Vehicle request rejected successfully.",
-                                            icon: Icons.cancel,
-                                          );
-                                        }
-                                      } catch (e) {
-                                        if (mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text("Reject failed: $e")),
-                                          );
-                                        }
-                                      }
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.transparent,
-                                      shadowColor: Colors.transparent,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
-                                      elevation: 0,
-                                    ),
-                                    child: const Text("Reject", style: TextStyle(color: Colors.white)),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
+          if (mounted) {
+            TopBanner.show(
+              context,
+              title: "Reject Request",
+              message: "Vehicle request rejected successfully.",
+              icon: Icons.cancel,
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Reject failed: $e")),
+            );
+          }
+        }
       },
     );
   }
@@ -248,140 +106,39 @@ class _VehicleRequestScreenState extends State<VehicleRequestScreen> {
     return "#$namePart$numberPart";
   }
 
-  // ====================== APPROVE POPUP ======================
+  // ====================== APPROVE POPUP (delegated to dialog file) ======================
   Future<void> _showApproveDialog(BuildContext context, Map<String, dynamic> r) async {
-    await showDialog(
+    final requestId = int.parse(r["request_id"].toString());
+    final employeeName = (r["employee_name"] ?? r["employeeName"] ?? "USER").toString();
+    final code = _generateTripCode(employeeName);
+
+    await showVehicleApproveDialog(
       context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.black.withOpacity(0.15),
-      builder: (ctx) {
-        final w = MediaQuery.of(ctx).size.width;
-        final dialogW = (w * 0.90).clamp(300.0, 420.0);
+      employeeName: employeeName,
+      onApprove: () async {
+        try {
+          await VehicleApiService.approveVehicleRequest(
+            requestId: requestId,
+          );
 
-        return Stack(
-          children: [
-            BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-              child: Container(color: Colors.transparent),
-            ),
-            Center(
-              child: Dialog(
-                insetPadding: const EdgeInsets.all(16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                child: SizedBox(
-                  width: dialogW,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.check_circle_outline, color: Colors.green),
-                            const SizedBox(width: 10),
-                            const Expanded(
-                              child: Text(
-                                "Approve Vehicle Request",
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => Navigator.pop(ctx),
-                              icon: const Icon(Icons.close),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          "Please confirm approval.",
-                          style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 14),
-                        Text(
-                          "Approve vehicle request for ${r['employee_name'] ?? r['employeeName'] ?? ''}?",
-                          style: const TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: () => Navigator.pop(ctx),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: Color(0xFF0060A6), // Text color
-                                    side: const BorderSide(color: Color.fromARGB(255, 196, 196, 196), width: 1.2),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                  ),
-                                  child: const Text("Cancel"),
-                                ),
-                              ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [Color(0xFF2E7D32), Color(0xFF1B5E20)],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: ElevatedButton(
-                                  onPressed: () async {
-                                    final requestId = int.parse(r["request_id"].toString());
-                                    final employeeName = (r["employee_name"] ?? r["employeeName"] ?? "USER").toString();
-                                    final code = _generateTripCode(employeeName);
+          await _loadManagerVehicleRequests();
 
-                                    try {
-                                      await VehicleApiService.approveVehicleRequest(
-                                        requestId: requestId,
-                                      );
-
-                                      if (mounted) Navigator.pop(ctx);
-                                      await _loadManagerVehicleRequests();
-
-                                      if (mounted) {
-                                        TopBanner.show(
-                                          context,
-                                          title: "Request Approved",
-                                          message: "Vehicle request approved successfully. Trip Code: $code",
-                                          icon: Icons.check_circle,
-                                          isSuccess: true,
-                                        );
-                                      }
-                                    } catch (e) {
-                                      if (mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text("Approve failed: $e")),
-                                        );
-                                      }
-                                    }
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.transparent,
-                                    shadowColor: Colors.transparent,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                    elevation: 0,
-                                  ),
-                                  child: const Text("Approve", style: TextStyle(color: Colors.white)),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
+          if (mounted) {
+            TopBanner.show(
+              context,
+              title: "Request Approved",
+              message: "Vehicle request approved successfully. Trip Code: $code",
+              icon: Icons.check_circle,
+              isSuccess: true,
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Approve failed: $e")),
+            );
+          }
+        }
       },
     );
   }
@@ -407,7 +164,9 @@ class _VehicleRequestScreenState extends State<VehicleRequestScreen> {
               const Padding(
                 padding: EdgeInsets.only(top: 40),
                 child: Center(
-                  child: CircularProgressIndicator(color: Colors.blue, backgroundColor: Colors.white),
+                  child: CircularProgressIndicator(
+                    color: Colors.blue, 
+                    backgroundColor: Colors.white),
                 ),
               )
             else if (errorText != null)
@@ -494,7 +253,7 @@ class _VehicleRequestCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Builder(
                 builder: (context) {
@@ -506,7 +265,7 @@ class _VehicleRequestCard extends StatelessWidget {
 
                       if (snap.connectionState == ConnectionState.waiting) {
                         return const CircleAvatar(
-                          radius: 18,
+                          radius: 22,
                           backgroundColor: Color(0xFFEAF1FF),
                           child: SizedBox(
                             width: 14,
@@ -522,14 +281,14 @@ class _VehicleRequestCard extends StatelessWidget {
 
                       if (url.isNotEmpty) {
                         return CircleAvatar(
-                          radius: 18,
+                          radius: 22,
                           backgroundColor: const Color(0xFFEAF1FF),
                           backgroundImage: NetworkImage(url),
                         );
                       }
 
                       return const CircleAvatar(
-                        radius: 18,
+                        radius: 22,
                         backgroundColor: Color(0xFFEAF1FF),
                         child: Icon(Icons.person, color: Color(0xFF1E88E5)),
                       );
@@ -547,7 +306,7 @@ class _VehicleRequestCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             employeeName,
-                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5),
+                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5, color: Colors.black),
                           ),
                         ),
                         // WAITING badge
