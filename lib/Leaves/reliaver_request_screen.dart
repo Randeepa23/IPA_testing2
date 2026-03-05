@@ -252,25 +252,17 @@ Future<Map<String, dynamic>?> _getPhotoFuture(int employeeId) {
                   }
 
                   if (url.isNotEmpty) {
-                    return ClipOval(
-                      child: Image.network(
-                        url,
-                        width: 34,
-                        height: 34,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const CircleAvatar(
-                          radius: 17,
-                          backgroundColor: Color(0xFFEAF1FF),
-                          child: Icon(Icons.person, size: 18, color: Colors.black54),
-                        ),
-                      ),
+                    return CircleAvatar(
+                      radius: 22,
+                      backgroundColor: const Color(0xFFEAF1FF),
+                      backgroundImage: NetworkImage(url),
                     );
                   }
 
                   return const CircleAvatar(
-                    radius: 17,
+                    radius: 22,
                     backgroundColor: Color(0xFFEAF1FF),
-                    child: Icon(Icons.person, size: 18, color: Colors.black54),
+                    child: Icon(Icons.person, color: Color(0xFF1E88E5)),
                   );
                 },
               ),

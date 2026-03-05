@@ -74,6 +74,31 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     return trips.where((t) => (t["status"] ?? "") == status).toList();
   }
 
+  Map<String, int> _tripCounts() {
+    int pending = 0, approved = 0, inProgress = 0, completed = 0;
+
+    for (final t in trips) {
+      final s = (t["status"] ?? "").toString().toUpperCase();
+      if (s == "APPROVED") {
+        approved++;
+      } else if (s == "IN_PROGRESS") {
+        inProgress++;
+      } else if (s == "COMPLETED") {
+        completed++;
+      } else {
+        // default bucket
+        pending++;
+      }
+    }
+
+    return {
+      "pending": pending,
+      "approved": approved,
+      "inProgress": inProgress,
+      "completed": completed,
+    };
+  }
+
   Future<bool?> _confirmCancelTrip() async {
     return showDialog<bool>(
       context: context,
@@ -325,6 +350,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
   @override
   Widget build(BuildContext context) {
     final filtered = _filteredTrips();
+    final counts = _tripCounts();
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -345,6 +371,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                     child: _SegmentTabs(
                       selectedIndex: selectedTab,
                       onChanged: (i) => setState(() => selectedTab = i),
+                      counts: counts,
                     ),
                   ),
                   if (loading)
@@ -407,8 +434,13 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
 class _SegmentTabs extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onChanged;
+  final Map<String, int> counts;
 
-  const _SegmentTabs({required this.selectedIndex, required this.onChanged});
+  const _SegmentTabs({
+    required this.selectedIndex,
+    required this.onChanged,
+    required this.counts,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -420,13 +452,13 @@ class _SegmentTabs extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _pill("Pending", 0),
+          _pill("Pending (${counts["pending"] ?? 0})", 0),
           const SizedBox(width: 6),
-          _pill("Approved", 1),
+          _pill("Approved (${counts["approved"] ?? 0})", 1),
           const SizedBox(width: 6),
-          _pill("In Progress", 2),
+          _pill("In Progress (${counts["inProgress"] ?? 0})", 2),
           const SizedBox(width: 6),
-          _pill("Completed", 3),
+          _pill("Completed (${counts["completed"] ?? 0})", 3),
         ],
       ),
     );
