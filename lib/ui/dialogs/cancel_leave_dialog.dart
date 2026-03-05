@@ -89,6 +89,7 @@ Future<bool?> showCancelConfirmPopup(BuildContext context) {
                           style: TextStyle(
                             fontSize: 12.5,
                             fontWeight: FontWeight.w700,
+                            color: Colors.black87,
                           ),
                         ),
                       ),
