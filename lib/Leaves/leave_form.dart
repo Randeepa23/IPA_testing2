@@ -5,6 +5,7 @@ import 'package:test_app/Services/api_service.dart';
 import 'dart:ui';
 import 'dart:io';
 import 'package:test_app/ui/dialogs/leave_submit_dialog.dart';
+import 'package:test_app/ui/widgets/common_form_widgets.dart';
 import 'leave_history_screen.dart';
 import 'top_banner.dart';
 import 'package:file_picker/file_picker.dart';
@@ -344,29 +345,29 @@ void _showSubmitConfirmation() {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // ---------------- YOUR DETAILS ----------------
-              _sectionTitle('Your Name'),
+              const FormSectionTitle('Your Name'),
               const SizedBox(height: 8),
-              _readonlyInput(value: nameController.text),
+              ReadonlyInfoField(value: nameController.text),
 
               const SizedBox(height: 12),
-              _sectionTitle('Employee No.'),
+              const FormSectionTitle('Employee No.'),
               const SizedBox(height: 8),
-              _readonlyInput(value: employeeController.text),
+              ReadonlyInfoField(value: employeeController.text),
 
               const SizedBox(height: 12),
-              _sectionTitle('Department'),
+              const FormSectionTitle('Department'),
               const SizedBox(height: 8),
-              _readonlyInput(value: departmentController.text),
+              ReadonlyInfoField(value: departmentController.text),
 
               const SizedBox(height: 12),
-              _sectionTitle('Contact No.'),
+              const FormSectionTitle('Contact No.'),
               const SizedBox(height: 8),
-              _readonlyInput(value: contactController.text),
+              ReadonlyInfoField(value: contactController.text),
 
               const SizedBox(height: 16),
 
               // ---------------- LEAVE TYPE ----------------
-              _sectionTitle('Leave Type *'),
+              const FormSectionTitle('Leave Type *'),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 value: selectedLeaveType,
@@ -405,7 +406,7 @@ void _showSubmitConfirmation() {
 
               // ---------------- DATES (SIDE BY SIDE) ----------------
               if (isHalfDay) ...[
-                _sectionTitle('Date *'),
+                const FormSectionTitle('Date *'),
                 const SizedBox(height: 8),
                 _buildDatePicker('Select date', fromDate, (date) {
                   setState(() {
@@ -416,7 +417,7 @@ void _showSubmitConfirmation() {
                 }),
 
                 const SizedBox(height: 12),
-                _sectionTitle('Half Day Session *'),
+                const FormSectionTitle('Half Day Session *'),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   value: halfDaySession,
@@ -465,7 +466,7 @@ void _showSubmitConfirmation() {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _sectionTitle(isHalfDay ? 'Date *' : 'From date *'),
+                        FormSectionTitle(isHalfDay ? 'Date *' : 'From date *'),
                         const SizedBox(height: 8),
                         _buildDatePicker(
                           isHalfDay ? 'Select date' : 'From date',
@@ -495,7 +496,7 @@ void _showSubmitConfirmation() {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _sectionTitle(isHalfDay ? 'Time *' : 'To date *'),
+                        FormSectionTitle(isHalfDay ? 'Time *' : 'To date *'),
                         const SizedBox(height: 8),
 
                         if (isHalfDay)
@@ -555,7 +556,7 @@ void _showSubmitConfirmation() {
               const SizedBox(height: 16),
 
               // ---------------- REASON ----------------
-              _sectionTitle('Reason for leave *'),
+              const FormSectionTitle('Reason for leave *'),
               const SizedBox(height: 8),
               TextFormField(
                 controller: reasonController,
@@ -568,7 +569,7 @@ void _showSubmitConfirmation() {
               const SizedBox(height: 16),
 
               // ---------------- TEAM MEMBER (RELIEVER) ----------------
-              _sectionTitle('Select Team Member to Cover Your Duties *'),
+              const FormSectionTitle('Select Team Member to Cover Your Duties *'),
               const SizedBox(height: 10),
 
               if (fromDate != null && toDate != null)
@@ -716,7 +717,7 @@ void _showSubmitConfirmation() {
               const SizedBox(height: 16),
 
               // ---------------- ADDRESS ----------------
-              _sectionTitle('Address While on Leave (Optional)'),
+              const FormSectionTitle('Address While on Leave (Optional)'),
               const SizedBox(height: 8),
               TextFormField(
                 controller: addressController,
@@ -728,7 +729,7 @@ void _showSubmitConfirmation() {
               const SizedBox(height: 16),
 
               // ---------------- ATTACHMENT ----------------
-              _sectionTitle('Attach Document (Optional)'),
+              const FormSectionTitle('Attach Document (Optional)'),
               const SizedBox(height: 8),
               GestureDetector(
                 onTap: _pickAttachment,
@@ -766,35 +767,10 @@ void _showSubmitConfirmation() {
               const SizedBox(height: 18),
 
               // ---------------- SUBMIT ----------------
-              SizedBox(
-                height: 46,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF1565C0), Color(0xFF003580)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: ElevatedButton(
-                    onPressed: _isSubmitting ? null : _showSubmitConfirmation,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'SUBMIT',
-                      style: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white),
-                    ),
-                  ),
-                ),
+              GradientSubmitButton(
+                label: 'SUBMIT',
+                isLoading: _isSubmitting,
+                onPressed: _showSubmitConfirmation,
               ),
             ],
           ),
@@ -878,35 +854,6 @@ void _showSubmitConfirmation() {
 
 
   // ---------------- UI HELPERS (UI ONLY) ----------------
-  Widget _sectionTitle(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 12.5,
-        fontWeight: FontWeight.w900,
-        color: Color(0xFF1E2A3A),
-      ),
-    );
-  }
-
-  Widget _readonlyInput({required String value}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade300, width: 1),
-      ),
-      child: Text(
-        value,
-        style: const TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: Colors.black,
-        ),
-      ),
-    );
-  }
 
   Widget _buildDatePicker(
       String hint, DateTime? selected, Function(DateTime) onSelect) {

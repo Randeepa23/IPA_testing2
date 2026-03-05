@@ -6,6 +6,7 @@ import '../Services/vehicle_api_service.dart';
 import '../Leaves/top_banner.dart';
 import 'dart:convert';
 import '../Services/api_service.dart';
+import '../ui/widgets/common_form_widgets.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:http/http.dart' as http;
 
@@ -271,37 +272,38 @@ void _showVehicleSubmitConfirmation() {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-               // ---------------- YOUR DETAILS ----------------
-              _sectionTitle('Your Name'),
+              // ---------------- YOUR DETAILS ----------------
+              const FormSectionTitle('Your Name'),
               const SizedBox(height: 8),
-              _readonlyInput(value: nameController.text),
+              ReadonlyInfoField(value: nameController.text),
 
               const SizedBox(height: 12),
-              _sectionTitle('Employee No.'),
+              const FormSectionTitle('Employee No.'),
               const SizedBox(height: 8),
-              _readonlyInput(value: employeeController.text),
+              ReadonlyInfoField(value: employeeController.text),
 
               const SizedBox(height: 12),
-              _sectionTitle('Department'),
+              const FormSectionTitle('Department'),
               const SizedBox(height: 8),
-              _readonlyInput(value: departmentController.text),
+              ReadonlyInfoField(value: departmentController.text),
 
               const SizedBox(height: 12),
-              _sectionTitle('Contact No.'),
+              const FormSectionTitle('Contact No.'),
               const SizedBox(height: 8),
-              _readonlyInput(value: contactController.text),
+              ReadonlyInfoField(value: contactController.text),
 
               const SizedBox(height: 16),
 
               // Reason (read-only)
-              _sectionTitle("Reason for request"),
+              const FormSectionTitle("Reason for request"),
               const SizedBox(height: 8),
-              _readonlyInput(value: "Office Service"),
+              const SizedBox(height: 8),
+              const ReadonlyInfoField(value: "Office Service"),
 
               const SizedBox(height: 16),
 
               // Vehicle number
-              _sectionTitle("Vehicle Number * (e.g. ABC-1234)"),
+              const FormSectionTitle("Vehicle Number * (e.g. ABC-1234)"),
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -375,7 +377,7 @@ void _showVehicleSubmitConfirmation() {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _sectionTitle("From date *"),
+                        const FormSectionTitle("From date *"),
                         const SizedBox(height: 8),
                         _buildDatePicker("From date", fromDate, (d) {
                           setState(() {
@@ -393,7 +395,7 @@ void _showVehicleSubmitConfirmation() {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _sectionTitle("To date *"),
+                        const FormSectionTitle("To date *"),
                         const SizedBox(height: 8),
                         _buildDatePicker("To date", toDate, (d) {
                           setState(() => toDate = d);
@@ -481,7 +483,7 @@ void _showVehicleSubmitConfirmation() {
               const SizedBox(height: 16),
 
               // Approving Manager dropdown
-              _sectionTitle("Select Approving Manager *"),
+              const FormSectionTitle("Select Approving Manager *"),
               const SizedBox(height: 8),
 
               if (managers.isEmpty)
@@ -567,80 +569,19 @@ void _showVehicleSubmitConfirmation() {
 
               const SizedBox(height: 18),
               // Submit
-              SizedBox(
-                height: 46,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF1565C0), Color(0xFF003580)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: ElevatedButton(
-                    onPressed: _isSubmitting ? null : _showVehicleSubmitConfirmation,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      elevation: 0,
-                    ),
-                    child: _isSubmitting
-                        ? const SizedBox(
-                            height: 18,
-                            width: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Text(
-                            'SUBMIT',
-                            style: TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                            ),
-                          ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              GradientSubmitButton(
+                label: 'SUBMIT',
+                isLoading: _isSubmitting,
+                onPressed: _showVehicleSubmitConfirmation,
+              ),
+            ],
           ),
         ),
-      );
-    }
+      ),
+    );
+  }
 
   // ---------------- UI HELPERS ----------------
-
-  Widget _sectionTitle(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 12.5,
-        fontWeight: FontWeight.w900,
-        color: Color(0xFF1E2A3A),
-      ),
-    );
-  }
-
-  Widget _readonlyInput({required String value}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade300, width: 1),
-      ),
-      child: Text(
-        value,
-        style: const TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: Colors.black,
-        ),
-      ),
-    );
-  }
   // Same input style as login/leave form - clear on all devices
   InputDecoration _inputDecoration(String hint, {IconData? icon, Widget? suffix}) {
     return InputDecoration(
@@ -661,24 +602,6 @@ void _showVehicleSubmitConfirmation() {
       ),
     );
   }
-
-  // InputDecoration _dropdownDecoration() {
-  //   return InputDecoration(
-  //     hintStyle: TextStyle(color: Colors.grey.shade600),
-  //     filled: true,
-  //     fillColor: Colors.white,
-  //     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-  //     enabledBorder: OutlineInputBorder(
-  //       borderRadius: BorderRadius.circular(16),
-  //       borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
-  //     ),
-  //     focusedBorder: OutlineInputBorder(
-  //       borderRadius: BorderRadius.circular(16),
-  //       borderSide: const BorderSide(color: Colors.blue, width: 1.4),
-  //     ),
-  //   );
-  // }
-
   Widget _buildDatePicker(
     String label,
     DateTime? selected,
