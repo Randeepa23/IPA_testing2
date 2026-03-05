@@ -242,7 +242,7 @@ Widget build(BuildContext context) {
             if (filtered.isEmpty)
               const Padding(
                 padding: EdgeInsets.only(top: 30),
-                child: Center(child: Text("No requests found")),
+                child: Center(child: Text("No requests found", style: TextStyle(color: Colors.grey))),
               )
             else
               ...filtered.map(

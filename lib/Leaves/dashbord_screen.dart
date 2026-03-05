@@ -423,7 +423,7 @@ Future<void> _loadManagerRequestCount() async {
                                         children: [
                                           Icon(Icons.person_outline, color: Colors.blue),
                                           SizedBox(width: 10),
-                                          Text("View Profile"),
+                                          Text("View Profile",style: TextStyle(color: Colors.black),),
                                         ],
                                       ),
                                     ),
@@ -433,7 +433,7 @@ Future<void> _loadManagerRequestCount() async {
                                         children: [
                                           Icon(Icons.logout, color: Colors.red),
                                           SizedBox(width: 10),
-                                          Text("Logout"),
+                                          Text("Logout",style: TextStyle(color: Colors.black),),
                                         ],
                                       ),
                                     ),
@@ -527,7 +527,10 @@ Future<void> _loadManagerRequestCount() async {
                   children: [
                     Text(
                       'Quick Action',
-                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600, 
+                        color: Colors.black
+                      ),
                     ),
                     const SizedBox(height: 10),
                     _quickActions(context),
@@ -536,7 +539,10 @@ Future<void> _loadManagerRequestCount() async {
 
                     Text(
                       'Recent Requests',
-                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black
+                      ),
                     ),
                     const SizedBox(height: 10),
 

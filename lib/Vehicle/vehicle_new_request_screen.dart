@@ -5,6 +5,7 @@ import '../ui/dialogs/vehicle_submit_dialog.dart';
 import '../Services/vehicle_api_service.dart';
 import '../Leaves/top_banner.dart';
 import 'dart:convert';
+import '../Services/api_service.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:http/http.dart' as http;
 
@@ -96,6 +97,9 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
 
   bool _isSubmitting = false;
 
+  // Photo cache for manager avatars
+  final Map<int, Future<Map<String, dynamic>?>> _photoFutureCache = {};
+
   @override
   void initState() {
     super.initState();
@@ -105,6 +109,13 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
     employeeController.text = widget.user['employeeCode'] ?? '';
     departmentController.text = widget.user['department'] ?? '';
     contactController.text = widget.user['phone'] ?? '';
+  }
+
+    Future<Map<String, dynamic>?> _getPhotoFuture(int employeeId) {
+    return _photoFutureCache.putIfAbsent(
+      employeeId,
+      () => ApiService.getProfilePhoto(employeeId: employeeId),
+    );
   }
 
 Future<void> _loadManagers() async {
@@ -408,11 +419,11 @@ void _showVehicleSubmitConfirmation() {
                       children: [
                         const Text(
                           'Total Days',
-                          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF1E2A3A)),
                         ),
                         Text(
                           '${toDate!.difference(fromDate!).inDays + 1} days',
-                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900),
+                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900, color: Color(0xFF1E2A3A)),
                         ),
                       ],
                     ),
@@ -453,9 +464,14 @@ void _showVehicleSubmitConfirmation() {
                   return TextFormField(
                     controller: controller,
                     focusNode: focusNode,
+
+                        style: const TextStyle(
+                        color: Colors.black,
+                      ),
                     decoration: _inputDecoration(
                       "Enter your destination",
                       icon: Icons.location_on_outlined,
+                      
                     ),
                     validator: (v) => (v == null || v.trim().isEmpty) ? "Required" : null,
                   );
@@ -467,24 +483,88 @@ void _showVehicleSubmitConfirmation() {
               // Approving Manager dropdown
               _sectionTitle("Select Approving Manager *"),
               const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  value: (selectedManagerId != null &&
-                          managers.any((m) => m["id"] == selectedManagerId))
-                      ? selectedManagerId
-                      : null,
-                  dropdownColor: Colors.white,
-                  decoration: _dropdownDecoration().copyWith(
-                    hintText: "Select Manager",
+
+              if (managers.isEmpty)
+                const Text("No managers found")
+              else
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE1E6EF)),
                   ),
-                  items: managers.map((m) {
-                    return DropdownMenuItem<String>(
-                      value: m["id"],
-                      child: Text(m["name"] ?? "-"),
-                    );
-                  }).toList(),
-                  onChanged: (v) => setState(() => selectedManagerId = v),
-                  validator: (v) => v == null ? "Select manager" : null,
+                  child: Column(
+                    children: managers.map((m) {
+                      final managerId = (m["id"] ?? "").toString();
+                      final empId = int.tryParse(managerId) ?? 0;
+
+                      return RadioListTile<String>(
+                        value: managerId,
+                        groupValue: selectedManagerId,
+                        onChanged: (v) => setState(() => selectedManagerId = v),
+
+                        // radio on right
+                        controlAffinity: ListTileControlAffinity.trailing,
+
+                        // radio color
+                        fillColor: MaterialStateProperty.resolveWith((states) {
+                          if (states.contains(MaterialState.selected)) return Colors.blue;
+                          return Colors.grey;
+                        }),
+
+                        // photo on left
+                        secondary: FutureBuilder<Map<String, dynamic>?>(
+                          future: empId > 0 ? _getPhotoFuture(empId) : Future.value(null),
+                          builder: (context, snap) {
+                            final url = (snap.data?["fileUrl"] ?? "").toString().trim();
+
+                            if (snap.connectionState == ConnectionState.waiting) {
+                              return const CircleAvatar(
+                                radius: 18,
+                                backgroundColor: Color(0xFFEAF1FF),
+                                child: SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    backgroundColor: Colors.white,
+                                    color: Colors.blue,
+                                    strokeWidth: 2),
+                                ),
+                              );
+                            }
+
+                            if (url.isNotEmpty) {
+                              return CircleAvatar(
+                                radius: 18,
+                                backgroundColor: const Color(0xFFEAF1FF),
+                                backgroundImage: NetworkImage(url),
+                              );
+                            }
+
+                            return const CircleAvatar(
+                              radius: 18,
+                              backgroundColor: Color(0xFFEAF1FF),
+                              child: Icon(Icons.person, size: 18, color: Colors.black54),
+                            );
+                          },
+                        ),
+
+                        // name
+                        title: Text(
+                          (m["name"] ?? "-").toString(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
                 ),
+
               const SizedBox(height: 18),
               // Submit
               SizedBox(
@@ -582,22 +662,22 @@ void _showVehicleSubmitConfirmation() {
     );
   }
 
-  InputDecoration _dropdownDecoration() {
-    return InputDecoration(
-      hintStyle: TextStyle(color: Colors.grey.shade600),
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Colors.blue, width: 1.4),
-      ),
-    );
-  }
+  // InputDecoration _dropdownDecoration() {
+  //   return InputDecoration(
+  //     hintStyle: TextStyle(color: Colors.grey.shade600),
+  //     filled: true,
+  //     fillColor: Colors.white,
+  //     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+  //     enabledBorder: OutlineInputBorder(
+  //       borderRadius: BorderRadius.circular(16),
+  //       borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+  //     ),
+  //     focusedBorder: OutlineInputBorder(
+  //       borderRadius: BorderRadius.circular(16),
+  //       borderSide: const BorderSide(color: Colors.blue, width: 1.4),
+  //     ),
+  //   );
+  // }
 
   Widget _buildDatePicker(
     String label,

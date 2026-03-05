@@ -315,11 +315,15 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
+        iconTheme: const IconThemeData(
+          color: Colors.black87,
+        ),
         title: const Text(
           "Assigned Shuttle Trip",
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
+            color: Colors.black87,
           ),
         ),
       ),
@@ -368,7 +372,7 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
                 if (list.isEmpty) {
                   return const Padding(
                     padding: EdgeInsets.only(top: 24),
-                    child: Center(child: Text("No trips found")),
+                    child: Center(child: Text("No trips found", style: TextStyle(color: Colors.grey))),
                   );
                 }
                 return const SizedBox.shrink();
@@ -412,7 +416,7 @@ class _Header extends StatelessWidget {
         children: [
           const Text(
             "Assigned Shuttle Trip",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF1E2A3A)),
           ),
           const SizedBox(height: 4),
           Text(
@@ -574,7 +578,7 @@ class TripCard extends StatelessWidget {
                       const Text(
                         "Shuttle Trip",
                         style:
-                            TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                            TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF1E2A3A)),
                       ),
                       const SizedBox(height: 2),
                       Text(

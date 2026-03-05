@@ -290,8 +290,7 @@ static const String baseUrl = "https://exploresuite.lk/mobile-api/api";
           url,
           headers: {"Content-Type": "application/json", "Accept": "application/json"},
           body: jsonEncode(body),
-        )
-        .timeout(const Duration(seconds: 15));
+        ).timeout(const Duration(seconds: 12));
 
       if (res.body.trim().isEmpty) {
         throw Exception("EMPTY response");
@@ -319,6 +318,7 @@ static const String baseUrl = "https://exploresuite.lk/mobile-api/api";
         "fromDate": fromDate,
         "toDate": toDate,
       }),
+    ).timeout(const Duration(seconds: 12)
     );
 
     if (res.body.trim().isEmpty) throw Exception("EMPTY response");
@@ -332,7 +332,11 @@ static const String baseUrl = "https://exploresuite.lk/mobile-api/api";
     final res = await http.post(url,
       headers: {"Content-Type": "application/json", "Accept": "application/json"},
       body: jsonEncode({"employeeId": employeeId}),
-    );
+    ).timeout(const Duration(seconds: 12));
+
+     if (res.body.trim().isEmpty) {
+      throw Exception("Server returned EMPTY response (check PHP path / fatal error).");
+    }
     return Map<String, dynamic>.from(jsonDecode(res.body));
   }
 
@@ -357,7 +361,7 @@ static const String baseUrl = "https://exploresuite.lk/mobile-api/api";
       url,
       headers: {"Content-Type": "application/json", "Accept": "application/json"},
       body: jsonEncode({"employeeId": employeeId, "leaveRequestId": leaveRequestId}),
-    );
+    ).timeout(const Duration(seconds: 12));
 
     debugPrint("CANCEL URL: $url");
     debugPrint("CANCEL STATUS: ${res.statusCode}");

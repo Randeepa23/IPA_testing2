@@ -158,10 +158,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
+                      color: Colors.black54
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.logout_outlined),
+                    icon: const Icon(Icons.logout_outlined, color: Colors.black54),
                     onPressed: _showLogoutConfirmationDialog,
                   ),
                 ],

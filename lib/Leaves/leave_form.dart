@@ -526,11 +526,11 @@ void _showSubmitConfirmation() {
                       children: [
                         const Text(
                           'Total Days',
-                          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Colors.black87),
                         ),
                         Text(
                           '${toDate!.difference(fromDate!).inDays + 1} days',
-                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900),
+                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900, color: Colors.black87),
                         ),
                       ],
                     ),
@@ -601,7 +601,12 @@ void _showSubmitConfirmation() {
                       value: m['id']!,
                       groupValue: selectedMember,
                       onChanged: (v) => setState(() => selectedMember = v),
-                      activeColor: blue,
+                     fillColor: MaterialStateProperty.resolveWith<Color>((states) {
+                      if (states.contains(MaterialState.selected)) {
+                        return Colors.blue; // selected radio color
+                      }
+                      return Colors.black54; // unselected radio color
+                    }),
 
                       // radio button on RIGHT
                       controlAffinity: ListTileControlAffinity.trailing,
@@ -647,7 +652,10 @@ void _showSubmitConfirmation() {
                       // Name in middle
                       title: Text(
                         m['name']!,
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                        style: const TextStyle(fontSize: 13,
+                        fontWeight: FontWeight.w800, 
+                        color: Colors.black87
+                        ),
                       ),
 
                     );

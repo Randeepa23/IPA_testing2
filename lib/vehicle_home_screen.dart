@@ -318,7 +318,7 @@ class _TopHeader extends StatelessWidget {
             onPressed: () {
               Navigator.pop(context);
             },
-            icon: const Icon(Icons.arrow_back_rounded),
+            icon: const Icon(Icons.arrow_back_rounded, color: Colors.black87),
           ),
         ],
       ),

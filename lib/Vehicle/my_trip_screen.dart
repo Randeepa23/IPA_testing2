@@ -377,7 +377,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                   if (!loading && errorText == null && filtered.isEmpty)
                     const Padding(
                       padding: EdgeInsets.only(bottom: 12, top: 10),
-                      child: Center(child: Text("No trips found")),
+                      child: Center(child: Text("No trips found", style: TextStyle(color: Colors.grey))),
                     ),
                 ],
               );
@@ -555,7 +555,7 @@ class TripCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     (data["vehicleNo"] ?? "").toString(),
-                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF1E2A3A)),
                   ),
                 ),
                 _statusPill(status),
