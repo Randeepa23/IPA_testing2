@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import '../Services/api_service.dart';
-import 'top_banner.dart';
-
+import '../ui/dialogs/reject_leave_dialog.dart';
+import '../ui/dialogs/approve_leave_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:photo_view/photo_view.dart';
 class LeaveRequestScreen extends StatefulWidget {
@@ -52,6 +52,26 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       employeeId,
       () => ApiService.getProfilePhoto(employeeId: employeeId),
     );
+  }
+  
+  // Show reject dialog
+  Future<void> _showRejectDialog(BuildContext context, Map<String, dynamic> r) async {
+  showRejectDialog(
+    context: context,
+    request: r,
+    managerId: widget.managerId,
+    reload: _loadManagerRequests,
+  );
+  }
+
+  // Show approve dialog
+    Future<void> _showApproveDialog(BuildContext context, Map<String, dynamic> r) async {
+  showApproveDialog(
+    context: context,
+    request: r,
+    managerId: widget.managerId,
+    reload: _loadManagerRequests,
+  );
   }
 
   @override
@@ -114,328 +134,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  // ====================== REJECT POPUP ======================
-  Future<void> _showRejectDialog(BuildContext context, Map<String, dynamic> r) async {
-    final controller = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.black.withOpacity(0.15),
-      builder: (ctx) {
-        final w = MediaQuery.of(ctx).size.width;
-        final dialogW = (w * 0.92).clamp(280.0, 420.0);
-
-        return Stack(
-          children: [
-            BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-              child: Container(color: Colors.transparent),
-            ),
-            Center(
-              child: Dialog(
-                insetPadding: const EdgeInsets.all(16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                child: SizedBox(
-                  width: dialogW,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-                    child: Form(
-                      key: formKey,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.error_outline, color: Colors.red),
-                              const SizedBox(width: 10),
-                              const Expanded(
-                                child: Text(
-                                  "Reject Leave Request",
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                                ),
-                              ),
-                              IconButton(
-                                onPressed: () => Navigator.pop(ctx),
-                                icon: const Icon(Icons.close),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            "This action cannot be undone.",
-                            style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(height: 12),
-                          const Text("Your Comment", style: TextStyle(fontWeight: FontWeight.w800)),
-                          const SizedBox(height: 8),
-
-                          TextFormField(
-                            controller: controller,
-                            maxLines: 3,
-                            decoration: InputDecoration(
-                              hintText: "Peak season - unable to approve...", 
-
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: const BorderSide(
-                              color: Colors.blue,
-                              width: 1.4,
-                            ),
-                          ),
-
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: const BorderSide(
-                              color: Colors.grey,
-                              width: 1,
-                            ),
-                          ),
-                            ),
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty) {
-                                return "Comment is required for reject";
-                              }
-                              return null;
-                            },
-                          ),
-
-                          const SizedBox(height: 12),
-                          const Text(
-                            "Are you sure you want to reject this leave request?",
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
-
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: () => Navigator.pop(ctx),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: Color(0xFF0060A6), // Text color
-                                    side: const BorderSide(color: Color.fromARGB(255, 196, 196, 196), width: 1.2),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                  ),
-                                  child: const Text("Cancel"),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [Color(0xFFD10A0A), Color(0xFF5B0000)],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: ElevatedButton(
-                                    onPressed: () async {
-                                      if (!formKey.currentState!.validate()) return;
-
-                                      final comment = controller.text.trim();
-                                      final leaveId = int.parse(r["leave_request_id"].toString());
-
-                                      try {
-                                        await ApiService.rejectLeave(
-                                          managerId: widget.managerId,
-                                          leaveRequestId: leaveId,
-                                          comment: comment,
-                                        );
-
-                                        if (mounted) Navigator.pop(ctx);
-                                        await _loadManagerRequests();
-
-                                        if (mounted) {
-                                          TopBanner.show(
-                                          context,
-                                          title: "Reject Request",
-                                          message: "Your pending leave request has been rejected successfully.",
-                                          icon: Icons.cancel,
-                                          );
-                                        }
-                                      } catch (e) {
-                                        if (mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text("Reject failed: $e")),
-                                          );
-                                        }
-                                      }
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.transparent,
-                                      shadowColor: Colors.transparent,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
-                                      elevation: 0,
-                                    ),
-                                    child: const Text("Reject", style: TextStyle(color: Colors.white)),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // ====================== APPROVE POPUP (no comment) ======================
-  Future<void> _showApproveDialog(BuildContext context, Map<String, dynamic> r) async {
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.black.withOpacity(0.15),
-      builder: (ctx) {
-        final w = MediaQuery.of(ctx).size.width;
-        final dialogW = (w * 0.90).clamp(300.0, 420.0);
-
-        return Stack(
-          children: [
-            BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-              child: Container(color: Colors.transparent),
-            ),
-            Center(
-              child: Dialog(
-                insetPadding: const EdgeInsets.all(16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                child: SizedBox(
-                  width: dialogW,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.check_circle_outline, color: Colors.green),
-                            const SizedBox(width: 10),
-                            const Expanded(
-                              child: Text(
-                                "Approve Leave Request",
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => Navigator.pop(ctx),
-                              icon: const Icon(Icons.close),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          "Please confirm approval.",
-                          style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 14),
-                        Text(
-                          "Approve leave for ${r['employeeName']}?",
-                          style: const TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                        const SizedBox(height: 16),
-
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () => Navigator.pop(ctx),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Color(0xFF0060A6), // Text color
-                                  side: const BorderSide(color: Color.fromARGB(255, 196, 196, 196), width: 1.2),
-                                  shape: RoundedRectangleBorder(
-                                     borderRadius: BorderRadius.circular(12),
-                                  ),
-                                   padding: const EdgeInsets.symmetric(vertical: 12),
-                                ),
-                                child: const Text("Cancel"),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [Color(0xFF2E7D32), Color(0xFF1B5E20)],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: ElevatedButton(
-                                  onPressed: () async {
-                                    final leaveId = int.parse(r["leave_request_id"].toString());
-
-                                    try {
-                                      await ApiService.approveLeave(
-                                        managerId: widget.managerId,
-                                        leaveRequestId: leaveId,
-                                      );
-
-                                      if (mounted) Navigator.pop(ctx);
-                                      await _loadManagerRequests();
-
-                                      if (mounted) {
-                                          TopBanner.show(
-                                          context,
-                                          title: "Accept Request",
-                                          message: "Your pending leave request has been accepted successfully.",
-                                          icon: Icons.check_circle,
-                                          );
-                                      }
-                                    } catch (e) {
-                                      if (mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text("Approve failed: $e")),
-                                        );
-                                      }
-                                    }
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.transparent,
-                                    shadowColor: Colors.transparent,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                    elevation: 0,
-                                  ),
-                                  child: const Text("Approve", style: TextStyle(color: Colors.white)),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
     );
   }
 }
