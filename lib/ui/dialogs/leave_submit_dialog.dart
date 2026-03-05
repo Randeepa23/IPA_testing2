@@ -69,7 +69,7 @@ Future<void> showLeaveSubmitDialog({
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(leaveType,
-                                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.black87)),
                             const SizedBox(height: 4),
                             Text(daysTxt,
                                 style: const TextStyle(fontSize: 12, color: Color(0xFF6B7A90), fontWeight: FontWeight.w700)),

@@ -178,7 +178,7 @@ Future<void> _submitForm() async {
         TopBanner.show(
           context,
           title: "Request send successful..",
-          message: "Your leave request has been submitted successfully, and is now pending approval.",
+          message: "Your leave request has been submitted successfully.",
           icon: Icons.check_circle,
           leftButtonText: "View request",
           rightButtonText: "Ok",
@@ -366,7 +366,14 @@ void _showSubmitConfirmation() {
                 decoration: _dropdownDecoration(),
                 hint: Text('Select leave type', style: TextStyle(color: Colors.grey.shade600)),
                 items: leaveTypes
-                    .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                    .map((t) => DropdownMenuItem(value: t, child: Text(t,
+                    style: const TextStyle(     // ITEM TEXT COLOR
+                    color: Colors.black,
+                    fontWeight: FontWeight.w600
+                          ),
+                          )
+                        )
+                        )
                     .toList(),
                 onChanged: (v) {
                 setState(() {
@@ -409,8 +416,8 @@ void _showSubmitConfirmation() {
                   decoration: _dropdownDecoration(),
                   hint: Text('Select session', style: TextStyle(color: Colors.grey.shade600)),
                   items: const [
-                    DropdownMenuItem(value: 'MORNING', child: Text('Morning')),
-                    DropdownMenuItem(value: 'EVENING', child: Text('Evening')),
+                    DropdownMenuItem(value: 'MORNING', child: Text('Morning',style: const TextStyle(color: Colors.black,fontWeight: FontWeight.w600))),
+                    DropdownMenuItem(value: 'EVENING', child: Text('Evening',style: const TextStyle(color: Colors.black,fontWeight: FontWeight.w600))),
                   ],
                   onChanged: (v) => setState(() => halfDaySession = v),
                   validator: (v) => v == null ? 'Select session' : null,
