@@ -1,34 +1,28 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.test_app">
 
-    <!-- Internet -->
+    <!-- Internet (API calls + upload) -->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!-- Camera -->
     <uses-permission android:name="android.permission.CAMERA" />
 
-    <!-- If you capture video with audio (optional but common) -->
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
-
-
-    <!-- Android 12 and below (gallery/files) -->
+    <!-- Android 12 and below (read files/images from storage) -->
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
 
-    <!-- Android 13+ (gallery/media) -->
+    <!-- Android 13+ (gallery/media access) -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
 
     <application
         android:label="Explore Enterprise Suite"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
-        android:requestLegacyExternalStorage="true">
+        android:usesCleartextTraffic="true">
 
-        <!-- IMPORTANT: FileProvider (camera needs this on real devices) -->
+        <!-- FileProvider (required for camera/photo on real devices) -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -65,20 +59,14 @@
 
     </application>
 
-    <!-- Queries required for Android 11+ package visibility -->
+    <!-- Android 11+ visibility queries (recommended for pickers/camera) -->
     <queries>
-        <!-- Keep your existing -->
-        <intent>
-            <action android:name="android.intent.action.PROCESS_TEXT" />
-            <data android:mimeType="text/plain" />
-        </intent>
-
-        <!-- Camera capture -->
+        <!-- Camera -->
         <intent>
             <action android:name="android.media.action.IMAGE_CAPTURE" />
         </intent>
 
-        <!-- File picker (documents/images) -->
+        <!-- Pick documents/images -->
         <intent>
             <action android:name="android.intent.action.GET_CONTENT" />
             <data android:mimeType="*/*" />

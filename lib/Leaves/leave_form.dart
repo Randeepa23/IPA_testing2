@@ -663,29 +663,40 @@ void _showSubmitConfirmation() {
                   ),
                 )
               else if (fromDate != null && toDate != null)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD7E8F6),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text(
-                      'Proceed without reliever team member (By HOD Approval)',
-                      style:
-                          TextStyle(fontWeight: FontWeight.w900, fontSize: 12.5),
-                    ),
-                    subtitle: const Text(
-                      'This request will be escalated to HR for special approval.',
-                      style:
-                          TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
-                    ),
-                    value: noMemberConfirmed,
-                    onChanged: (v) => setState(() => noMemberConfirmed = v!),
-                    controlAffinity: ListTileControlAffinity.leading,
-                  ),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD7E8F6),
+                  borderRadius: BorderRadius.circular(12),
                 ),
+                child: CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+
+                  title: const Text(
+                    'Proceed without reliever team member (By HOD Approval)',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12.5,
+                      color: Colors.black,
+                    ),
+                  ),
+
+                  subtitle: const Text(
+                    'This request will be escalated to HR for special approval.',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+
+                  value: noMemberConfirmed,
+                  onChanged: (v) => setState(() => noMemberConfirmed = v!),
+
+                  controlAffinity: ListTileControlAffinity.leading,
+                  activeColor: Colors.blue,
+                ),
+              ),
 
               const SizedBox(height: 16),
 
