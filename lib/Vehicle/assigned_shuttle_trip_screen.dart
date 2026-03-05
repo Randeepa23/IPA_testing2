@@ -402,7 +402,7 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = (user["name"] ?? "_").toString();
-    final role = (user["role"] ?? "_").toString();
+    final jobTitle = (user["jobTitle"] ?? "_").toString();
 
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
@@ -420,7 +420,7 @@ class _Header extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            "$name - $role",
+            "$name - $jobTitle",
             style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
           ),
         ],

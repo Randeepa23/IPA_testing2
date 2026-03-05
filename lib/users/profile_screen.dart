@@ -124,6 +124,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const _DividerLine(),
                 _InfoRow(
+                  icon: Icons.work_outline,
+                  title: 'Job Title',
+                  value: (u["jobTitle"] ?? "-").toString(),
+                ),
+                const _DividerLine(),
+                _InfoRow(
                   icon: Icons.calendar_month_outlined,
                   title: 'Date of Birth',
                   value: (u["dateOfBirth"] ?? "-").toString(),
@@ -225,96 +231,89 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ---------------- UI Widgets ----------------
-  Widget _profileCard(Color blue, Map<String, dynamic> user) {
-    final name = (user["name"] ?? "").toString();
-    final department = (user["department"] ?? "").toString();
-    final employeeCode = (user["employeeCode"] ?? "").toString();
+Widget _profileCard(Color blue, Map<String, dynamic> user) {
+  final name = (user["name"] ?? "").toString();
+  final department = (user["department"] ?? "").toString();
+  final employeeCode = (user["employeeCode"] ?? "").toString();
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: LinearGradient(
-          colors: [blue, Colors.blue[600]!],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.10),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
-          ),
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(18),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(14),
+      gradient: const LinearGradient(
+        colors: [
+          Color(0xFF1565C0), // Dark Blue
+          Color(0xFF42A5F5), // Light Blue
         ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
       ),
-      child:Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: SizedBox(
-              width: 80,
-              height: 80,
-              child: profilePhotoUrl != null && profilePhotoUrl!.isNotEmpty
-                  ? Image.network(
-                      profilePhotoUrl!,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return Image.asset(
-                          'assets/profile.png',
-                          fit: BoxFit.cover,
-                        );
-                      },
-                    )
-                  : Image.asset(
-                      'assets/profile.png',
-                      fit: BoxFit.cover,
-                    ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name.isEmpty ? "Unknown" : name,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  department.isEmpty ? "No Department" : department,
-                  style: const TextStyle(
-                    fontSize: 12.5,
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  "Employee Code: ${employeeCode.isEmpty ? "-" : employeeCode}",
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.white70,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      )
-    );
-  }
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
 
+        /// PROFILE IMAGE
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: SizedBox(
+            width: 84,
+            height: 84,
+            child: profilePhotoUrl != null && profilePhotoUrl!.isNotEmpty
+                ? Image.network(
+                    profilePhotoUrl!,
+                    fit: BoxFit.cover,
+                  )
+                : Image.asset(
+                    'assets/profile.png',
+                    fit: BoxFit.cover,
+                  ),
+          ),
+        ),
+
+        const SizedBox(width: 14),
+
+        /// USER DETAILS
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                name.isEmpty ? "Unknown" : name,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+
+              const SizedBox(height: 4),
+
+              Text(
+                "${department.isEmpty ? "No Department" : department} ",
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                "Code: ${employeeCode.isEmpty ? "-" : employeeCode}",
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
   Widget _sectionTitle(String title) {
     return Row(
       children: [
