@@ -218,9 +218,13 @@ Widget build(BuildContext context) {
             )
 
           else ...[
-            // Filter chips
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
+            // Filter chips (full-width aligned, similar to trip tabs)
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(999),
+              ),
               child: Row(
                 children: [
                   _filterChip('All (${counts['all']})', 0, blue),
