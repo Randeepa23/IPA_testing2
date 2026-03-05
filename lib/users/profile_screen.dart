@@ -124,6 +124,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const _DividerLine(),
                 _InfoRow(
+                  icon: Icons.work_outline,
+                  title: 'Job Title',
+                  value: (u["jobTitle"] ?? "-").toString(),
+                ),
+                const _DividerLine(),
+                _InfoRow(
                   icon: Icons.calendar_month_outlined,
                   title: 'Date of Birth',
                   value: (u["dateOfBirth"] ?? "-").toString(),
