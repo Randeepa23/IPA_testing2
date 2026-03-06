@@ -547,7 +547,7 @@ class TripCard extends StatelessWidget {
     final isInProgress = status == "IN_PROGRESS";
     final isCompleted = status == "COMPLETED";
 
-    final vehicleName = (data["vehicleName"] ?? "Toyota KDH").toString();
+    final vehicleName = (data["vehicleName"] ?? "-").toString();
 
     return Container(
       decoration: BoxDecoration(

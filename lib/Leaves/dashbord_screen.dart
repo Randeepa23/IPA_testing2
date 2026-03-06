@@ -20,9 +20,10 @@ class DashboardScreen extends StatefulWidget {
  
 class _DashboardScreenState extends State<DashboardScreen> {
 
-  bool get isHod {
+// Helper getter to check if user is HOD (for showing manager approvals)
+bool get isManagers {
   final id = widget.user["jobTitleId"]?.toString() ?? "";
-  return id == "3"; // job_title_id 3 = HOD
+  return ["1", "2", "3"].contains(id);
 }
 
   int relieverBadgeCount = 0;
@@ -101,7 +102,7 @@ Future<void> _loadRelieverRequestCount() async {
 
 Future<void> _loadManagerRequestCount() async {
   try {
-    if (!isHod) {
+    if (!isManagers) {
       setState(() => managerBadgeCount = 0);
       return;
     }
@@ -454,7 +455,10 @@ Future<void> _loadManagerRequestCount() async {
                                                   child: const SizedBox(
                                                     width: 14,
                                                     height: 14,
-                                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                                    child: CircularProgressIndicator(
+                                                      backgroundColor: Colors.white,
+                                                      color: Colors.blue,
+                                                      strokeWidth: 2),
                                                   ),
                                                 );
                                               },
@@ -781,7 +785,7 @@ Future<void> _loadManagerRequestCount() async {
     ];
 
     // Only HOD sees Request button
-    if (isHod) {
+    if (isManagers) {
       final managerId = widget.user["employeeId"]?.toString() ?? "";
       actions.add(
         _QuickAction(

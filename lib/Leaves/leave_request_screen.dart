@@ -119,7 +119,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
             else if (requests.isEmpty)
               const Padding(
                 padding: EdgeInsets.only(top: 40),
-                child: Center(child: Text("No manager requests")),
+                child: Center(child: Text("No manager requests", style: TextStyle(color: Colors.grey))),
               )
             else
               ...requests.map((r) => Padding(
