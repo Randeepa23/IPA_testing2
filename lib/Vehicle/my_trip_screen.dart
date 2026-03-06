@@ -73,32 +73,6 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
 
     return trips.where((t) => (t["status"] ?? "") == status).toList();
   }
-
-  Map<String, int> _tripCounts() {
-    int pending = 0, approved = 0, inProgress = 0, completed = 0;
-
-    for (final t in trips) {
-      final s = (t["status"] ?? "").toString().toUpperCase();
-      if (s == "APPROVED") {
-        approved++;
-      } else if (s == "IN_PROGRESS") {
-        inProgress++;
-      } else if (s == "COMPLETED") {
-        completed++;
-      } else {
-        // default bucket
-        pending++;
-      }
-    }
-
-    return {
-      "pending": pending,
-      "approved": approved,
-      "inProgress": inProgress,
-      "completed": completed,
-    };
-  }
-
   Future<bool?> _confirmCancelTrip() async {
     return showDialog<bool>(
       context: context,
@@ -157,7 +131,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                           ),
                           child: const Text(
                             "Are you sure you want to cancel this vehicle trip request?",
-                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xDE000000)),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -165,11 +139,25 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                           children: [
                             Expanded(
                               child: OutlinedButton(
-                                onPressed: () => Navigator.pop(ctx, false),
+                                onPressed: () => Navigator.pop(ctx),
+
                                 style: OutlinedButton.styleFrom(
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  foregroundColor: const Color(0xFF0060A6),
+
+                                  side: const BorderSide(
+                                    color: Color.fromARGB(255, 196, 196, 196),
+                                    width: 1.2,
+                                  ),
+
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
                                 ),
+
                                 child: const Text("Cancel"),
                               ),
                             ),
@@ -350,7 +338,6 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
   @override
   Widget build(BuildContext context) {
     final filtered = _filteredTrips();
-    final counts = _tripCounts();
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -371,7 +358,6 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                     child: _SegmentTabs(
                       selectedIndex: selectedTab,
                       onChanged: (i) => setState(() => selectedTab = i),
-                      counts: counts,
                     ),
                   ),
                   if (loading)
@@ -434,12 +420,10 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
 class _SegmentTabs extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onChanged;
-  final Map<String, int> counts;
 
   const _SegmentTabs({
     required this.selectedIndex,
     required this.onChanged,
-    required this.counts,
   });
 
   @override
@@ -452,13 +436,13 @@ class _SegmentTabs extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _pill("Pending (${counts["pending"] ?? 0})", 0),
+          _pill("Pending" , 0),
           const SizedBox(width: 6),
-          _pill("Approved (${counts["approved"] ?? 0})", 1),
+          _pill("Approved" , 1),
           const SizedBox(width: 6),
-          _pill("In Progress (${counts["inProgress"] ?? 0})", 2),
+          _pill("In Progress" , 2),
           const SizedBox(width: 6),
-          _pill("Completed (${counts["completed"] ?? 0})", 3),
+          _pill("Completed" , 3),
         ],
       ),
     );

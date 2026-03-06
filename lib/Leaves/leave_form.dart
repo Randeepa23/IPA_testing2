@@ -6,6 +6,8 @@ import 'dart:ui';
 import 'dart:io';
 import 'package:test_app/ui/dialogs/leave_submit_dialog.dart';
 import 'package:test_app/ui/widgets/common_form_widgets.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
 import 'leave_history_screen.dart';
 import 'top_banner.dart';
 import 'package:file_picker/file_picker.dart';
@@ -63,6 +65,20 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
   // Cache for profile photo futures to avoid redundant API calls
   final Map<int, Future<Map<String, dynamic>?>> _photoFutureCache = {};
 
+  // For picking profile photo in member list
+  final ImagePicker _picker = ImagePicker();
+
+  bool _isImageFile(String? name) {
+  if (name == null) return false;
+
+  final lower = name.toLowerCase();
+
+  return lower.endsWith('.jpg') ||
+      lower.endsWith('.jpeg') ||
+      lower.endsWith('.png') ||
+      lower.endsWith('.webp');
+}
+
   // Same input style as login/forgot password - clear on all devices
   InputDecoration _inputDecoration(String hint, {IconData? icon, Widget? suffix}) {
     return InputDecoration(
@@ -109,6 +125,10 @@ void initState() {
   employeeController.text = widget.user['employeeCode'] ?? '';
   departmentController.text = widget.user['department'] ?? '';
   contactController.text = widget.user['phone'] ?? '';
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    _recoverLostData();
+  });
 }
 Future<void> _submitForm() async {
   if (!_formKey.currentState!.validate()) return;
@@ -744,22 +764,34 @@ void _showSubmitConfirmation() {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.insert_drive_file_outlined,
-                            size: 34, color: Colors.black54),
-                        const SizedBox(height: 8),
-                        Text(
-                          attachedFileName ?? 'Tap to upload document',
-                          style: const TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black54,
+                    child: attachedFile != null && _isImageFile(attachedFileName)
+                        ? Center(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.file(
+                                attachedFile!,
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          )
+                        : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.insert_drive_file_outlined,
+                                  size: 34, color: Colors.black54),
+                              const SizedBox(height: 8),
+                              Text(
+                                attachedFileName ?? 'Tap to upload document',
+                                style: const TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
               ),
@@ -779,42 +811,76 @@ void _showSubmitConfirmation() {
     );
   }
 
-// ================== Document Picker Function ==================
-  Future<void> _pickAttachment() async {
-  showModalBottomSheet(
-    context: context,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-    ),
-    builder: (_) {
-      return SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
+            // ================== Document Picker Function ==================
+            Future<void> _pickAttachment() async {
+              showModalBottomSheet(
+                context: context,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                builder: (_) {
+                  return SafeArea(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ListTile(
               leading: const Icon(Icons.camera_alt),
               title: const Text("Take photo"),
               onTap: () async {
                 Navigator.pop(context);
-                final x = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 80);
-                if (x == null) return;
-                setState(() {
-                  attachedFile = File(x.path);
-                  attachedFileName = x.name;
-                });
+
+                final ok = await _ensureCameraPermission();
+                if (!ok) {
+                  _showMsg("Camera permission denied");
+                  return;
+                }
+
+                try {
+                  final XFile? x = await _picker.pickImage(
+                    source: ImageSource.camera,
+                    imageQuality: 80,
+                  );
+
+                  if (x == null) return;
+                  if (!mounted) return;
+
+                  setState(() {
+                    attachedFile = File(x.path);
+                    attachedFileName = x.name;
+                  });
+                } catch (e) {
+                  _showMsg("Failed to open camera: $e");
+                }
               },
             ),
-            ListTile(
+                        ListTile(
               leading: const Icon(Icons.photo_library),
               title: const Text("Choose from gallery"),
               onTap: () async {
                 Navigator.pop(context);
-                final x = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 80);
-                if (x == null) return;
-                setState(() {
-                  attachedFile = File(x.path);
-                  attachedFileName = x.name;
-                });
+
+                final ok = await _ensureGalleryPermission();
+                if (!ok) {
+                  _showMsg("Gallery permission denied");
+                  return;
+                }
+
+                try {
+                  final XFile? x = await _picker.pickImage(
+                    source: ImageSource.gallery,
+                    imageQuality: 80,
+                  );
+
+                  if (x == null) return;
+                  if (!mounted) return;
+
+                  setState(() {
+                    attachedFile = File(x.path);
+                    attachedFileName = x.name;
+                  });
+                } catch (e) {
+                  _showMsg("Failed to open gallery: $e");
+                }
               },
             ),
             ListTile(
@@ -822,15 +888,38 @@ void _showSubmitConfirmation() {
               title: const Text("Choose document (PDF/DOC)"),
               onTap: () async {
                 Navigator.pop(context);
-                final result = await FilePicker.platform.pickFiles(
-                  type: FileType.custom,
-                  allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
-                );
-                if (result == null || result.files.single.path == null) return;
-                setState(() {
-                  attachedFile = File(result.files.single.path!);
-                  attachedFileName = result.files.single.name;
-                });
+
+                try {
+                  final result = await FilePicker.platform.pickFiles(
+                    type: FileType.custom,
+                    allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
+                    withData: true,
+                  );
+
+                  if (result == null || result.files.isEmpty) return;
+
+                  final picked = result.files.single;
+
+                  if (picked.path != null && picked.path!.isNotEmpty) {
+                    setState(() {
+                      attachedFile = File(picked.path!);
+                      attachedFileName = picked.name;
+                    });
+                  } else if (picked.bytes != null) {
+                    final tempDir = await getTemporaryDirectory();
+                    final tempFile = File('${tempDir.path}/${picked.name}');
+                    await tempFile.writeAsBytes(picked.bytes!);
+
+                    setState(() {
+                      attachedFile = tempFile;
+                      attachedFileName = picked.name;
+                    });
+                  } else {
+                    _showMsg("Unable to access selected file");
+                  }
+                } catch (e) {
+                  _showMsg("Failed to pick file: $e");
+                }
               },
             ),
             if (attachedFile != null)
@@ -852,6 +941,70 @@ void _showSubmitConfirmation() {
   );
 }
 
+  // Handle lost data (e.g. app killed while picking image)
+  Future<void> _recoverLostData() async {
+    try {
+      final LostDataResponse response = await _picker.retrieveLostData();
+
+      if (response.isEmpty) return;
+
+      if (response.files != null && response.files!.isNotEmpty) {
+        final XFile file = response.files!.first;
+
+        if (!mounted) return;
+        setState(() {
+          attachedFile = File(file.path);
+          attachedFileName = file.name;
+        });
+
+        _showMsg("Recovered captured image");
+        return;
+      }
+
+      if (response.file != null) {
+        final XFile file = response.file!;
+
+        if (!mounted) return;
+        setState(() {
+          attachedFile = File(file.path);
+          attachedFileName = file.name;
+        });
+
+        _showMsg("Recovered captured image");
+        return;
+      }
+
+      if (response.exception != null) {
+        debugPrint("Lost data exception: ${response.exception}");
+      }
+    } catch (e) {
+      debugPrint("retrieveLostData error: $e");
+    }
+  }
+
+  Future<bool> _ensureCameraPermission() async {
+    final status = await Permission.camera.request();
+    return status.isGranted;
+  }
+
+  Future<bool> _ensureGalleryPermission() async {
+    if (await Permission.photos.isGranted || await Permission.storage.isGranted) {
+      return true;
+    }
+
+    final photos = await Permission.photos.request();
+    if (photos.isGranted || photos.isLimited) return true;
+
+    final storage = await Permission.storage.request();
+    return storage.isGranted;
+  }
+
+  void _showMsg(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
+    );
+  }
 
   // ---------------- UI HELPERS (UI ONLY) ----------------
 
