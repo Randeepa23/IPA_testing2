@@ -32,25 +32,26 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   String? _generalError; // General error shown at bottom for empty fields
   bool _isSubmitting = false; // Show loading state while submitting
 
-  InputDecoration _inputDecoration(String hint, IconData icon, {Widget? suffix}) {
+  InputDecoration _inputDecoration(String label, IconData icon, {Widget? suffix}) {
     return InputDecoration(
-      hintText: hint,
+      labelText: label,
       hintStyle: TextStyle(color: Colors.grey.shade600),
+      labelStyle: TextStyle(color: Colors.grey.shade700),
       prefixIcon: Icon(icon, color: Colors.grey.shade700),
       suffixIcon: suffix,
       filled: true,
       fillColor: Colors.white,
       contentPadding: const EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: 12,
+        horizontal: 12,
+        vertical: 8,
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(15),
         borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Colors.blue, width: 1.4),
+        borderRadius: BorderRadius.circular(15),
+        borderSide: const BorderSide(color: Colors.blue, width: 1.2),
       ),
     );
   }
@@ -251,7 +252,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         // Email Field
                         TextFormField(
                           controller: _emailController,
-                          style: const TextStyle(color: Colors.black, fontSize: 15),
+                          style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w600),
                           keyboardType: TextInputType.emailAddress,
                           onChanged: (_) {
                             if (_emailError != null || _generalError != null) {
@@ -261,7 +262,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               });
                             }
                           },
-                          decoration: _inputDecoration("Enter your email address", Icons.email_outlined),
+                          decoration: _inputDecoration("Email Address", Icons.email_outlined),
                           validator: (v) {
                             final value = (v ?? '').trim();
                             if (value.isEmpty) return "Email is required";
@@ -288,7 +289,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         // Recovery Key Field
                         TextFormField(
                           controller: _recoveryKeyController,
-                          style: const TextStyle(color: Colors.black, fontSize: 15),
+                          style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w600),
                           obscureText: _obscureRecovery,
                           onChanged: (_) {
                             if (_recoveryKeyError != null || _generalError != null) {
@@ -299,7 +300,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             }
                           },
                           decoration: _inputDecoration(
-                            "Enter your recovery key",
+                            "Recovery Key",
                             Icons.key_outlined,
                             suffix: IconButton(
                               icon: Icon(_obscureRecovery ? Icons.visibility_off : Icons.visibility),
@@ -331,7 +332,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         // New Password Field
                         TextFormField(
                           controller: _newPassController,
-                          style: const TextStyle(color: Colors.black, fontSize: 15),
+                          style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w600),
                           obscureText: _obscureNew,
                           onChanged: (_) {
                             if (_newPasswordError != null || _generalError != null) {
@@ -342,7 +343,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             }
                           },
                           decoration: _inputDecoration(
-                            "Enter a new password",
+                            "New Password",
                             Icons.lock_outline,
                             suffix: IconButton(
                               icon: Icon(_obscureNew ? Icons.visibility_off : Icons.visibility),
@@ -402,10 +403,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         // Confirm Password Field
                         TextFormField(
                           controller: _confirmPassController,
-                          style: const TextStyle(color: Colors.black, fontSize: 15),
+                          style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w600),
                           obscureText: _obscureConfirm,
                           decoration: _inputDecoration(
-                            "Re-enter new password",
+                            "Confirm Password",
                             Icons.lock_outline,
                             suffix: IconButton(
                               icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility),

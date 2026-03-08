@@ -35,26 +35,27 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-      InputDecoration _loginInputDecoration(String hint, IconData icon, {Widget? suffix}) {
+      InputDecoration _loginInputDecoration(String label, IconData icon, {Widget? suffix}) {
       return InputDecoration(
-        hintText: hint,
+        labelText: label,
         hintStyle: TextStyle(color: Colors.grey.shade600),
+        labelStyle: TextStyle(color: Colors.grey.shade700),
         prefixIcon: Icon(icon, color: Colors.grey.shade700),
         suffixIcon: suffix,
         filled: true,
-        fillColor: Colors.white, // <-- IMPORTANT (not grey.shade100)
+        fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 12,
+          horizontal: 12,
+          vertical: 8,
         ),
 
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(15),
           borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Colors.blue, width: 1.4),
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(color: Colors.blue, width: 1.2),
         ),
       );
     }
@@ -212,8 +213,8 @@ SizedBox(height: (h * 0.08).clamp(20.0, 60.0)),
                       //Username Field
                       TextField(
                         controller: _usernameController,
-                        style: const TextStyle(color: Colors.black, fontSize: 15), // <-- force text
-                        decoration: _loginInputDecoration("Enter username", Icons.person_outline),
+                        style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w600),
+                        decoration: _loginInputDecoration("Username", Icons.person_outline),
                       ),
 
                       const SizedBox(height: 16),
@@ -221,13 +222,13 @@ SizedBox(height: (h * 0.08).clamp(20.0, 60.0)),
                       /// Password
                       TextField(
                         controller: _passwordController,
-                        style: const TextStyle(color: Colors.black, fontSize: 15),
+                        style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w600),
                         obscureText: _obscurePassword,
                         onChanged: (_) {
                           if (_loginError != null) setState(() => _loginError = null);
                         },
                         decoration: _loginInputDecoration(
-                          "Enter password",
+                          "Password",
                           Icons.lock_outline,
                           suffix: IconButton(
                             icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),

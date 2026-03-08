@@ -141,25 +141,22 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
     }
   }
 
-    InputDecoration _inputDecoration(String label, {Widget? prefix, Widget? suffix, String? hint}) {
+    InputDecoration _inputDecoration(String label, IconData icon, {Widget? suffix}) {
     return InputDecoration(
       labelText: label,
-      hintText: hint,
       hintStyle: TextStyle(color: Colors.grey.shade600),
       labelStyle: TextStyle(color: Colors.grey.shade700),
-      prefixIcon: prefix,
+      prefixIcon: Icon(icon, color: Colors.grey.shade700),
       suffixIcon: suffix,
-
       filled: true,
       fillColor: Colors.white,
       contentPadding: const EdgeInsets.symmetric(
-       horizontal: 14,
-       vertical: 12,
-        ),
-
+        horizontal: 12,
+        vertical: 8,
+      ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
-        borderSide: BorderSide(color: Colors.grey.shade300),
+        borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
@@ -249,7 +246,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                           ],
                           decoration: _inputDecoration(
                             "Recovery Name",
-                            prefix: Icon(Icons.vpn_key_outlined,color: Colors.grey.shade700),
+                            Icons.vpn_key_outlined,
                           ),
                           validator: (v) {
                             final value = (v ?? '').trim();
@@ -278,7 +275,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                           obscureText: _obscureNew,
                           decoration: _inputDecoration(
                             "New Password",
-                            prefix: Icon(Icons.lock_outline, color: Colors.grey.shade700),
+                            Icons.lock_outline,
                             suffix: IconButton(
                               icon: Icon(_obscureNew ? Icons.visibility_off : Icons.visibility),
                               onPressed: () => setState(() => _obscureNew = !_obscureNew),
@@ -328,7 +325,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                           obscureText: _obscureConfirm,
                           decoration: _inputDecoration(
                             "Confirm Password",
-                            prefix: Icon(Icons.lock_outline, color: Colors.grey.shade700),
+                            Icons.lock_outline,
                             suffix: IconButton(
                               icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility),
                               onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
