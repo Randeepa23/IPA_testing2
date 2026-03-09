@@ -285,45 +285,56 @@ class _AssignedTransferTripScreenState extends State<AssignedTransferTripScreen>
     }
 
     // Confirmation dialog before generating trip code and moving to Start Trip
-    Future<void> _confirmGenerateAndUpdate(Map<String, dynamic> trip) async {
-      final tripId = int.tryParse(trip["id"].toString()) ?? 0;
-      if (tripId <= 0) return;
+Future<void> _confirmGenerateAndUpdate(Map<String, dynamic> trip) async {
+  final tripId = int.tryParse(trip["id"].toString()) ?? 0;
+  if (tripId <= 0) return;
 
-      final code = _generateTripCode(widget.user["name"]?.toString() ?? "USER");
+  final code = _generateTripCode(widget.user["name"]?.toString() ?? "USER");
 
-      try {
-        setState(() => loading = true);
+  try {
+    setState(() => loading = true);
 
-        final res = await VehicleApiService.generateTripCode(
-          tripId: tripId,
-          tripCode: code,
-        );
+    final res = await VehicleApiService.generateTripCode(
+      tripId: tripId,
+      tripCode: code,
+    );
 
-        if (res["success"] == true) {
-          setState(() => selectedTab = 1);
-          await _loadTripsByTab();
+    if (res["success"] == true) {
+      setState(() => selectedTab = 1);
+      await _loadTripsByTab();
 
-          if (!mounted) return;
+      if (!mounted) return;
 
-          TopBanner.show(
-          context,
-          title: "Trip Code Generated",
-          message: "Your trip code has been generated successfully: $code.",
-          icon: Icons.check_circle,
-          isSuccess: true,
-          );
-        } else {
-          throw Exception(res["message"] ?? "Generate failed");
-        }
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Generate failed: $e")),
-        );
-      } finally {
-        if (mounted) setState(() => loading = false);
-      }
+      TopBanner.show(
+        context,
+        title: "Trip Code Generated",
+        message: "Your trip code has been generated successfully: $code.",
+        icon: Icons.check_circle,
+        isSuccess: true,
+      );
+    } else {
+      if (!mounted) return;
+      TopBanner.show(
+        context,
+        title: "Generate Failed",
+        message: (res["message"] ?? "Generate failed").toString(),
+        icon: Icons.error_outline,
+        isSuccess: false,
+      );
     }
+  } catch (e) {
+    if (!mounted) return;
+    TopBanner.show(
+      context,
+      title: "Generate Failed",
+      message: e.toString(),
+      icon: Icons.error_outline,
+      isSuccess: false,
+    );
+  } finally {
+    if (mounted) setState(() => loading = false);
+  }
+}
 
     // Show dialog to confirm before generating trip code and moving to Start Trip
     void _showGenerateTripDialog(Map<String, dynamic> trip) {
