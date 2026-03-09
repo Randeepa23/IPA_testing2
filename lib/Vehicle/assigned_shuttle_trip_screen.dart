@@ -635,12 +635,11 @@ class TripCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                   ],
-
+                  _infoRow("Vehicle No", (data["vehicleNo"] ?? "-").toString()), 
+                  const SizedBox(height: 8),
                   _infoRow("Pick up", (data["pickup"] ?? "-").toString()),
                   const SizedBox(height: 8),
                   _infoRow("Drop-off", (data["dropoff"] ?? "-").toString()),
-                  const SizedBox(height: 8),
-                  _infoRow("Vehicle No", (data["vehicleNo"] ?? "-").toString()),
                   const SizedBox(height: 8),
                   _infoRow("Passengers", (data["passengers"] ?? "-").toString()),
                   const SizedBox(height: 8),
@@ -651,11 +650,11 @@ class TripCard extends StatelessWidget {
 
                 // ================= COMPLETED =================
                 if (isCompleted) ...[
+                  _infoRow("Vehicle No", (data["vehicleNo"] ?? "-").toString()), 
+                  const SizedBox(height: 8),
                   _infoRow("Pick up", (data["pickup"] ?? "-").toString()),
                   const SizedBox(height: 8),
                   _infoRow("Drop-off", (data["dropoff"] ?? "-").toString()),
-                  const SizedBox(height: 8),
-                  _infoRow("Vehicle No", (data["vehicleNo"] ?? "-").toString()),
                   const SizedBox(height: 8),
                   _infoRow("Start Date", (data["startDate"] ?? "-").toString()),
                   const SizedBox(height: 8),
