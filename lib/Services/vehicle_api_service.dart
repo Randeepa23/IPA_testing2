@@ -6,10 +6,37 @@ import 'package:http/http.dart' as http;
 class VehicleApiService {
 
   //Android Emulator → PC localhost
-  static const String baseUrl = "http://10.0.2.2/mobile-api/vehicle";
-  //static const String baseUrl = "https://exploresuite.lk/mobile-api/vehicle";
+  //static const String baseUrl = "http://10.0.2.2/mobile-api/vehicle";
+  static const String baseUrl = "https://exploresuite.lk/mobile-api/vehicle";
 
 
+
+  static Future<Map<String, dynamic>> fetchVehicleDetails({
+      required String transportServiceId,
+    }) async {
+      final uri = Uri.parse(
+        "https://exploresuite.lk/api/transport-services/$transportServiceId/vehicle-details",
+      );
+
+      final res = await http.get(
+        uri,
+        headers: {
+          "Accept": "application/json",
+        },
+      );
+
+      if (res.body.trim().isEmpty) {
+        throw Exception("Vehicle details API returned empty response");
+      }
+
+      final json = jsonDecode(res.body);
+
+      if (res.statusCode != 200) {
+        throw Exception(json["error"] ?? "Failed to fetch vehicle details");
+      }
+
+      return Map<String, dynamic>.from(json);
+    }
 
     // For real device testing, use your PC's local network IP address
     // static const String baseUrl = "http://
