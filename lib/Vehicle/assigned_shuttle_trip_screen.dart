@@ -65,7 +65,9 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
       );
 
       // Map DB rows -> UI shape used in TripCard
-      final mapped = rows.map((e) {
+      List<Map<String, dynamic>> mapped = [];
+      
+      for (final e in rows) {
         String _getDate(String v) => v.length >= 10 ? v.substring(0, 10) : "-";
 
         String _getTime(String v) => v.length >= 16 ? v.substring(11, 16) : "-";
@@ -83,12 +85,33 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
         final endAt = (e["trip_end_datetime"] ?? "").toString();
         final endDate = _getDate(endAt);
 
-        return <String, dynamic>{
+        final tripId = (e["id"] ?? "").toString();
+
+        String vehicleMake = "-";
+        String vehicleModel = "-";
+        String vehicleName = (e["vehicle_name"] ?? "").toString();
+
+        try {
+          final vehicleDetails = await VehicleApiService.fetchVehicleDetails(
+            transportServiceId: tripId,
+          );
+
+          vehicleMake = (vehicleDetails["make"] ?? "-").toString();
+          vehicleModel = (vehicleDetails["model"] ?? "-").toString();
+
+          if (vehicleMake != "-" || vehicleModel != "-") {
+            vehicleName = "$vehicleMake $vehicleModel".trim();
+          }
+        } catch (_) {
+          // optional: keep silent and fallback
+        }
+
+        mapped.add(<String, dynamic>{
           "id": e["id"].toString(),
           "status": (e["status"] ?? "").toString(),
 
           "vehicleNo": (e["vehicle_no"] ?? "-").toString(),
-          "vehicleName": (e["vehicle_name"] ?? "-").toString(), // optional
+          "vehicleName": vehicleName, // optional
 
           "pickup": (e["pickup_location"] ?? "-").toString(),
           "dropoff": (e["dropoff_location"] ?? "-").toString(),
@@ -107,8 +130,8 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
           "endMeter": (e["trip_end_odometer"] ?? "-").toString(),
           "odoDistance": (e["distance_km"] ?? "-").toString(),
           "gpsDistance": e["gps_distance"],
-        };
-      }).toList();
+        });
+      }
 
       if (!mounted) return;
       setState(() => trips = mapped);

@@ -65,7 +65,8 @@ class _AssignedTransferTripScreenState extends State<AssignedTransferTripScreen>
       );
 
       // Map DB rows -> UI shape used in TripCard
-      final mapped = rows.map((e) {
+      final mapped = await Future.wait(rows.map((e) async {
+        
         String _getDate(String v) => v.length >= 10 ? v.substring(0, 10) : "-";
 
         String _getTime(String v) => v.length >= 16 ? v.substring(11, 16) : "-";
@@ -83,13 +84,34 @@ class _AssignedTransferTripScreenState extends State<AssignedTransferTripScreen>
         final endAt = (e["trip_end_datetime"] ?? "").toString();
         final endDate = _getDate(endAt);
 
+        final tripId = (e["id"] ?? "").toString();
+
+        String vehicleMake = "-";
+        String vehicleModel = "-";
+        String vehicleName = (e["vehicle_name"] ?? "").toString();
+
+        try {
+          final vehicleDetails = await VehicleApiService.fetchVehicleDetails(
+            transportServiceId: tripId,
+          );
+
+          vehicleMake = (vehicleDetails["make"] ?? "-").toString();
+          vehicleModel = (vehicleDetails["model"] ?? "-").toString();
+
+          if (vehicleMake != "-" || vehicleModel != "-") {
+            vehicleName = "$vehicleMake $vehicleModel".trim();
+          }
+        } catch (_) {
+          // optional: keep silent and fallback
+        }
+
         
         return <String, dynamic>{
           "id": e["id"].toString(),
           "status": (e["status"] ?? "").toString(),
 
           "vehicleNo": (e["vehicle_no"] ?? "-").toString(),
-          "vehicleName": (e["vehicle_name"] ?? "Toyota KDH").toString(), // optional
+          "vehicleName": vehicleName, // optional
 
           "pickup": (e["pickup_location"] ?? "-").toString(),
           "dropoff": (e["dropoff_location"] ?? "-").toString(),
@@ -109,7 +131,7 @@ class _AssignedTransferTripScreenState extends State<AssignedTransferTripScreen>
           "odoDistance": (e["distance_km"] ?? "-").toString(),
           "gpsDistance": e["gps_distance"],
         };
-      }).toList();
+      }));
 
       if (!mounted) return;
       setState(() => trips = mapped);

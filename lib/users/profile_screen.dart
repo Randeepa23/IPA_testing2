@@ -264,6 +264,28 @@ Widget _profileCard(Color blue, Map<String, dynamic> user) {
                 ? Image.network(
                     profilePhotoUrl!,
                     fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+
+                      return Container(
+                        color: Colors.white,
+                        alignment: Alignment.center,
+                        child: const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.blue,
+                          ),
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Image.asset(
+                        'assets/profile.png',
+                        fit: BoxFit.cover,
+                      );
+                    },
                   )
                 : Image.asset(
                     'assets/profile.png',
