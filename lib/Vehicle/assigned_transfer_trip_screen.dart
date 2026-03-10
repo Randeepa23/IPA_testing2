@@ -113,6 +113,7 @@ class _AssignedTransferTripScreenState extends State<AssignedTransferTripScreen>
           "status": (e["status"] ?? "").toString(),
 
           "vehicleNo": (e["vehicle_no"] ?? "-").toString(),
+          "vehicleType": (e["vehicle_type"] ?? "").toString(),
           "isVehicleAssigned": (e["is_vehicle_assigned"]?.toString() ?? "0") == "1",
           "reason": (e["chauffer_reason"] ?? "-").toString(),
 
@@ -399,11 +400,11 @@ Future<void> _assignVehicleToTrip({
 void _showAssignVehicleDialog(Map<String, dynamic> trip) {
   showAssignVehicleDialog(
     context: context,
+    vehicleType: (trip["vehicleType"] ?? "").toString(),
     onConfirm: ({
+      required String vehicleType,
       required String vehicleNo,
       required String reason,
-      required String vehicleType,
-
     }) async {
       await _assignVehicleToTrip(
         trip: trip,

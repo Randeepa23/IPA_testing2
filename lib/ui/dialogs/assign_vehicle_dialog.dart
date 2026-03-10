@@ -1,8 +1,24 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final upperText = newValue.text.toUpperCase();
+
+    return TextEditingValue(
+      text: upperText,
+      selection: newValue.selection,
+    );
+  }
+}
 Future<void> showAssignVehicleDialog({
   required BuildContext context,
+  required String vehicleType,
   required Future<void> Function({
     required String vehicleType,
     required String vehicleNo,
@@ -12,12 +28,10 @@ Future<void> showAssignVehicleDialog({
   final prefixController = TextEditingController();
   final numberController = TextEditingController();
   final reasonController = TextEditingController();
+  final vehicleTypeController = TextEditingController(text: vehicleType);
   final formKey = GlobalKey<FormState>();
 
-  String? selectedVehicleType;
   bool submitting = false;
-
-  const vehicleTypes = ["Car", "Van", "Bus", "SUV"];
 
   await showDialog(
     context: context,
@@ -77,7 +91,7 @@ Future<void> showAssignVehicleDialog({
                             ),
                             const SizedBox(height: 4),
                             const Text(
-                              "Select vehicle type, enter vehicle number and Reason.",
+                              "Vehicle type is fixed for this trip. Enter vehicle number and reason.",
                               style: TextStyle(
                                 color: Colors.grey,
                                 fontWeight: FontWeight.w600,
@@ -94,25 +108,13 @@ Future<void> showAssignVehicleDialog({
                             ),
                             const SizedBox(height: 8),
 
-                            DropdownButtonFormField<String>(
-                              value: selectedVehicleType,
-                              items: vehicleTypes.map((type) {
-                                return DropdownMenuItem<String>(
-                                  value: type,
-                                  child: Text(type),
-                                );
-                              }).toList(),
-                              onChanged: submitting
-                                  ? null
-                                  : (value) {
-                                      setState(() {
-                                        selectedVehicleType = value;
-                                      });
-                                    },
+                            TextFormField(
+                              controller: vehicleTypeController,
+                              readOnly: true,
                               decoration: InputDecoration(
-                                hintText: "Select vehicle type",
+                                hintText: "Vehicle type",
                                 filled: true,
-                                fillColor: Colors.grey.shade50,
+                                fillColor: const Color(0xFFF3F4F6),
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 14,
                                   vertical: 14,
@@ -132,13 +134,12 @@ Future<void> showAssignVehicleDialog({
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: const BorderSide(
-                                    color: Color(0xFF1565C0),
-                                    width: 1.4,
+                                    color: Color(0xFFD9D9D9),
                                   ),
                                 ),
                               ),
                               validator: (value) {
-                                if (value == null || value.isEmpty) {
+                                if (value == null || value.trim().isEmpty) {
                                   return "Vehicle type is required";
                                 }
                                 return null;
@@ -162,16 +163,18 @@ Future<void> showAssignVehicleDialog({
                                   flex: 4,
                                   child: TextFormField(
                                     controller: prefixController,
-                                    textCapitalization:
-                                        TextCapitalization.characters,
+                                    textCapitalization: TextCapitalization.characters,
                                     maxLength: 3,
+                                    inputFormatters: [
+                                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z]')),
+                                    UpperCaseTextFormatter(),
+                                    ],
                                     decoration: InputDecoration(
                                       counterText: "",
                                       hintText: "ABC",
                                       filled: true,
                                       fillColor: Colors.grey.shade50,
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
+                                      contentPadding: const EdgeInsets.symmetric(
                                         horizontal: 14,
                                         vertical: 14,
                                       ),
@@ -223,13 +226,15 @@ Future<void> showAssignVehicleDialog({
                                     controller: numberController,
                                     keyboardType: TextInputType.number,
                                     maxLength: 4,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly
+                                    ],
                                     decoration: InputDecoration(
                                       counterText: "",
                                       hintText: "1234",
                                       filled: true,
                                       fillColor: Colors.grey.shade50,
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
+                                      contentPadding: const EdgeInsets.symmetric(
                                         horizontal: 14,
                                         vertical: 14,
                                       ),
@@ -349,7 +354,7 @@ Future<void> showAssignVehicleDialog({
                                   child: DecoratedBox(
                                     decoration: BoxDecoration(
                                       gradient: const LinearGradient(
-                                         colors: [
+                                        colors: [
                                           Color(0xFF0060A6),
                                           Color(0xFF003580),
                                         ],
@@ -372,11 +377,9 @@ Future<void> showAssignVehicleDialog({
 
                                               try {
                                                 await onConfirm(
-                                                  vehicleType:
-                                                      selectedVehicleType!,
+                                                  vehicleType: vehicleTypeController.text.trim(),
                                                   vehicleNo: vehicleNo,
-                                                  reason: reasonController.text
-                                                      .trim(),
+                                                  reason: reasonController.text.trim(),
                                                 );
 
                                                 if (ctx.mounted) {
@@ -384,7 +387,8 @@ Future<void> showAssignVehicleDialog({
                                                 }
                                               } catch (e) {
                                                 setState(
-                                                    () => submitting = false);
+                                                  () => submitting = false,
+                                                );
                                                 ScaffoldMessenger.of(ctx)
                                                     .showSnackBar(
                                                   SnackBar(

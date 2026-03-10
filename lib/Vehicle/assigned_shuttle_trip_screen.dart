@@ -300,19 +300,30 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
           if (!mounted) return;
 
           TopBanner.show(
-          context,
-          title: "Trip Code Generated",
-          message: "Your trip code has been generated successfully: $code.",
-          icon: Icons.check_circle,
-          isSuccess: true,
+            context,
+            title: "Trip Code Generated",
+            message: "Your trip code has been generated successfully: $code.",
+            icon: Icons.check_circle,
+            isSuccess: true,
           );
         } else {
-          throw Exception(res["message"] ?? "Generate failed");
+          if (!mounted) return;
+          TopBanner.show(
+            context,
+            title: "Generate Failed",
+            message: (res["message"] ?? "Generate failed").toString(),
+            icon: Icons.error_outline,
+            isSuccess: false,
+          );
         }
       } catch (e) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Generate failed: $e")),
+        TopBanner.show(
+          context,
+          title: "Generate Failed",
+          message: e.toString(),
+          icon: Icons.error_outline,
+          isSuccess: false,
         );
       } finally {
         if (mounted) setState(() => loading = false);
