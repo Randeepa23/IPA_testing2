@@ -10,23 +10,6 @@ class VehicleApiService {
   //static const String baseUrl = "https://exploresuite.lk/mobile-api/vehicle";
 
   // For real device testing, use your PC's local network IP address
-    static Future<Map<String, dynamic>> removeAssignedVehicle({
-    required int tripId,
-    required String reason,
-  }) async {
-    final uri = Uri.parse("$baseUrl/remove_assigned_vehicle.php");
-
-    final request = http.MultipartRequest("POST", uri)
-      ..fields["trip_id"] = tripId.toString()
-      ..fields["reason"] = reason;
-
-    final streamed = await request.send();
-    final response = await http.Response.fromStream(streamed);
-
-    return jsonDecode(response.body);
-  }
-
-  // For real device testing, use your PC's local network IP address
   // static const String baseUrl = "http://
   static Future<Map<String, dynamic>> assignVehicleToTrip({
     required int tripId,

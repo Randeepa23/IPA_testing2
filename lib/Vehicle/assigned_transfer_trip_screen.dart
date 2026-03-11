@@ -7,8 +7,6 @@ import '../Services/vehicle_api_service.dart';
 import '../Leaves/top_banner.dart';
 import '../ui/dialogs/generate_trip_code_dialog.dart';
 import '../ui/dialogs/assign_vehicle_dialog.dart';
-import '../ui/dialogs/remove_vehicle_dialog.dart';
-
 class AssignedTransferTripScreen extends StatefulWidget {
   final Map<String, dynamic> user; // must contain: employeeId, name, role
   const AssignedTransferTripScreen({super.key, required this.user});
@@ -358,6 +356,8 @@ Future<void> _assignVehicleToTrip({
   final tripId = int.tryParse(trip["id"].toString()) ?? 0;
   if (tripId <= 0) return;
 
+  final alreadyAssigned = trip["isVehicleAssigned"] == true;
+
   try {
     setState(() => loading = true);
 
@@ -374,19 +374,21 @@ Future<void> _assignVehicleToTrip({
       if (!mounted) return;
       TopBanner.show(
         context,
-        title: "Vehicle Assigned",
-        message: "Vehicle assigned successfully.",
+        title: alreadyAssigned ? "Vehicle Updated" : "Vehicle Assigned",
+        message: alreadyAssigned
+            ? "Vehicle changed successfully."
+            : "Vehicle assigned successfully.",
         icon: Icons.check_circle,
         isSuccess: true,
       );
     } else {
-      throw Exception(res["message"] ?? "Vehicle assignment failed");
+      throw Exception(res["message"] ?? "Vehicle update failed");
     }
   } catch (e) {
     if (!mounted) return;
     TopBanner.show(
       context,
-      title: "Assign Vehicle Failed",
+      title: alreadyAssigned ? "Vehicle Change Failed" : "Assign Vehicle Failed",
       message: e.toString(),
       icon: Icons.error_outline,
       isSuccess: false,
@@ -401,6 +403,7 @@ void _showAssignVehicleDialog(Map<String, dynamic> trip) {
   showAssignVehicleDialog(
     context: context,
     vehicleType: (trip["vehicleType"] ?? "").toString(),
+    title: "Assign Vehicle",
     onConfirm: ({
       required String vehicleType,
       required String vehicleNo,
@@ -416,71 +419,25 @@ void _showAssignVehicleDialog(Map<String, dynamic> trip) {
   );
 }
 
-// Show dialog to input reason, then call API to remove assigned vehicle from trip
-void _showRemoveVehicleDialog(Map<String, dynamic> trip) {
-  showRemoveVehicleDialog(
+// Show dialog to input vehicle number and reason, then call API to assign vehicle to trip
+void _showChangeVehicleDialog(Map<String, dynamic> trip) {
+  showAssignVehicleDialog(
     context: context,
+    vehicleType: (trip["vehicleType"] ?? "").toString(),
+    title: "Change Vehicle",
     onConfirm: ({
+      required String vehicleType,
+      required String vehicleNo,
       required String reason,
     }) async {
-      await _removeAssignedVehicle(
+      await _assignVehicleToTrip(
         trip: trip,
+        vehicleType: vehicleType,
+        vehicleNo: vehicleNo,
         reason: reason,
       );
     },
   );
-}
-
-
-
-Future<void> _removeAssignedVehicle({
-  required Map<String, dynamic> trip,
-  required String reason,
-}) async {
-  final tripId = int.tryParse(trip["id"].toString()) ?? 0;
-  if (tripId <= 0) return;
-
-  try {
-    setState(() => loading = true);
-
-    final res = await VehicleApiService.removeAssignedVehicle(
-      tripId: tripId,
-      reason: reason,
-    );
-
-    if (res["success"] == true) {
-
-      await _loadTripsByTab();
-
-      if (!mounted) return;
-
-      TopBanner.show(
-        context,
-        title: "Vehicle Removed",
-        message: "Assigned vehicle removed successfully.",
-        icon: Icons.check_circle,
-        isSuccess: true,
-      );
-
-    } else {
-      throw Exception(res["message"] ?? "Failed");
-    }
-
-  } catch (e) {
-
-    if (!mounted) return;
-
-    TopBanner.show(
-      context,
-      title: "Remove Failed",
-      message: e.toString(),
-      icon: Icons.error_outline,
-      isSuccess: false,
-    );
-
-  } finally {
-    if (mounted) setState(() => loading = false);
-  }
 }
 
   @override
@@ -868,11 +825,11 @@ class TripCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: _gradientButton(
-                          text: "Remove Vehicle",
+                          text: "Change Vehicle",
                           colors: const [Color(0xFFD10A0A), Color(0xFF5B0000)],
-                           onTap: () {
+                          onTap: () {
                             final state = context.findAncestorStateOfType<_AssignedTransferTripScreenState>();
-                            state?._showRemoveVehicleDialog(data);
+                            state?._showChangeVehicleDialog(data);
                           },
                         ),
                       ),
