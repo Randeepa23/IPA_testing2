@@ -5,7 +5,7 @@ import 'package:image_picker/image_picker.dart';
 
 Future<void> showStartTripDialog({
   required BuildContext context,
-  required String vehicleNo,     
+  required String vehicleNo,
   required String destination,
   required bool isSubmitting,
   required Future<void> Function({
@@ -21,38 +21,13 @@ Future<void> showStartTripDialog({
   File? photoFile;
   String? photoName;
 
-    // Helper function to check if a file is an image based on its extension
-    bool _isImageFile(String? name) {
+  bool isImageFile(String? name) {
     if (name == null) return false;
     final lower = name.toLowerCase();
     return lower.endsWith('.jpg') ||
         lower.endsWith('.jpeg') ||
         lower.endsWith('.png') ||
         lower.endsWith('.webp');
-    }
-    // Input decoration for text fields
-    InputDecoration inputFieldStyle(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(color: Colors.grey),
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Colors.blue, width: 1.4),
-      ),
-
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Colors.grey, width: 1),
-      ),
-    );
   }
 
   await showDialog(
@@ -62,31 +37,61 @@ Future<void> showStartTripDialog({
     builder: (ctx) {
       final w = MediaQuery.of(ctx).size.width;
       final dialogW = (w * 0.92).clamp(290.0, 440.0);
+      final theme = Theme.of(ctx);
       bool submitting = isSubmitting;
 
+      InputDecoration inputFieldStyle(String hint) {
+        return InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(color: theme.hintColor),
+          filled: true,
+          fillColor: theme.colorScheme.surfaceContainerHighest,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Colors.blue, width: 1.4),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide:
+                BorderSide(color: theme.colorScheme.outline, width: 1),
+          ),
+        );
+      }
+
+      Widget label(String t) => Text(
+            t,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w900,
+              color: theme.textTheme.bodyLarge?.color,
+            ),
+          );
+
       Future<void> pickPhoto(ImageSource source) async {
-        final x = await ImagePicker().pickImage(source: source, imageQuality: 80);
+        final x =
+            await ImagePicker().pickImage(source: source, imageQuality: 80);
         if (x == null) return;
         photoFile = File(x.path);
         photoName = x.name;
-
-        // refresh dialog UI
         (ctx as Element).markNeedsBuild();
       }
 
       return Stack(
         children: [
-          // Blur background
           BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
             child: Container(color: Colors.black.withOpacity(0.20)),
           ),
-
           Center(
             child: Dialog(
-              backgroundColor: Colors.white,
               insetPadding: const EdgeInsets.all(16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
               child: SizedBox(
                 width: dialogW,
                 child: Form(
@@ -94,7 +99,7 @@ Future<void> showStartTripDialog({
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Green Header
+                      // Green gradient header
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
@@ -104,14 +109,19 @@ Future<void> showStartTripDialog({
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(14)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
                               "Start Trip",
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 14,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -131,34 +141,38 @@ Future<void> showStartTripDialog({
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _label("Current Meter Reading (km) *"),
+                            label("Current Meter Reading (km) *"),
                             const SizedBox(height: 6),
                             TextFormField(
                               controller: meterCtrl,
-                              style: const TextStyle(
-                              color: Colors.black87,),
+                              style: TextStyle(
+                                  color: theme.textTheme.bodyLarge?.color),
                               keyboardType: TextInputType.number,
-                              decoration: inputFieldStyle("Enter current odometer reading"),
-
+                              decoration: inputFieldStyle(
+                                  "Enter current odometer reading"),
                               validator: (v) {
-                                if (v == null || v.trim().isEmpty) return "Required";
-                                if (!RegExp(r'^\d+(\.\d+)?$').hasMatch(v.trim())) return "Numbers only";
+                                if (v == null || v.trim().isEmpty)
+                                  return "Required";
+                                if (!RegExp(r'^\d+(\.\d+)?$')
+                                    .hasMatch(v.trim())) return "Numbers only";
                                 return null;
                               },
                             ),
 
                             const SizedBox(height: 10),
 
-                            _label("Current Fuel Reading (%) *"),
+                            label("Current Fuel Reading (%) *"),
                             const SizedBox(height: 6),
                             TextFormField(
                               controller: fuelCtrl,
-                              style: const TextStyle(
-                              color: Colors.black87,),
+                              style: TextStyle(
+                                  color: theme.textTheme.bodyLarge?.color),
                               keyboardType: TextInputType.number,
-                              decoration: inputFieldStyle("Enter current fuel reading"),
+                              decoration:
+                                  inputFieldStyle("Enter current fuel reading"),
                               validator: (v) {
-                                if (v == null || v.trim().isEmpty) return "Required";
+                                if (v == null || v.trim().isEmpty)
+                                  return "Required";
                                 final val = double.tryParse(v.trim());
                                 if (val == null) return "Numbers only";
                                 if (val < 0 || val > 100) return "0 - 100 only";
@@ -168,105 +182,124 @@ Future<void> showStartTripDialog({
 
                             const SizedBox(height: 10),
 
-                            _label("Upload Meter Photo *"),
+                            label("Upload Meter Photo *"),
                             const SizedBox(height: 8),
-                          // Photo upload box
-                          GestureDetector(
-                            onTap: () async {
-                              await showModalBottomSheet(
-                                context: ctx,
-                                shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                                ),
-                                builder: (_) {
-                                  return SafeArea(
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        ListTile(
-                                          leading: const Icon(Icons.camera_alt),
-                                          title: const Text("Take photo"),
-                                          onTap: () async {
-                                            Navigator.pop(ctx);
-                                            await pickPhoto(ImageSource.camera);
-                                          },
-                                        ),
-                                        ListTile(
-                                          leading: const Icon(Icons.photo_library),
-                                          title: const Text("Choose from gallery"),
-                                          onTap: () async {
-                                            Navigator.pop(ctx);
-                                            await pickPhoto(ImageSource.gallery);
-                                          },
-                                        ),
-                                        if (photoFile != null)
+
+                            GestureDetector(
+                              onTap: () async {
+                                await showModalBottomSheet(
+                                  context: ctx,
+                                  shape: const RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.vertical(
+                                        top: Radius.circular(16)),
+                                  ),
+                                  builder: (_) {
+                                    return SafeArea(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
                                           ListTile(
-                                            leading: const Icon(Icons.delete, color: Colors.red),
-                                            title: const Text("Remove photo"),
-                                            onTap: () {
+                                            leading: const Icon(
+                                                Icons.camera_alt),
+                                            title: const Text("Take photo"),
+                                            onTap: () async {
                                               Navigator.pop(ctx);
-                                              photoFile = null;
-                                              photoName = null;
-                                              (ctx as Element).markNeedsBuild();
+                                              await pickPhoto(
+                                                  ImageSource.camera);
                                             },
                                           ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              );
-                            },
-                            child: Container(
-                              width: double.infinity,
-                              height: 110,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.grey.shade400),
-                                color: Colors.white,
-                              ),
-                              child: photoFile != null && _isImageFile(photoName)
-                                  ? Center(
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(10),
-                                        child: Image.file(
-                                          photoFile!,
-                                          width: 100,
-                                          height: 100,
-                                          fit: BoxFit.cover,
-                                        ),
+                                          ListTile(
+                                            leading: const Icon(
+                                                Icons.photo_library),
+                                            title: const Text(
+                                                "Choose from gallery"),
+                                            onTap: () async {
+                                              Navigator.pop(ctx);
+                                              await pickPhoto(
+                                                  ImageSource.gallery);
+                                            },
+                                          ),
+                                          if (photoFile != null)
+                                            ListTile(
+                                              leading: const Icon(Icons.delete,
+                                                  color: Colors.red),
+                                              title:
+                                                  const Text("Remove photo"),
+                                              onTap: () {
+                                                Navigator.pop(ctx);
+                                                photoFile = null;
+                                                photoName = null;
+                                                (ctx as Element)
+                                                    .markNeedsBuild();
+                                              },
+                                            ),
+                                        ],
                                       ),
-                                    )
-                                  : Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(
-                                          Icons.photo_camera_outlined,
-                                          size: 26,
-                                          color: Colors.black54,
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          photoFile == null
-                                              ? "Tap to take/upload meter photo JPG, PNG\n(Max 5MB)"
-                                              : "Photo selected",
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(
-                                            fontSize: 11.5,
-                                            fontWeight: FontWeight.w700,
-                                            color: Colors.black54,
+                                    );
+                                  },
+                                );
+                              },
+                              child: Container(
+                                width: double.infinity,
+                                height: 110,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                      color: theme.colorScheme.outline),
+                                  color: theme.colorScheme
+                                      .surfaceContainerHighest,
+                                ),
+                                child: photoFile != null &&
+                                        isImageFile(photoName)
+                                    ? Center(
+                                        child: ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                          child: Image.file(
+                                            photoFile!,
+                                            width: 100,
+                                            height: 100,
+                                            fit: BoxFit.cover,
                                           ),
                                         ),
-                                      ],
-                                    ),
+                                      )
+                                    : Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.photo_camera_outlined,
+                                            size: 26,
+                                            color: theme.hintColor,
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            photoFile == null
+                                                ? "Tap to take/upload meter photo JPG, PNG\n(Max 5MB)"
+                                                : "Photo selected",
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.w700,
+                                              color: theme.hintColor,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                              ),
                             ),
-                          ),
 
                             const SizedBox(height: 10),
 
-                            const Text(
+                            Text(
                               "• Ensure the photo clearly shows the meter reading\n"
                               "• Double-check the number you entered matches the photo",
-                              style: TextStyle(fontSize: 11.2, fontWeight: FontWeight.w700, color: Colors.black54, height: 1.25),
+                              style: TextStyle(
+                                fontSize: 11.2,
+                                fontWeight: FontWeight.w700,
+                                color: theme.hintColor,
+                                height: 1.25,
+                              ),
                             ),
 
                             const SizedBox(height: 14),
@@ -279,12 +312,19 @@ Future<void> showStartTripDialog({
                                       child: OutlinedButton(
                                         onPressed: () => Navigator.pop(ctx),
                                         style: OutlinedButton.styleFrom(
-                                          foregroundColor: Color(0xFF0060A6), // Text color
-                                          side: const BorderSide(color: Color.fromARGB(255, 196, 196, 196), width: 1.2),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(12),
+                                          foregroundColor:
+                                              const Color(0xFF0060A6),
+                                          side: const BorderSide(
+                                            color: Color.fromARGB(
+                                                255, 196, 196, 196),
+                                            width: 1.2,
                                           ),
-                                          padding: const EdgeInsets.symmetric(vertical: 12),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 12),
                                         ),
                                         child: const Text("Cancel"),
                                       ),
@@ -298,47 +338,71 @@ Future<void> showStartTripDialog({
                                             gradient: submitting
                                                 ? null
                                                 : const LinearGradient(
-                                                    colors: [Color(0xFF1565C0), Color(0xFF003580)],
+                                                    colors: [
+                                                      Color(0xFF1565C0),
+                                                      Color(0xFF003580),
+                                                    ],
                                                     begin: Alignment.topLeft,
-                                                    end: Alignment.bottomRight,
+                                                    end:
+                                                        Alignment.bottomRight,
                                                   ),
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
                                           ),
                                           child: ElevatedButton(
                                             onPressed: submitting
                                                 ? null
                                                 : () async {
-                                                    if (!formKey.currentState!.validate()) return;
+                                                    if (!formKey.currentState!
+                                                        .validate()) return;
                                                     if (photoFile == null) {
-                                                      ScaffoldMessenger.of(ctx).showSnackBar(
-                                                        const SnackBar(content: Text("Please upload meter photo")),
+                                                      ScaffoldMessenger.of(ctx)
+                                                          .showSnackBar(
+                                                        const SnackBar(
+                                                            content: Text(
+                                                                "Please upload meter photo")),
                                                       );
                                                       return;
                                                     }
-
-                                                    setState(() => submitting = true);
+                                                    setState(() =>
+                                                        submitting = true);
                                                     await onConfirm(
-                                                      meterReading: meterCtrl.text.trim(),
-                                                      fuelPercent: fuelCtrl.text.trim(),
+                                                      meterReading:
+                                                          meterCtrl.text.trim(),
+                                                      fuelPercent:
+                                                          fuelCtrl.text.trim(),
                                                       meterPhoto: photoFile!,
                                                     );
-                                                    if (ctx.mounted) Navigator.pop(ctx);
+                                                    if (ctx.mounted)
+                                                      Navigator.pop(ctx);
                                                   },
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.transparent,
+                                              backgroundColor:
+                                                  Colors.transparent,
                                               shadowColor: Colors.transparent,
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          12)),
                                               elevation: 0,
                                             ),
                                             child: submitting
                                                 ? const SizedBox(
                                                     height: 20,
                                                     width: 20,
-                                                    child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                      strokeWidth: 2.5,
+                                                      color: Colors.white,
+                                                    ),
                                                   )
                                                 : const Text(
                                                     "Start Trip Now",
-                                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.w900,
+                                                    ),
                                                   ),
                                           ),
                                         ),
@@ -362,8 +426,3 @@ Future<void> showStartTripDialog({
     },
   );
 }
-
-Widget _label(String t) => Text(
-      t,
-      style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900, color: Color(0xFF1E2A3A)),
-    );
