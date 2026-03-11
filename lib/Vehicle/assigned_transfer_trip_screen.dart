@@ -6,7 +6,7 @@ import '../ui/dialogs/stop_trip_dialog.dart';
 import '../Services/vehicle_api_service.dart';
 import '../Leaves/top_banner.dart';
 import '../ui/dialogs/generate_trip_code_dialog.dart';
-
+import '../ui/dialogs/assign_vehicle_dialog.dart';
 class AssignedTransferTripScreen extends StatefulWidget {
   final Map<String, dynamic> user; // must contain: employeeId, name, role
   const AssignedTransferTripScreen({super.key, required this.user});
@@ -111,7 +111,11 @@ class _AssignedTransferTripScreenState extends State<AssignedTransferTripScreen>
           "status": (e["status"] ?? "").toString(),
 
           "vehicleNo": (e["vehicle_no"] ?? "-").toString(),
-          "vehicleName": vehicleName, // optional
+          "vehicleType": (e["vehicle_type"] ?? "").toString(),
+          "isVehicleAssigned": (e["is_vehicle_assigned"]?.toString() ?? "0") == "1",
+          "reason": (e["chauffer_reason"] ?? "-").toString(),
+
+          "vehicleName": vehicleName,
 
           "pickup": (e["pickup_location"] ?? "-").toString(),
           "dropoff": (e["dropoff_location"] ?? "-").toString(),
@@ -280,45 +284,56 @@ class _AssignedTransferTripScreenState extends State<AssignedTransferTripScreen>
     }
 
     // Confirmation dialog before generating trip code and moving to Start Trip
-    Future<void> _confirmGenerateAndUpdate(Map<String, dynamic> trip) async {
-      final tripId = int.tryParse(trip["id"].toString()) ?? 0;
-      if (tripId <= 0) return;
+Future<void> _confirmGenerateAndUpdate(Map<String, dynamic> trip) async {
+  final tripId = int.tryParse(trip["id"].toString()) ?? 0;
+  if (tripId <= 0) return;
 
-      final code = _generateTripCode(widget.user["name"]?.toString() ?? "USER");
+  final code = _generateTripCode(widget.user["name"]?.toString() ?? "USER");
 
-      try {
-        setState(() => loading = true);
+  try {
+    setState(() => loading = true);
 
-        final res = await VehicleApiService.generateTripCode(
-          tripId: tripId,
-          tripCode: code,
-        );
+    final res = await VehicleApiService.generateTripCode(
+      tripId: tripId,
+      tripCode: code,
+    );
 
-        if (res["success"] == true) {
-          setState(() => selectedTab = 1);
-          await _loadTripsByTab();
+    if (res["success"] == true) {
+      setState(() => selectedTab = 1);
+      await _loadTripsByTab();
 
-          if (!mounted) return;
+      if (!mounted) return;
 
-          TopBanner.show(
-          context,
-          title: "Trip Code Generated",
-          message: "Your trip code has been generated successfully: $code.",
-          icon: Icons.check_circle,
-          isSuccess: true,
-          );
-        } else {
-          throw Exception(res["message"] ?? "Generate failed");
-        }
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Generate failed: $e")),
-        );
-      } finally {
-        if (mounted) setState(() => loading = false);
-      }
+      TopBanner.show(
+        context,
+        title: "Trip Code Generated",
+        message: "Your trip code has been generated successfully: $code.",
+        icon: Icons.check_circle,
+        isSuccess: true,
+      );
+    } else {
+      if (!mounted) return;
+      TopBanner.show(
+        context,
+        title: "Generate Failed",
+        message: (res["message"] ?? "Generate failed").toString(),
+        icon: Icons.error_outline,
+        isSuccess: false,
+      );
     }
+  } catch (e) {
+    if (!mounted) return;
+    TopBanner.show(
+      context,
+      title: "Generate Failed",
+      message: e.toString(),
+      icon: Icons.error_outline,
+      isSuccess: false,
+    );
+  } finally {
+    if (mounted) setState(() => loading = false);
+  }
+}
 
     // Show dialog to confirm before generating trip code and moving to Start Trip
     void _showGenerateTripDialog(Map<String, dynamic> trip) {
@@ -330,6 +345,100 @@ class _AssignedTransferTripScreenState extends State<AssignedTransferTripScreen>
         ),
       );
     }
+
+// Show dialog to input vehicle number and reason, then call API to assign vehicle to trip
+Future<void> _assignVehicleToTrip({
+  required Map<String, dynamic> trip,
+  required String vehicleType,
+  required String vehicleNo,
+  required String reason,
+}) async {
+  final tripId = int.tryParse(trip["id"].toString()) ?? 0;
+  if (tripId <= 0) return;
+
+  final alreadyAssigned = trip["isVehicleAssigned"] == true;
+
+  try {
+    setState(() => loading = true);
+
+    final res = await VehicleApiService.assignVehicleToTrip(
+      tripId: tripId,
+      vehicleType: vehicleType,
+      vehicleNo: vehicleNo,
+      reason: reason,
+    );
+
+    if (res["success"] == true) {
+      await _loadTripsByTab();
+
+      if (!mounted) return;
+      TopBanner.show(
+        context,
+        title: alreadyAssigned ? "Vehicle Updated" : "Vehicle Assigned",
+        message: alreadyAssigned
+            ? "Vehicle changed successfully."
+            : "Vehicle assigned successfully.",
+        icon: Icons.check_circle,
+        isSuccess: true,
+      );
+    } else {
+      throw Exception(res["message"] ?? "Vehicle update failed");
+    }
+  } catch (e) {
+    if (!mounted) return;
+    TopBanner.show(
+      context,
+      title: alreadyAssigned ? "Vehicle Change Failed" : "Assign Vehicle Failed",
+      message: e.toString(),
+      icon: Icons.error_outline,
+      isSuccess: false,
+    );
+  } finally {
+    if (mounted) setState(() => loading = false);
+  }
+}
+
+// Show dialog to input vehicle number and reason, then call API to assign vehicle to trip
+void _showAssignVehicleDialog(Map<String, dynamic> trip) {
+  showAssignVehicleDialog(
+    context: context,
+    vehicleType: (trip["vehicleType"] ?? "").toString(),
+    title: "Assign Vehicle",
+    onConfirm: ({
+      required String vehicleType,
+      required String vehicleNo,
+      required String reason,
+    }) async {
+      await _assignVehicleToTrip(
+        trip: trip,
+        vehicleType: vehicleType,
+        vehicleNo: vehicleNo,
+        reason: reason,
+      );
+    },
+  );
+}
+
+// Show dialog to input vehicle number and reason, then call API to assign vehicle to trip
+void _showChangeVehicleDialog(Map<String, dynamic> trip) {
+  showAssignVehicleDialog(
+    context: context,
+    vehicleType: (trip["vehicleType"] ?? "").toString(),
+    title: "Change Vehicle",
+    onConfirm: ({
+      required String vehicleType,
+      required String vehicleNo,
+      required String reason,
+    }) async {
+      await _assignVehicleToTrip(
+        trip: trip,
+        vehicleType: vehicleType,
+        vehicleNo: vehicleNo,
+        reason: reason,
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -426,7 +535,7 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = (user["name"] ?? "_").toString();
-    final role = (user["role"] ?? "_").toString();
+    final role = (user["jobTitle"] ?? "_").toString();
 
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
@@ -518,6 +627,7 @@ class TripCard extends StatelessWidget {
     super.key,
     required this.data,
     required this.onGenerateTripCode,
+    
   });
 
   Widget _gradientButton({
@@ -568,6 +678,7 @@ class TripCard extends StatelessWidget {
     final isStartTrip = status == "START_TRIP";
     final isInProgress = status == "IN_PROGRESS";
     final isCompleted = status == "COMPLETED";
+    final isVehicleAssigned = data["isVehicleAssigned"] == true;
 
     final vehicleName = (data["vehicleName"] ?? "-").toString();
 
@@ -627,27 +738,45 @@ class TripCard extends StatelessWidget {
               children: [
                 // ================= NON-COMPLETED =================
                 if (!isCompleted) ...[
-                  // transfer code only for Start / In Progress
-                  if (isStartTrip || isInProgress) ...[
+                  if (isAssigned) ...[
                     _infoRow(
-                      "Transfer Code",
-                      (data["tripCode"] ?? "-").toString(),
-                      highlight: true,
+                      "Vehicle No",
+                      isVehicleAssigned &&
+                              (data["vehicleNo"] ?? "").toString().trim().isNotEmpty
+                          ? data["vehicleNo"].toString()
+                          : "Not assigned",
                     ),
                     const SizedBox(height: 8),
+                    _infoRow("Pick up", (data["pickup"] ?? "-").toString()),
+                    const SizedBox(height: 8),
+                    _infoRow("Drop-off", (data["dropoff"] ?? "-").toString()),
+                    const SizedBox(height: 8),
+                    _infoRow("Passengers", (data["passengers"] ?? "-").toString()),
+                    const SizedBox(height: 8),
+                    _infoRow("Time", (data["time"] ?? "-").toString()),
+                    const SizedBox(height: 8),
+                    _infoRow("Assigned Date", (data["assignedDate"] ?? "-").toString()),
+                  ] else ...[
+                    if (isStartTrip || isInProgress) ...[
+                      _infoRow(
+                        "Transfer Code",
+                        (data["tripCode"] ?? "-").toString(),
+                        highlight: true,
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    _infoRow("Pick up", (data["pickup"] ?? "-").toString()),
+                    const SizedBox(height: 8),
+                    _infoRow("Drop-off", (data["dropoff"] ?? "-").toString()),
+                    const SizedBox(height: 8),
+                    _infoRow("Vehicle No", (data["vehicleNo"] ?? "-").toString()),
+                    const SizedBox(height: 8),
+                    _infoRow("Passengers", (data["passengers"] ?? "-").toString()),
+                    const SizedBox(height: 8),
+                    _infoRow("Time", (data["time"] ?? "-").toString()),
+                    const SizedBox(height: 8),
+                    _infoRow("Assigned Date", (data["assignedDate"] ?? "-").toString()),
                   ],
-
-                  _infoRow("Pick up", (data["pickup"] ?? "-").toString()),
-                  const SizedBox(height: 8),
-                  _infoRow("Drop-off", (data["dropoff"] ?? "-").toString()),
-                  const SizedBox(height: 8),
-                  _infoRow("Vehicle No", (data["vehicleNo"] ?? "-").toString()),
-                  const SizedBox(height: 8),
-                  _infoRow("Passengers", (data["passengers"] ?? "-").toString()),
-                  const SizedBox(height: 8),
-                  _infoRow("Time", (data["time"] ?? "-").toString()),
-                  const SizedBox(height: 8),
-                  _infoRow("Assigned Date", (data["assignedDate"] ?? "-").toString()),
                 ],
 
                 // ================= COMPLETED =================
@@ -678,12 +807,41 @@ class TripCard extends StatelessWidget {
                 ],
 
                 // ================= BUTTONS =================
-                if (isAssigned) ...[
+                if (isAssigned && !isVehicleAssigned) ...[
                   const SizedBox(height: 12),
                   _gradientButton(
-                    text: "Generate Trip Code",
-                    colors: const [Color(0xFF0B5FA5), Color(0xFF084C8A)],
-                    onTap: onGenerateTripCode,
+                    text: "Assign Vehicle",
+                    colors: const [Color(0xFFFF9800), Color(0xFFE65100)],
+                    onTap: () {
+                      final state = context.findAncestorStateOfType<_AssignedTransferTripScreenState>();
+                      state?._showAssignVehicleDialog(data);
+                    },
+                  ),
+                ],
+                // If vehicle is assigned, show both Remove and Generate Code buttons
+                if (isAssigned && isVehicleAssigned) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _gradientButton(
+                          text: "Change Vehicle",
+                          colors: const [Color(0xFFD10A0A), Color(0xFF5B0000)],
+                          onTap: () {
+                            final state = context.findAncestorStateOfType<_AssignedTransferTripScreenState>();
+                            state?._showChangeVehicleDialog(data);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _gradientButton(
+                          text: "Generate Code",
+                          colors: const [Color(0xFF0B5FA5), Color(0xFF084C8A)],
+                          onTap: onGenerateTripCode,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
 

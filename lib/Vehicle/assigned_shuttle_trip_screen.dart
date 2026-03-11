@@ -300,19 +300,30 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
           if (!mounted) return;
 
           TopBanner.show(
-          context,
-          title: "Trip Code Generated",
-          message: "Your trip code has been generated successfully: $code.",
-          icon: Icons.check_circle,
-          isSuccess: true,
+            context,
+            title: "Trip Code Generated",
+            message: "Your trip code has been generated successfully: $code.",
+            icon: Icons.check_circle,
+            isSuccess: true,
           );
         } else {
-          throw Exception(res["message"] ?? "Generate failed");
+          if (!mounted) return;
+          TopBanner.show(
+            context,
+            title: "Generate Failed",
+            message: (res["message"] ?? "Generate failed").toString(),
+            icon: Icons.error_outline,
+            isSuccess: false,
+          );
         }
       } catch (e) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Generate failed: $e")),
+        TopBanner.show(
+          context,
+          title: "Generate Failed",
+          message: e.toString(),
+          icon: Icons.error_outline,
+          isSuccess: false,
         );
       } finally {
         if (mounted) setState(() => loading = false);
@@ -635,12 +646,11 @@ class TripCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                   ],
-
+                  _infoRow("Vehicle No", (data["vehicleNo"] ?? "-").toString()), 
+                  const SizedBox(height: 8),
                   _infoRow("Pick up", (data["pickup"] ?? "-").toString()),
                   const SizedBox(height: 8),
                   _infoRow("Drop-off", (data["dropoff"] ?? "-").toString()),
-                  const SizedBox(height: 8),
-                  _infoRow("Vehicle No", (data["vehicleNo"] ?? "-").toString()),
                   const SizedBox(height: 8),
                   _infoRow("Passengers", (data["passengers"] ?? "-").toString()),
                   const SizedBox(height: 8),
@@ -651,11 +661,11 @@ class TripCard extends StatelessWidget {
 
                 // ================= COMPLETED =================
                 if (isCompleted) ...[
+                  _infoRow("Vehicle No", (data["vehicleNo"] ?? "-").toString()), 
+                  const SizedBox(height: 8),
                   _infoRow("Pick up", (data["pickup"] ?? "-").toString()),
                   const SizedBox(height: 8),
                   _infoRow("Drop-off", (data["dropoff"] ?? "-").toString()),
-                  const SizedBox(height: 8),
-                  _infoRow("Vehicle No", (data["vehicleNo"] ?? "-").toString()),
                   const SizedBox(height: 8),
                   _infoRow("Start Date", (data["startDate"] ?? "-").toString()),
                   const SizedBox(height: 8),

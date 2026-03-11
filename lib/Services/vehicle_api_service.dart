@@ -6,10 +6,30 @@ import 'package:http/http.dart' as http;
 class VehicleApiService {
 
   //Android Emulator → PC localhost
-  //static const String baseUrl = "http://10.0.2.2/mobile-api/vehicle";
-  static const String baseUrl = "https://exploresuite.lk/mobile-api/vehicle";
+  static const String baseUrl = "http://10.0.2.2/mobile-api/vehicle";
+  //static const String baseUrl = "https://exploresuite.lk/mobile-api/vehicle";
 
+  // For real device testing, use your PC's local network IP address
+  // static const String baseUrl = "http://
+  static Future<Map<String, dynamic>> assignVehicleToTrip({
+    required int tripId,
+    required String vehicleType,
+    required String vehicleNo,
+    required String reason,
+  }) async {
+    final uri = Uri.parse("$baseUrl/assign_vehicle_to_trip.php");
 
+    final request = http.MultipartRequest("POST", uri)
+      ..fields["trip_id"] = tripId.toString()
+      ..fields["vehicle_type"] = vehicleType
+      ..fields["vehicle_no"] = vehicleNo
+      ..fields["reason"] = reason;
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
 
   static Future<Map<String, dynamic>> fetchVehicleDetails({
       required String transportServiceId,

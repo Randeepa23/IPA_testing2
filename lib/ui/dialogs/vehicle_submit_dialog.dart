@@ -66,18 +66,17 @@ Future<void> showVehicleSubmitDialog({
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: const Color(0xFFE8EDF5)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _row("Destination", destinationTxt),
-                            const SizedBox(height: 6),
-                            _row("Vehicle No", vehicleNoTxt),
-                            const SizedBox(height: 6),
-                            _row("Date", "$fromTxt  →  $toTxt"),
+                           _row(context, "Destination", destinationTxt),
+                          const SizedBox(height: 6),
+                          _row(context, "Vehicle No", vehicleNoTxt),
+                          const SizedBox(height: 6),
+                          _row(context, "Date", "$fromTxt  To  $toTxt"),
                           ],
                         ),
                       ),
@@ -172,7 +171,7 @@ Future<void> showVehicleSubmitDialog({
   );
 }
 
-Widget _row(String label, String value) {
+Widget _row(BuildContext context, String label, String value) {
   return Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -180,10 +179,10 @@ Widget _row(String label, String value) {
         width: 92,
         child: Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w800,
-            color: Color(0xFF6B7A90),
+            color: Theme.of(context).textTheme.bodyMedium?.color,
           ),
         ),
       ),
@@ -191,10 +190,10 @@ Widget _row(String label, String value) {
       Expanded(
         child: Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12.5,
             fontWeight: FontWeight.w900,
-            color: Color(0xFF1E2A3A),
+            color: Theme.of(context).textTheme.bodyLarge?.color,
           ),
         ),
       ),
