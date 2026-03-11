@@ -56,26 +56,44 @@ Future<void> showLeaveSubmitDialog({
                           style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
 
                       const SizedBox(height: 14),
-
+                      
+                      // Leave details card
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: const Color(0xFFE8EDF5)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(leaveType,
-                                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.black87)),
-                            const SizedBox(height: 4),
-                            Text(daysTxt,
-                                style: const TextStyle(fontSize: 12, color: Color(0xFF6B7A90), fontWeight: FontWeight.w700)),
+                            Text(
+                              leaveType,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 13,
+                                color: Theme.of(context).textTheme.bodyLarge?.color,
+                              ),
+                            ),
                             const SizedBox(height: 2),
-                            Text("$fromTxt to $toTxt",
-                                style: const TextStyle(fontSize: 12, color: Color(0xFF6B7A90), fontWeight: FontWeight.w700)),
+                            Text(
+                              daysTxt,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Theme.of(context).textTheme.bodyMedium?.color,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              "$fromTxt to $toTxt",
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Theme.of(context).textTheme.bodyMedium?.color,
+                              ),
+                            ),
                           ],
                         ),
                       ),
