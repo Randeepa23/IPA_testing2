@@ -16,9 +16,10 @@ class UpperCaseTextFormatter extends TextInputFormatter {
     );
   }
 }
-Future<void> showAssignVehicleDialog({
+showAssignVehicleDialog({
   required BuildContext context,
   required String vehicleType,
+  required String title,
   required Future<void> Function({
     required String vehicleType,
     required String vehicleNo,
@@ -90,9 +91,11 @@ Future<void> showAssignVehicleDialog({
                               ],
                             ),
                             const SizedBox(height: 4),
-                            const Text(
-                              "Vehicle type is fixed for this trip. Enter vehicle number and reason.",
-                              style: TextStyle(
+                            Text(
+                              title == "Change Vehicle"
+                                  ? "Vehicle type is fixed for this trip. Enter the new vehicle number and reason for the change."
+                                  : "Vehicle type is fixed for this trip. Enter vehicle number and reason.",
+                              style: const TextStyle(
                                 color: Colors.grey,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -114,7 +117,7 @@ Future<void> showAssignVehicleDialog({
                               decoration: InputDecoration(
                                 hintText: "Vehicle type",
                                 filled: true,
-                                fillColor: const Color(0xFFF3F4F6),
+                                //fillColor: const Color(0xFFF3F4F6),
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 14,
                                   vertical: 14,
@@ -173,7 +176,6 @@ Future<void> showAssignVehicleDialog({
                                       counterText: "",
                                       hintText: "ABC",
                                       filled: true,
-                                      fillColor: Colors.grey.shade50,
                                       contentPadding: const EdgeInsets.symmetric(
                                         horizontal: 14,
                                         vertical: 14,
@@ -233,7 +235,6 @@ Future<void> showAssignVehicleDialog({
                                       counterText: "",
                                       hintText: "1234",
                                       filled: true,
-                                      fillColor: Colors.grey.shade50,
                                       contentPadding: const EdgeInsets.symmetric(
                                         horizontal: 14,
                                         vertical: 14,
@@ -290,7 +291,6 @@ Future<void> showAssignVehicleDialog({
                               decoration: InputDecoration(
                                 hintText: "Enter reason / note",
                                 filled: true,
-                                fillColor: Colors.grey.shade50,
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 14,
                                   vertical: 14,
@@ -420,8 +420,7 @@ Future<void> showAssignVehicleDialog({
                                                 color: Colors.white,
                                               ),
                                             )
-                                          : const Text(
-                                              "Assign",
+                                          : Text(title == "Change Vehicle" ? "Change" : "Assign",
                                               style: TextStyle(
                                                 color: Colors.white,
                                               ),
