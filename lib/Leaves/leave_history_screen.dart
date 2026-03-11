@@ -355,41 +355,6 @@ Widget build(BuildContext context) {
             ],
           ),
 
-          // Cancel button ONLY for pending or relieverDeclined (because employee can re-apply if reliever declined, so we keep cancel option there as well)
-          if (r.status == LeaveStatus.pending || r.status == LeaveStatus.relieverDeclined) ...[
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerRight,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFD10A0A), Color(0xFF5B0000)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: ElevatedButton(
-                  onPressed: () async {
-                    final ok = await showCancelConfirmPopup(context);
-                    if (ok == true) _cancelRequest(r);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: const Text(
-                    'Cancel Request',
-                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Colors.white),
-                  ),
-                ),
-              ),
-            ),
-          ],
-
           const SizedBox(height: 10),
           _fieldBox(icon: Icons.calendar_month_outlined, label: 'Start Date', value: r.startDate),
           const SizedBox(height: 8),
@@ -474,6 +439,47 @@ Widget build(BuildContext context) {
               color: Color(0xFF6B7A90),
             ),
           ),
+
+          // Cancel button — full width at the bottom, only for pending/relieverDeclined
+          if (r.status == LeaveStatus.pending || r.status == LeaveStatus.relieverDeclined) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFD10A0A), Color(0xFF5B0000)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final ok = await showCancelConfirmPopup(context);
+                    if (ok == true) _cancelRequest(r);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    'Cancel Request',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
