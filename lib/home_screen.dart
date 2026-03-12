@@ -1,10 +1,12 @@
 import 'dart:ui';
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:test_app/Leaves/dashbord_screen.dart';
 import 'login_screen.dart';
 import 'Leaves/top_banner.dart';
 import 'vehicle_home_screen.dart';
 import 'ui/dialogs/logout_dialog.dart';
+import 'Translation/camera_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String username;
@@ -89,12 +91,17 @@ class _HomeScreenState extends State<HomeScreen> {
         image: 'assets/itSupport.png',
         label: "IT Support",
         disabled: false,
-        onTap: () => showBottomMessage("Inventory Management is coming soon 🚧"),
-        // onTap: () => Navigator.push(
-        //   // context,
-        //   // MaterialPageRoute(builder: (_) => const ImageTranslateScreen()),
-        // ),
-        
+        //onTap: () => showBottomMessage("Inventory Management is coming soon 🚧"),
+        onTap: () async {
+          final cameras = await availableCameras();
+          if (!mounted) return;
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => CameraScreen(cameras: cameras),
+            ),
+          );
+        },
       ),
       _ServiceItem(
         image: 'assets/inventory.png',
