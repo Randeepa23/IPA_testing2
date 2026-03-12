@@ -22,17 +22,17 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
+    }x`
 
     kotlinOptions {
         jvmTarget = "17"
     }
 
-    // ✅ MUST be inside android { }
+    // MUST be inside android { }
     defaultConfig {
         applicationId = "com.example.test_app"
 
-        // ✅ Fix NDK error (minSdk 1/too low)
+        // Fix NDK error (minSdk 1/too low)
         minSdk = flutter.minSdkVersion
 
         targetSdk = flutter.targetSdkVersion
@@ -41,7 +41,7 @@ android {
     }
 
     signingConfigs {
-        // ✅ Only configure release signing if key.properties exists
+        // Only configure release signing if key.properties exists
         if (keystorePropertiesFile.exists()) {
             create("release") {
                 keyAlias = keystoreProperties["keyAlias"] as String

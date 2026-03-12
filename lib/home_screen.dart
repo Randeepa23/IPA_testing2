@@ -88,8 +88,13 @@ class _HomeScreenState extends State<HomeScreen> {
       _ServiceItem(
         image: 'assets/itSupport.png',
         label: "IT Support",
-        disabled: true,
-        onTap: () => showBottomMessage("IT Support is coming soon 🚧"),
+        disabled: false,
+        onTap: () => showBottomMessage("Inventory Management is coming soon 🚧"),
+        // onTap: () => Navigator.push(
+        //   // context,
+        //   // MaterialPageRoute(builder: (_) => const ImageTranslateScreen()),
+        // ),
+        
       ),
       _ServiceItem(
         image: 'assets/inventory.png',
