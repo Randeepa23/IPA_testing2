@@ -70,6 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
+      // more services can be added here without changing the UI code
       _ServiceItem(
         image: 'assets/123456.png',
         label: "Vehicle Request",
@@ -81,17 +82,11 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
+      // only one real service for now, but placeholders can be added easily
       _ServiceItem(
-        image: 'assets/789123.png',
-        label: "Shift Schedule",
-        disabled: true,
-        onTap: () => showBottomMessage("Shift Schedule is coming soon 🚧"),
-      ),
-      _ServiceItem(
-        image: 'assets/itSupport.png',
-        label: "IT Support",
+        image: 'assets/Translate.png',
+        label: "Translater",
         disabled: false,
-        //onTap: () => showBottomMessage("Inventory Management is coming soon 🚧"),
         onTap: () async {
           final cameras = await availableCameras();
           if (!mounted) return;
@@ -103,24 +98,35 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
+      // placeholder services (disabled with message)
+      _ServiceItem(
+        image: 'assets/789123.png',
+        label: "Shift Schedule",
+        disabled: true,
+        onTap: () => showBottomMessage("Shift Schedule is coming soon 🚧"),
+      ),
+      // more placeholders can be added here without changing the UI code
       _ServiceItem(
         image: 'assets/inventory.png',
         label: "Inventory Management",
         disabled: true,
         onTap: () => showBottomMessage("Inventory Management is coming soon 🚧"),
       ),
+      // more placeholders can be added here without changing the UI code
       _ServiceItem(
         image: 'assets/meeting&event.png',
         label: "Meeting & Events",
         disabled: true,
         onTap: () => showBottomMessage("Meeting & Events is coming soon 🚧"),
       ),
+      // more placeholders can be added here without changing the UI code
       _ServiceItem(
         image: 'assets/project.png',
         label: "Project & Task",
         disabled: true,
         onTap: () => showBottomMessage("Project & Task is coming soon 🚧"),
       ),
+      // more placeholders can be added here without changing the UI code
       _ServiceItem(
         image: 'assets/finance.png',
         label: "Finance & Accounting",
