@@ -1,10 +1,12 @@
 import 'dart:ui';
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:test_app/Leaves/dashbord_screen.dart';
 import 'login_screen.dart';
 import 'Leaves/top_banner.dart';
 import 'vehicle_home_screen.dart';
 import 'ui/dialogs/logout_dialog.dart';
+import 'Translation/camera_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String username;
@@ -68,6 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
+      // more services can be added here without changing the UI code
       _ServiceItem(
         image: 'assets/123456.png',
         label: "Vehicle Request",
@@ -79,41 +82,51 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
+      // only one real service for now, but placeholders can be added easily
+      _ServiceItem(
+        image: 'assets/Translate.png',
+        label: "Translater",
+        disabled: false,
+        onTap: () async {
+          final cameras = await availableCameras();
+          if (!mounted) return;
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => CameraScreen(cameras: cameras),
+            ),
+          );
+        },
+      ),
+      // placeholder services (disabled with message)
       _ServiceItem(
         image: 'assets/789123.png',
         label: "Shift Schedule",
         disabled: true,
         onTap: () => showBottomMessage("Shift Schedule is coming soon 🚧"),
       ),
-      _ServiceItem(
-        image: 'assets/itSupport.png',
-        label: "IT Support",
-        disabled: false,
-        onTap: () => showBottomMessage("Inventory Management is coming soon 🚧"),
-        // onTap: () => Navigator.push(
-        //   // context,
-        //   // MaterialPageRoute(builder: (_) => const ImageTranslateScreen()),
-        // ),
-        
-      ),
+      // more placeholders can be added here without changing the UI code
       _ServiceItem(
         image: 'assets/inventory.png',
         label: "Inventory Management",
         disabled: true,
         onTap: () => showBottomMessage("Inventory Management is coming soon 🚧"),
       ),
+      // more placeholders can be added here without changing the UI code
       _ServiceItem(
         image: 'assets/meeting&event.png',
         label: "Meeting & Events",
         disabled: true,
         onTap: () => showBottomMessage("Meeting & Events is coming soon 🚧"),
       ),
+      // more placeholders can be added here without changing the UI code
       _ServiceItem(
         image: 'assets/project.png',
         label: "Project & Task",
         disabled: true,
         onTap: () => showBottomMessage("Project & Task is coming soon 🚧"),
       ),
+      // more placeholders can be added here without changing the UI code
       _ServiceItem(
         image: 'assets/finance.png',
         label: "Finance & Accounting",
