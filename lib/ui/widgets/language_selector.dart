@@ -7,31 +7,36 @@ class LanguageSelectorSheet extends StatefulWidget {
   final AppLanguage selected;
   final Function(AppLanguage) onSelected;
   final String title;
+  final bool includeAutoDetect;
+
 
   const LanguageSelectorSheet({
     super.key,
     required this.selected,
     required this.onSelected,
     required this.title,
+    this.includeAutoDetect = false, // ← new flag to include "Auto Detect" option
   });
 
-  static Future<void> show(
-    BuildContext context, {
-    required AppLanguage selected,
-    required Function(AppLanguage) onSelected,
-    required String title,
-  }) {
-    return showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => LanguageSelectorSheet(
-        selected: selected,
-        onSelected: onSelected,
-        title: title,
-      ),
-    );
-  }
+    static Future<void> show(
+      BuildContext context, {
+      required AppLanguage selected,
+      required Function(AppLanguage) onSelected,
+      required String title,
+      bool includeAutoDetect = false, // ← add this
+    }) {
+      return showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => LanguageSelectorSheet(
+          selected: selected,
+          onSelected: onSelected,
+          title: title,
+          includeAutoDetect: includeAutoDetect, // ← pass it
+        ),
+      );
+    }
 
   @override
   State<LanguageSelectorSheet> createState() => _LanguageSelectorSheetState();
@@ -40,14 +45,18 @@ class LanguageSelectorSheet extends StatefulWidget {
 class _LanguageSelectorSheetState extends State<LanguageSelectorSheet> {
   String _search = '';
 
-  List<AppLanguage> get filtered {
-    if (_search.isEmpty) return kLanguages;
-    return kLanguages
-        .where((l) =>
-            l.name.toLowerCase().contains(_search.toLowerCase()) ||
-            l.nativeName.toLowerCase().contains(_search.toLowerCase()))
-        .toList();
-  }
+List<AppLanguage> get filtered {
+  final base = widget.includeAutoDetect // ← add widget.
+      ? [kAutoDetect, ...kLanguages]  // ← prepend auto detect
+      : kLanguages;
+
+  if (_search.isEmpty) return base;
+  return base
+      .where((l) =>
+          l.name.toLowerCase().contains(_search.toLowerCase()) ||
+          l.nativeName.toLowerCase().contains(_search.toLowerCase()))
+      .toList();
+}
 
   @override
   Widget build(BuildContext context) {

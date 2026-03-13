@@ -5,7 +5,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart' hide TextBlock;
 import '../Models/language_model.dart';
 import '../Services/ocr_service.dart';
 import '../Services/translation_service.dart';
@@ -26,13 +26,12 @@ class _CameraScreenState extends State<CameraScreen>
   CameraController? _controller;
   bool _isInitialized = false;
   bool _isProcessing = false;
-  bool _isLiveMode = false; // Live real-time OCR mode
+  bool _isLiveMode = false;
   bool _flashOn = false;
 
-  AppLanguage _sourceLang = kLanguages[1]; // Sinhala default
+  AppLanguage _sourceLang = kAutoDetect;
   AppLanguage _targetLang = kLanguages[0]; // English default
 
-  // Live mode state
   String _liveText = '';
   bool _isLiveProcessing = false;
 
@@ -85,29 +84,26 @@ class _CameraScreenState extends State<CameraScreen>
     super.dispose();
   }
 
-  // ─── CAPTURE & TRANSLATE ─────────────────────────────────────
-// In _captureAndTranslate(), add stopImageStream FIRST:
-Future<void> _captureAndTranslate() async {
-  if (!_isInitialized || _isProcessing) return;
-  setState(() => _isProcessing = true);
+  // ─── CAPTURE ─────────────────────────────────────────────────
+  Future<void> _captureAndTranslate() async {
+    if (!_isInitialized || _isProcessing) return;
+    setState(() => _isProcessing = true);
 
-  try {
-    // ADD THIS - stop stream before taking picture
-    if (_controller!.value.isStreamingImages) {
-      await _controller!.stopImageStream();
+    try {
+      if (_controller!.value.isStreamingImages) {
+        await _controller!.stopImageStream();
+      }
+      HapticFeedback.mediumImpact();
+      final image = await _controller!.takePicture();
+      await _processAndNavigate(File(image.path));
+    } catch (e) {
+      _showError('Capture failed: $e');
     }
 
-    HapticFeedback.mediumImpact();
-    final image = await _controller!.takePicture();
-    final file = File(image.path);
-    await _processAndNavigate(file);
-  } catch (e) {
-    _showError('Capture failed: $e');
+    setState(() => _isProcessing = false);
   }
 
-  setState(() => _isProcessing = false);
-}
-
+  // ─── GALLERY ─────────────────────────────────────────────────
   Future<void> _pickFromGallery() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
@@ -118,11 +114,12 @@ Future<void> _captureAndTranslate() async {
     setState(() => _isProcessing = false);
   }
 
+  // ─── CORE: OCR + TRANSLATE + NAVIGATE ────────────────────────
   Future<void> _processAndNavigate(File imageFile) async {
-    // OCR
+    // Step 1: Run OCR (auto-detects script internally)
     final ocrResult = await OcrService.recognizeFromFile(
       imageFile,
-      _sourceLang.ocrScript,
+      TextScript.latin,
     );
 
     if (!ocrResult.hasText) {
@@ -130,28 +127,80 @@ Future<void> _captureAndTranslate() async {
       return;
     }
 
-    // Translate each block
+    debugPrint('OCR found ${ocrResult.blocks.length} blocks');
+    debugPrint('OCR full text: ${ocrResult.fullText.substring(0, ocrResult.fullText.length.clamp(0, 100))}');
+
+    // Step 2: Pick blocks to translate
+    // - Source is English → translate ALL blocks
+    // - Source is auto/other → skip pure English blocks (numbers, English words)
+    List<TextBlock> blocksToTranslate;
+
+    if (_sourceLang.code == 'en') {
+      // User explicitly chose English source → translate everything
+      blocksToTranslate = ocrResult.blocks;
+    } else {
+      // Filter: keep blocks that have significant non-English content
+      final filtered = ocrResult.nonEnglishBlocks;
+      debugPrint('After filter: ${filtered.length} non-English blocks');
+
+      // Safety fallback: if filter removed everything, use ALL blocks
+      // This is important for Hindi/auto where everything might be non-Latin
+      blocksToTranslate = filtered.isEmpty ? ocrResult.blocks : filtered;
+    }
+
+    // Step 3: Translate each block
     final translatedBlocks = <TranslatedBlock>[];
-    for (final block in ocrResult.blocks) {
+    String? detectedLangDisplay;
+
+    for (final block in blocksToTranslate) {
+      debugPrint('Translating block: "${block.text.substring(0, block.text.length.clamp(0, 50))}"');
+
       final result = await TranslationService.translate(
         text: block.text,
         source: _sourceLang,
         target: _targetLang,
       );
+
+      debugPrint('Result: "${result.translatedText.substring(0, result.translatedText.length.clamp(0, 50))}" method: ${result.method}');
+
+      // Capture detected language from first block that has it
+      if (detectedLangDisplay == null && result.detectedLanguage != null) {
+        detectedLangDisplay = result.detectedLanguage;
+      }
+
+      // Skip failed translations and empty results
+      if (result.translatedText.isEmpty) continue;
+      if (result.method.contains('Failed') || result.method.contains('❌')) continue;
+      // Skip if translation is same as original (means it failed silently)
+      // BUT only skip for non-error cases - allow same text if it's a valid same-lang result
+      if (result.method.contains('✓ Same language')) continue;
+
       translatedBlocks.add(TranslatedBlock(
         originalBlock: block,
         translatedText: result.translatedText,
       ));
     }
 
-    // Also translate full text
+    // Step 4: Full document translation for the Translation tab
+    final textForFullTranslation =
+        blocksToTranslate.map((b) => b.text).join('\n');
+
     final fullTranslation = await TranslationService.translate(
-      text: ocrResult.fullText,
+      text: textForFullTranslation.isEmpty
+          ? ocrResult.fullText
+          : textForFullTranslation,
       source: _sourceLang,
       target: _targetLang,
     );
 
+    // Step 5: Build the method display label
+    final methodDisplay =
+        _sourceLang.code == 'auto' && detectedLangDisplay != null
+            ? '🔍 $detectedLangDisplay → ${_targetLang.name}'
+            : fullTranslation.method;
+
     if (!mounted) return;
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -160,9 +209,10 @@ Future<void> _captureAndTranslate() async {
           ocrResult: ocrResult,
           translatedBlocks: translatedBlocks,
           fullTranslation: fullTranslation.translatedText,
-          translationMethod: fullTranslation.method,
+          translationMethod: methodDisplay,
           sourceLang: _sourceLang,
           targetLang: _targetLang,
+          detectedLanguage: detectedLangDisplay,
         ),
       ),
     );
@@ -208,18 +258,28 @@ Future<void> _captureAndTranslate() async {
 
       final ocrResult = await OcrService.recognizeFromCameraImage(
         inputImage,
-        _sourceLang.ocrScript,
+        TextScript.latin,
       );
 
       if (ocrResult.hasText && mounted) {
-        // Translate live text
-        final tr = await TranslationService.translate(
-          text: ocrResult.fullText,
-          source: _sourceLang,
-          target: _targetLang,
-        );
-        if (mounted) {
-          setState(() => _liveText = tr.translatedText);
+        final liveBlocks = _sourceLang.code == 'en'
+            ? ocrResult.blocks
+            : ocrResult.nonEnglishBlocks.isEmpty
+                ? ocrResult.blocks
+                : ocrResult.nonEnglishBlocks;
+
+        final textToTranslate = liveBlocks.map((b) => b.text).join(' ');
+
+        if (textToTranslate.isNotEmpty) {
+          final tr = await TranslationService.translate(
+            text: textToTranslate,
+            source: _sourceLang,
+            target: _targetLang,
+          );
+          if (mounted && tr.translatedText.isNotEmpty &&
+              !tr.method.contains('❌')) {
+            setState(() => _liveText = tr.translatedText);
+          }
         }
       } else if (mounted) {
         setState(() => _liveText = '');
@@ -264,25 +324,16 @@ Future<void> _captureAndTranslate() async {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Camera preview
           _buildCameraPreview(),
-
-          // Top bar
           _buildTopBar(),
-
-          // Language bar
           Positioned(
             top: MediaQuery.of(context).padding.top + 56,
             left: 0,
             right: 0,
             child: _buildLanguageBar(),
           ),
-
-          // Scanner overlay (live mode)
           if (_isLiveMode)
             Positioned.fill(child: ScannerOverlay(isScanning: _isLiveMode)),
-
-          // Live translation result
           if (_isLiveMode && _liveText.isNotEmpty)
             Positioned(
               bottom: 160,
@@ -290,16 +341,12 @@ Future<void> _captureAndTranslate() async {
               right: 16,
               child: _buildLiveTranslationBubble(),
             ),
-
-          // Bottom controls
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
             child: _buildBottomControls(),
           ),
-
-          // Processing indicator
           if (_isProcessing)
             Positioned.fill(child: _buildProcessingOverlay()),
         ],
@@ -313,9 +360,7 @@ Future<void> _captureAndTranslate() async {
         child: CircularProgressIndicator(color: Colors.white),
       );
     }
-    return SizedBox.expand(
-      child: CameraPreview(_controller!),
-    );
+    return SizedBox.expand(child: CameraPreview(_controller!));
   }
 
   Widget _buildTopBar() {
@@ -339,29 +384,26 @@ Future<void> _captureAndTranslate() async {
         ),
         child: Row(
           children: [
-            // App title
             const Text(
               '🔍 Lens Translate',
               style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold),
             ),
             const Spacer(),
-            // Flash
             _iconButton(
               _flashOn ? Icons.flash_on : Icons.flash_off,
               _toggleFlash,
               _flashOn ? Colors.yellow : Colors.white,
             ),
             const SizedBox(width: 8),
-            // Live mode toggle
             GestureDetector(
               onTap: _toggleLiveMode,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: _isLiveMode
                       ? const Color(0xFF4285F4)
@@ -378,13 +420,12 @@ Future<void> _captureAndTranslate() async {
                       size: 16,
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      _isLiveMode ? 'LIVE' : 'LIVE',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    const Text(
+                      'LIVE',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -409,34 +450,31 @@ Future<void> _captureAndTranslate() async {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Source language
             Expanded(
               child: GestureDetector(
                 onTap: () => LanguageSelectorSheet.show(
                   context,
                   selected: _sourceLang,
                   title: 'Translate From',
+                  includeAutoDetect: true,
                   onSelected: (l) => setState(() => _sourceLang = l),
                 ),
                 child: _langChip(_sourceLang),
               ),
             ),
-
-            // Swap button
             GestureDetector(
               onTap: _swapLanguages,
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 8),
                 padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4285F4),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF4285F4),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.swap_horiz, color: Colors.white, size: 18),
+                child: const Icon(Icons.swap_horiz,
+                    color: Colors.white, size: 18),
               ),
             ),
-
-            // Target language
             Expanded(
               child: GestureDetector(
                 onTap: () => LanguageSelectorSheet.show(
@@ -464,10 +502,9 @@ Future<void> _captureAndTranslate() async {
           child: Text(
             lang.name,
             style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-            ),
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 13),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -500,10 +537,9 @@ Future<void> _captureAndTranslate() async {
               Text(
                 '${_targetLang.flag} ${_targetLang.name}',
                 style: const TextStyle(
-                  color: Color(0xFF4285F4),
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
+                    color: Color(0xFF4285F4),
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -511,10 +547,9 @@ Future<void> _captureAndTranslate() async {
           Text(
             _liveText,
             style: const TextStyle(
-              color: Color(0xFF1A1A2E),
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
+                color: Color(0xFF1A1A2E),
+                fontSize: 16,
+                fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -539,14 +574,11 @@ Future<void> _captureAndTranslate() async {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          // Gallery
           _bottomButton(
             icon: Icons.photo_library_outlined,
             label: 'Gallery',
             onTap: _pickFromGallery,
           ),
-
-          // Capture button
           GestureDetector(
             onTap: _isLiveMode ? null : _captureAndTranslate,
             child: AnimatedContainer(
@@ -556,10 +588,8 @@ Future<void> _captureAndTranslate() async {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: _isLiveMode ? Colors.grey : Colors.white,
-                border: Border.all(
-                  color: const Color(0xFF4285F4),
-                  width: 3,
-                ),
+                border:
+                    Border.all(color: const Color(0xFF4285F4), width: 3),
                 boxShadow: [
                   BoxShadow(
                     color: const Color(0xFF4285F4).withOpacity(0.4),
@@ -570,19 +600,17 @@ Future<void> _captureAndTranslate() async {
               ),
               child: Icon(
                 Icons.camera_alt,
-                color: _isLiveMode ? Colors.grey.shade400 : const Color(0xFF4285F4),
+                color: _isLiveMode
+                    ? Colors.grey.shade400
+                    : const Color(0xFF4285F4),
                 size: 30,
               ),
             ),
           ),
-
-          // Translate text manually
           _bottomButton(
             icon: Icons.text_fields,
             label: 'Text',
-            onTap: () {
-              // Could open text input screen
-            },
+            onTap: () {},
           ),
         ],
       ),
@@ -641,10 +669,9 @@ Future<void> _captureAndTranslate() async {
             child: Icon(icon, color: Colors.white, size: 24),
           ),
           const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white70, fontSize: 11),
-          ),
+          Text(label,
+              style:
+                  const TextStyle(color: Colors.white70, fontSize: 11)),
         ],
       ),
     );

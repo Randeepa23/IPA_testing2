@@ -27,6 +27,16 @@ enum TextScript {
   japanese,
   korean,
 }
+// Add this at the TOP of kLanguages list
+const AppLanguage kAutoDetect = AppLanguage(
+  code: 'auto',
+  mlKitCode: 'auto',
+  name: 'Auto Detect',
+  nativeName: 'Detect Language',
+  flag: '🔍',
+  offlineSupported: false,
+  ocrScript: TextScript.latin,
+);
 
 // All supported languages
 const List<AppLanguage> kLanguages = [

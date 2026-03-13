@@ -15,6 +15,7 @@ class ResultScreen extends StatefulWidget {
   final String translationMethod;
   final AppLanguage sourceLang;
   final AppLanguage targetLang;
+  final String? detectedLanguage; // ← NEW: e.g. "🇯🇵 Japanese"
 
   const ResultScreen({
     super.key,
@@ -25,6 +26,7 @@ class ResultScreen extends StatefulWidget {
     required this.translationMethod,
     required this.sourceLang,
     required this.targetLang,
+    this.detectedLanguage, // optional
   });
 
   @override
@@ -50,26 +52,24 @@ class _ResultScreenState extends State<ResultScreen>
     super.dispose();
   }
 
-Future<void> _loadImageSize() async {
-  try {
-    final bytes = await widget.imageFile.readAsBytes(); // async read
-    final decodedImage = await decodeImageFromList(bytes);
-    if (mounted) {
-      setState(() {
-        _imageSize = Size(
-          decodedImage.width.toDouble(),
-          decodedImage.height.toDouble(),
-        );
-      });
-    }
-  } catch (e) {
-    debugPrint('Image size error: $e');
-    // fallback size so overlay doesn't crash
-    if (mounted) {
-      setState(() => _imageSize = const Size(1080, 1920));
+  Future<void> _loadImageSize() async {
+    try {
+      final bytes = await widget.imageFile.readAsBytes();
+      final decodedImage = await decodeImageFromList(bytes);
+      if (mounted) {
+        setState(() {
+          _imageSize = Size(
+            decodedImage.width.toDouble(),
+            decodedImage.height.toDouble(),
+          );
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _imageSize = const Size(1080, 1920));
+      }
     }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +78,11 @@ Future<void> _loadImageSize() async {
       appBar: _buildAppBar(),
       body: Column(
         children: [
-          // Tab bar
+          // Show detected language banner when auto-detect was used
+          if (widget.sourceLang.code == 'auto' &&
+              widget.detectedLanguage != null)
+            _buildDetectedLanguageBanner(),
+
           Container(
             color: const Color(0xFF1A1A2E),
             child: TabBar(
@@ -93,8 +97,6 @@ Future<void> _loadImageSize() async {
               ],
             ),
           ),
-
-          // Tab content
           Expanded(
             child: TabBarView(
               controller: _tabController,
@@ -110,22 +112,56 @@ Future<void> _loadImageSize() async {
     );
   }
 
+  // ─── DETECTED LANGUAGE BANNER ────────────────────────────────
+  Widget _buildDetectedLanguageBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: const Color(0xFF4285F4).withOpacity(0.15),
+      child: Row(
+        children: [
+          const Icon(Icons.language, color: Color(0xFF4FC3F7), size: 16),
+          const SizedBox(width: 8),
+          Text(
+            'Detected: ${widget.detectedLanguage}',
+            style: const TextStyle(
+              color: Color(0xFF4FC3F7),
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const Spacer(),
+          const Icon(Icons.arrow_forward, color: Color(0xFF4285F4), size: 14),
+          const SizedBox(width: 4),
+          Text(
+            widget.targetLang.name,
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+
   PreferredSizeWidget _buildAppBar() {
+    // Show detected language in appbar when auto-detect mode
+    final sourceDisplay = widget.sourceLang.code == 'auto'
+        ? '🔍 Auto'
+        : '${widget.sourceLang.flag} ${widget.sourceLang.name}';
+
     return AppBar(
       backgroundColor: const Color(0xFF1A1A2E),
       foregroundColor: Colors.white,
       title: Row(
         children: [
-          Text(widget.sourceLang.flag, style: const TextStyle(fontSize: 20)),
-          const SizedBox(width: 6),
-          Text(widget.sourceLang.name,
+          Text(sourceDisplay,
               style: const TextStyle(color: Colors.white70, fontSize: 14)),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 6),
             child: Icon(Icons.arrow_forward, color: Color(0xFF4285F4), size: 16),
           ),
-          Text(widget.targetLang.flag, style: const TextStyle(fontSize: 20)),
-          const SizedBox(width: 6),
+          Text(widget.targetLang.flag,
+              style: const TextStyle(fontSize: 18)),
+          const SizedBox(width: 4),
           Text(widget.targetLang.name,
               style: const TextStyle(color: Colors.white, fontSize: 14)),
         ],
@@ -136,15 +172,18 @@ Future<void> _loadImageSize() async {
             padding: const EdgeInsets.only(right: 8),
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: const Color(0xFF4285F4).withOpacity(0.2),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF4285F4).withOpacity(0.5)),
+                  border: Border.all(
+                      color: const Color(0xFF4285F4).withOpacity(0.5)),
                 ),
                 child: Text(
                   widget.translationMethod,
-                  style: const TextStyle(color: Color(0xFF4FC3F7), fontSize: 11),
+                  style: const TextStyle(
+                      color: Color(0xFF4FC3F7), fontSize: 11),
                 ),
               ),
             ),
@@ -153,12 +192,11 @@ Future<void> _loadImageSize() async {
     );
   }
 
-  // ─── TAB 1: OVERLAY (Google Lens style) ──────────────────────
+  // ─── TAB 1: OVERLAY ──────────────────────────────────────────
   Widget _buildOverlayTab() {
     return SingleChildScrollView(
       child: Column(
         children: [
-          // Image with overlay
           Stack(
             children: [
               Image.file(
@@ -166,15 +204,15 @@ Future<void> _loadImageSize() async {
                 width: double.infinity,
                 fit: BoxFit.fitWidth,
               ),
-
-              // Toggle overlay button
               Positioned(
                 top: 12,
                 right: 12,
                 child: GestureDetector(
-                  onTap: () => setState(() => _showOverlay = !_showOverlay),
+                  onTap: () =>
+                      setState(() => _showOverlay = !_showOverlay),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.6),
                       borderRadius: BorderRadius.circular(20),
@@ -183,22 +221,23 @@ Future<void> _loadImageSize() async {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          _showOverlay ? Icons.visibility : Icons.visibility_off,
+                          _showOverlay
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                           color: Colors.white,
                           size: 14,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           _showOverlay ? 'Hide' : 'Show',
-                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 12),
                         ),
                       ],
                     ),
                   ),
                 ),
               ),
-
-              // In result_screen.dart, replace the overlay Positioned block with:
               if (_showOverlay)
                 Positioned.fill(
                   child: _imageSize == null
@@ -211,7 +250,9 @@ Future<void> _loadImageSize() async {
                                 imageSize: _imageSize!,
                                 widgetSize: Size(
                                   constraints.maxWidth,
-                                  constraints.maxWidth * _imageSize!.height / _imageSize!.width,
+                                  constraints.maxWidth *
+                                      _imageSize!.height /
+                                      _imageSize!.width,
                                 ),
                               ),
                             );
@@ -220,13 +261,12 @@ Future<void> _loadImageSize() async {
                 ),
             ],
           ),
-
-          // Info text
           Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                const Icon(Icons.info_outline, color: Colors.white38, size: 14),
+                const Icon(Icons.info_outline,
+                    color: Colors.white38, size: 14),
                 const SizedBox(width: 6),
                 const Text(
                   'Translated text appears over original',
@@ -235,7 +275,8 @@ Future<void> _loadImageSize() async {
                 const Spacer(),
                 Text(
                   '${widget.translatedBlocks.length} blocks',
-                  style: const TextStyle(color: Colors.white38, fontSize: 12),
+                  style: const TextStyle(
+                      color: Colors.white38, fontSize: 12),
                 ),
               ],
             ),
@@ -245,14 +286,13 @@ Future<void> _loadImageSize() async {
     );
   }
 
-  // ─── TAB 2: FULL TRANSLATION ─────────────────────────────────
+  // ─── TAB 2: TRANSLATION ──────────────────────────────────────
   Widget _buildTranslationTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Block-by-block translations
           ...widget.translatedBlocks.asMap().entries.map((entry) {
             final block = entry.value;
             return _buildTranslationCard(
@@ -261,10 +301,7 @@ Future<void> _loadImageSize() async {
               index: entry.key + 1,
             );
           }),
-
           const SizedBox(height: 16),
-
-          // Full combined translation
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
@@ -276,14 +313,16 @@ Future<void> _loadImageSize() async {
                 ],
               ),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF4285F4).withOpacity(0.4)),
+              border:
+                  Border.all(color: const Color(0xFF4285F4).withOpacity(0.4)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.translate, color: Color(0xFF4285F4), size: 16),
+                    const Icon(Icons.translate,
+                        color: Color(0xFF4285F4), size: 16),
                     const SizedBox(width: 8),
                     const Text(
                       'Full Translation',
@@ -296,12 +335,14 @@ Future<void> _loadImageSize() async {
                     const Spacer(),
                     GestureDetector(
                       onTap: () {
-                        Clipboard.setData(ClipboardData(text: widget.fullTranslation));
+                        Clipboard.setData(
+                            ClipboardData(text: widget.fullTranslation));
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Copied!')),
                         );
                       },
-                      child: const Icon(Icons.copy, color: Colors.white38, size: 18),
+                      child: const Icon(Icons.copy,
+                          color: Colors.white38, size: 18),
                     ),
                   ],
                 ),
@@ -327,6 +368,11 @@ Future<void> _loadImageSize() async {
     required String translated,
     required int index,
   }) {
+    // Determine source label - show detected lang if auto mode
+    final sourceLangLabel = widget.sourceLang.code == 'auto'
+        ? (widget.detectedLanguage ?? '🔍 Detected')
+        : '${widget.sourceLang.flag} ${widget.sourceLang.name}';
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
@@ -338,7 +384,6 @@ Future<void> _loadImageSize() async {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Original
           Row(
             children: [
               Container(
@@ -349,37 +394,29 @@ Future<void> _loadImageSize() async {
                   color: Color(0xFF2A2A4A),
                   shape: BoxShape.circle,
                 ),
-                child: Text(
-                  '$index',
-                  style: const TextStyle(color: Colors.white38, fontSize: 10),
-                ),
+                child: Text('$index',
+                    style: const TextStyle(
+                        color: Colors.white38, fontSize: 10)),
               ),
               const SizedBox(width: 8),
-              Text(
-                widget.sourceLang.flag,
-                style: const TextStyle(fontSize: 14),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                widget.sourceLang.name,
-                style: const TextStyle(color: Colors.white38, fontSize: 11),
-              ),
+              Text(sourceLangLabel,
+                  style: const TextStyle(
+                      color: Colors.white38, fontSize: 11)),
             ],
           ),
           const SizedBox(height: 6),
-          Text(
-            original,
-            style: const TextStyle(color: Colors.white60, fontSize: 14),
-          ),
+          Text(original,
+              style:
+                  const TextStyle(color: Colors.white60, fontSize: 14)),
           const Divider(color: Colors.white12, height: 16),
           Row(
             children: [
-              Text(widget.targetLang.flag, style: const TextStyle(fontSize: 14)),
+              Text(widget.targetLang.flag,
+                  style: const TextStyle(fontSize: 14)),
               const SizedBox(width: 4),
-              Text(
-                widget.targetLang.name,
-                style: const TextStyle(color: Color(0xFF4FC3F7), fontSize: 11),
-              ),
+              Text(widget.targetLang.name,
+                  style: const TextStyle(
+                      color: Color(0xFF4FC3F7), fontSize: 11)),
             ],
           ),
           const SizedBox(height: 6),
@@ -396,7 +433,7 @@ Future<void> _loadImageSize() async {
     );
   }
 
-  // ─── TAB 3: ORIGINAL TEXT ────────────────────────────────────
+  // ─── TAB 3: ORIGINAL ─────────────────────────────────────────
   Widget _buildOriginalTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -405,10 +442,17 @@ Future<void> _loadImageSize() async {
         children: [
           Row(
             children: [
-              Text(widget.sourceLang.flag, style: const TextStyle(fontSize: 20)),
+              Text(
+                widget.sourceLang.code == 'auto'
+                    ? '🔍'
+                    : widget.sourceLang.flag,
+                style: const TextStyle(fontSize: 20),
+              ),
               const SizedBox(width: 8),
               Text(
-                'Original ${widget.sourceLang.name} Text',
+                widget.sourceLang.code == 'auto'
+                    ? 'Detected: ${widget.detectedLanguage ?? "Auto"}'
+                    : 'Original ${widget.sourceLang.name} Text',
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -418,7 +462,8 @@ Future<void> _loadImageSize() async {
               const Spacer(),
               GestureDetector(
                 onTap: () {
-                  Clipboard.setData(ClipboardData(text: widget.ocrResult.fullText));
+                  Clipboard.setData(
+                      ClipboardData(text: widget.ocrResult.fullText));
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Copied!')),
                   );
@@ -446,7 +491,6 @@ Future<void> _loadImageSize() async {
             ),
           ),
           const SizedBox(height: 16),
-          // Thumbnail
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: Image.file(widget.imageFile, width: double.infinity),
