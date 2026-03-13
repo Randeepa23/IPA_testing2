@@ -369,164 +369,66 @@ class _ResultScreenState extends State<ResultScreen>
     );
   }
 
-  // ── TAB 2 – Translation ──────────────────────────────────────────────────
+  // ── TAB 2 – Translation (full translation only) ──────────────────────────
   Widget _buildTranslationTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // block-by-block cards
-          ...widget.translatedBlocks.asMap().entries.map((e) =>
-              _buildTranslationCard(
-                original: e.value.originalBlock.text,
-                translated: e.value.translatedText,
-                index: e.key + 1,
-              )),
-          const SizedBox(height: 8),
-          // full translation card
-          _card(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(7),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEAF1FF),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.translate,
-                          color: _kPrimary, size: 15),
-                    ),
-                    const SizedBox(width: 10),
-                    const Text('Full Translation',
-                        style: TextStyle(
-                            color: _kTextPrimary,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 13)),
-                    const Spacer(),
-                    _iconButton(
-                      icon: Icons.copy_outlined,
-                      tooltip: 'Copy',
-                      onTap: () => _copy(widget.fullTranslation),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                const Divider(color: _kBorder, height: 1),
-                const SizedBox(height: 12),
-                SelectableText(
-                  widget.fullTranslation,
-                  style: const TextStyle(
-                    color: _kTextPrimary,
-                    fontSize: 15,
-                    height: 1.65,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTranslationCard({
-    required String original,
-    required String translated,
-    required int index,
-  }) {
-    final sourceLangLabel = widget.sourceLang.code == 'auto'
-        ? (widget.detectedLanguage ?? '🔍 Detected')
-        : '${widget.sourceLang.flag} ${widget.sourceLang.name}';
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       child: _card(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // header strip
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF2F2F2),
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(12)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 22,
-                    height: 22,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: _kPrimary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Text('$index',
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800)),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAF1FF),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  const SizedBox(width: 8),
-                  Text(sourceLangLabel,
-                      style: const TextStyle(
-                          color: _kTextSecondary,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600)),
-                ],
-              ),
+                  child: const Icon(Icons.translate, color: _kPrimary, size: 15),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'Full Translation',
+                  style: TextStyle(
+                    color: _kTextPrimary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                  ),
+                ),
+                const Spacer(),
+                _iconButton(
+                  icon: Icons.copy_outlined,
+                  tooltip: 'Copy',
+                  onTap: () => _copy(widget.fullTranslation),
+                ),
+              ],
             ),
-            // original text
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
-              child: Text(original,
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const SizedBox(width: 37),
+                Text(
+                  '${widget.sourceLang.code == 'auto' ? (widget.detectedLanguage ?? 'Auto') : widget.sourceLang.name}'
+                  '  →  ${widget.targetLang.flag} ${widget.targetLang.name}',
                   style: const TextStyle(
-                      color: _kTextSecondary, fontSize: 13, height: 1.5)),
+                      color: _kTextSecondary, fontSize: 11),
+                ),
+              ],
             ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Divider(color: _kBorder, height: 1),
-            ),
-            // translated text
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(widget.targetLang.flag,
-                          style: const TextStyle(fontSize: 13)),
-                      const SizedBox(width: 5),
-                      Text(widget.targetLang.name,
-                          style: const TextStyle(
-                              color: _kPrimary,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700)),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  SelectableText(
-                    translated,
-                    style: const TextStyle(
-                      color: _kTextPrimary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      height: 1.5,
-                    ),
-                  ),
-                ],
+            const SizedBox(height: 14),
+            const Divider(color: _kBorder, height: 1),
+            const SizedBox(height: 14),
+            SelectableText(
+              widget.fullTranslation,
+              style: const TextStyle(
+                color: _kTextPrimary,
+                fontSize: 15,
+                height: 1.7,
               ),
             ),
           ],
         ),
-        noPadding: true,
       ),
     );
   }
