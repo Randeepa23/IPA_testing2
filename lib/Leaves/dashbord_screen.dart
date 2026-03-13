@@ -536,7 +536,6 @@ Future<void> _loadManagerRequestCount() async {
                         color: Colors.black
                       ),
                     ),
-                    const SizedBox(height: 10),
                     _quickActions(context),
 
                     const SizedBox(height: 20),
