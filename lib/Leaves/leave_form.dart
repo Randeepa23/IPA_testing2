@@ -101,6 +101,11 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
         borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: Colors.blue, width: 1.4),
       ),
+      errorStyle: const TextStyle(
+        color: Color(0xFFD32F2F),
+        fontWeight: FontWeight.w700,
+        fontSize: 12.5,
+      ),
     );
   }
 
@@ -116,6 +121,11 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: Colors.blue, width: 1.4),
+      ),
+      errorStyle: const TextStyle(
+        color: Color(0xFFD32F2F),
+        fontWeight: FontWeight.w700,
+        fontSize: 12.5,
       ),
     );
   }
@@ -740,14 +750,14 @@ void _showSubmitConfirmation() {
                   padding: const EdgeInsets.only(top: 6, left: 4),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline, color: Colors.red, size: 14),
+                      const Icon(Icons.error_outline, color: Color(0xFFD32F2F), size: 14),
                       const SizedBox(width: 4),
                       Text(
                         _memberError!,
                         style: const TextStyle(
-                          color: Colors.red,
+                          color: Color(0xFFD32F2F),
                           fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ],
@@ -760,14 +770,14 @@ void _showSubmitConfirmation() {
                   padding: const EdgeInsets.only(top: 6, left: 4),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline, color: Colors.red, size: 14),
+                      const Icon(Icons.error_outline, color: Color(0xFFD32F2F), size: 14),
                       const SizedBox(width: 4),
                       Text(
                         _confirmError!,
                         style: const TextStyle(
-                          color: Colors.red,
+                          color: Color(0xFFD32F2F),
                           fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ],

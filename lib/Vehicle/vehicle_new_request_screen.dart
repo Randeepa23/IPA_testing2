@@ -600,6 +600,11 @@ void _showVehicleSubmitConfirmation() {
         borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: Colors.blue, width: 1.4),
       ),
+      errorStyle: const TextStyle(
+        color: Color(0xFFD32F2F),
+        fontWeight: FontWeight.w700,
+        fontSize: 12.5,
+      ),
     );
   }
   Widget _buildDatePicker(
