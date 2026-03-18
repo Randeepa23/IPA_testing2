@@ -63,7 +63,7 @@ Future<void> showLeaveSubmitDialog({
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFE8EDF5)),
+                          border: Border.all(color: Colors.grey),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
