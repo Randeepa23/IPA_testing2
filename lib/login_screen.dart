@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-// import 'package:google_fonts/google_fonts.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:test_app/Services/api_service.dart';
 import 'create_new_password.dart';
 import 'forgot_password_screen.dart';
@@ -197,10 +197,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Text(
                             'Enterprise Suite',
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: (w * 0.08).clamp(18.0, 34.0), // ⚠ fix: 0.6 was too large
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.3,
+                            style: GoogleFonts.alfaSlabOne(
+                              fontSize: (w * 0.08).clamp(18.0, 34.0),
+                              letterSpacing: 0.2,
                               color: Colors.white,
                             ),
                           ),

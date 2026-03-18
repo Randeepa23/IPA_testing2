@@ -268,14 +268,24 @@ Widget _profileCard(Color blue, Map<String, dynamic> user) {
                       if (loadingProgress == null) return child;
 
                       return Container(
-                        color: Colors.white,
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
                         alignment: Alignment.center,
-                        child: const SizedBox(
-                          width: 24,
-                          height: 24,
+                        child: SizedBox(
+                          width: 26,
+                          height: 26,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
-                            color: Colors.blue,
+                            color: Colors.white,
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                : null,
                           ),
                         ),
                       );
