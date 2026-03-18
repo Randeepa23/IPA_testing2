@@ -62,6 +62,10 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
   // show loading on Send button
   bool _isSubmitting = false;
 
+  // inline field errors for non-FormField widgets
+  String? _memberError;
+  String? _confirmError;
+
   // Cache for profile photo futures to avoid redundant API calls
   final Map<int, Future<Map<String, dynamic>?>> _photoFutureCache = {};
 
@@ -134,16 +138,12 @@ Future<void> _submitForm() async {
   if (!_formKey.currentState!.validate()) return;
 
   if (availableMembers.isNotEmpty && selectedMember == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Select a team member')),
-    );
+    setState(() => _memberError = 'Please select a team member to cover your duties');
     return;
   }
 
   if (availableMembers.isEmpty && !noMemberConfirmed) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Confirmation required')),
-    );
+    setState(() => _confirmError = 'Please confirm to proceed without a reliever');
     return;
   }
 
@@ -636,7 +636,7 @@ void _showSubmitConfirmation() {
                     return RadioListTile<String>(
                       value: m['id']!,
                       groupValue: selectedMember,
-                      onChanged: (v) => setState(() => selectedMember = v),
+                      onChanged: (v) => setState(() { selectedMember = v; _memberError = null; }),
                      fillColor: MaterialStateProperty.resolveWith<Color>((states) {
                       if (states.contains(MaterialState.selected)) {
                         return Colors.blue; // selected radio color
@@ -727,12 +727,52 @@ void _showSubmitConfirmation() {
                   ),
 
                   value: noMemberConfirmed,
-                  onChanged: (v) => setState(() => noMemberConfirmed = v!),
+                  onChanged: (v) => setState(() { noMemberConfirmed = v!; _confirmError = null; }),
 
                   controlAffinity: ListTileControlAffinity.leading,
                   activeColor: Colors.blue,
                 ),
               ),
+
+              // inline error: member not selected
+              if (_memberError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6, left: 4),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.red, size: 14),
+                      const SizedBox(width: 4),
+                      Text(
+                        _memberError!,
+                        style: const TextStyle(
+                          color: Colors.red,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // inline error: confirmation not ticked
+              if (_confirmError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6, left: 4),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.red, size: 14),
+                      const SizedBox(width: 4),
+                      Text(
+                        _confirmError!,
+                        style: const TextStyle(
+                          color: Colors.red,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
               const SizedBox(height: 16),
 

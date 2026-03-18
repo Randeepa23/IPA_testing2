@@ -345,7 +345,7 @@ class _VehicleQrScreenState extends State<VehicleQrScreen> {
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide:
-                          const BorderSide(color: _blue2, width: 1.5),
+                          const BorderSide(color: _blue1, width: 1.2),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 14),
