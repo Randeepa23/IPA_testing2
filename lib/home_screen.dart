@@ -83,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // placeholder services (disabled with message)
       _ServiceItem(
         image: 'assets/qr.png',
-        label: "QR Code",
+        label: "Fuel QR",
         disabled: false,
         onTap: () {
           Navigator.push(

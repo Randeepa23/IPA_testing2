@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../Models/vehicle_q_model.dart';
 import '../Services/vehicle_qr_service.dart';
+import 'package:screen_protector/screen_protector.dart';
 
 class VehicleQrScreen extends StatefulWidget {
   const VehicleQrScreen({super.key});
@@ -40,6 +41,8 @@ class _VehicleQrScreenState extends State<VehicleQrScreen> {
 
     final result = await VehicleQrService.getVehicleDetails(fullVehicleNo);
 
+    if (!mounted) return;
+
     setState(() {
       isLoading = false;
 
@@ -51,8 +54,23 @@ class _VehicleQrScreenState extends State<VehicleQrScreen> {
     });
   }
 
+    Future<void> _enableProtection() async {
+    await ScreenProtector.protectDataLeakageOn();
+  }
+
+  Future<void> _disableProtection() async {
+    await ScreenProtector.protectDataLeakageOff();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _enableProtection();
+  }
+
   @override
   void dispose() {
+    _disableProtection();
     lettersController.dispose();
     numbersController.dispose();
     super.dispose();
