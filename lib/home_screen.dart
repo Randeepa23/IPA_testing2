@@ -5,6 +5,7 @@ import 'login_screen.dart';
 import 'Leaves/top_banner.dart';
 import 'vehicle_home_screen.dart';
 import 'ui/dialogs/logout_dialog.dart';
+import '../QRCode/Vehicle_qr_screen.dart';
 class HomeScreen extends StatefulWidget {
   final String username;
   final Map<String, dynamic> user;
@@ -79,19 +80,24 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
+      // placeholder services (disabled with message)
+      _ServiceItem(
+        image: 'assets/qr.png',
+        label: "Fuel QR",
+        disabled: false,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const VehicleQrScreen()),
+          );
+        }
+      ),
       // only one real service for now, but placeholders can be added easily
       _ServiceItem(
         image: 'assets/itSupport.png',
         label: "IT Support",
-        disabled: false,
-        onTap: () => showBottomMessage("IT Support is coming soon 🚧")
-      ),
-      // placeholder services (disabled with message)
-      _ServiceItem(
-        image: 'assets/789123.png',
-        label: "Shift Schedule",
         disabled: true,
-        onTap: () => showBottomMessage("Shift Schedule is coming soon 🚧"),
+        onTap: () => showBottomMessage("IT Support is coming soon 🚧")
       ),
       // more placeholders can be added here without changing the UI code
       _ServiceItem(
