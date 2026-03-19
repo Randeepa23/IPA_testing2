@@ -6,7 +6,8 @@ import '../Services/vehicle_qr_service.dart';
 import 'package:screen_protector/screen_protector.dart';
 
 class VehicleQrScreen extends StatefulWidget {
-  const VehicleQrScreen({super.key});
+  final Map<String, dynamic> user;
+  const VehicleQrScreen({super.key, required this.user});
 
   @override
   State<VehicleQrScreen> createState() => _VehicleQrScreenState();
@@ -25,6 +26,7 @@ class _VehicleQrScreenState extends State<VehicleQrScreen> {
   static const _textDark = Color(0xFF0F172A);
   static const _textMuted = Color(0xFF64748B);
 
+  // Fetch vehicle QR details from API
   Future<void> fetchVehicleQr() async {
     final letters = lettersController.text.trim().toUpperCase();
     final numbers = numbersController.text.trim();
@@ -37,7 +39,19 @@ class _VehicleQrScreenState extends State<VehicleQrScreen> {
       return;
     }
 
-    final fullVehicleNo = "$letters-$numbers";
+  //print("USER DATA: ${widget.user}");
+    
+  final fullVehicleNo = "$letters-$numbers";
+  final employeeId = widget.user["employeeId"]?.toString() ?? "";
+  final preferredName = widget.user["preferredName"]?.toString() ?? "";
+    if (employeeId.isEmpty) {
+      setState(() {
+        isLoading = false;
+        errorMessage = "Employee ID not found.";
+        vehicleData = null;
+      });
+      return;
+    }
 
     setState(() {
       isLoading = true;
@@ -45,7 +59,11 @@ class _VehicleQrScreenState extends State<VehicleQrScreen> {
       vehicleData = null;
     });
 
-    final result = await VehicleQrService.getVehicleDetails(fullVehicleNo);
+    final result = await VehicleQrService.getVehicleDetailsWithLog(
+      employeeId: employeeId,
+      preferredName: preferredName,
+      vehicleNumber: fullVehicleNo,
+    );
 
     if (!mounted) return;
 
