@@ -513,56 +513,93 @@ class _VehicleQrScreenState extends State<VehicleQrScreen> {
   // ──────────────────────────────────────────────
   //  EMPTY STATE CARD
   // ──────────────────────────────────────────────
-  Widget _buildEmptyState() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 36),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+Widget _buildEmptyState() {
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.04),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Column(
+      children: [
+        Container(
+          height: 64,
+          width: 64,
+          decoration: BoxDecoration(
+            color: const Color(0xFFEFF6FF),
+            borderRadius: BorderRadius.circular(18),
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            height: 64,
-            width: 64,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: const Icon(Icons.qr_code_2_rounded,
-                size: 34, color: _blue2),
+          child: const Icon(
+            Icons.qr_code_2_rounded,
+            size: 34,
+            color: _blue2,
           ),
-          const SizedBox(height: 14),
-          const Text(
-            "No QR Code Yet",
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: _textDark,
-            ),
+        ),
+        const SizedBox(height: 14),
+        const Text(
+          "No QR Code Yet",
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: _textDark,
           ),
-          const SizedBox(height: 6),
-          const Text(
-            "Enter a vehicle number above and\ntap Search to view the QR code.",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13,
-              color: _textMuted,
-              height: 1.5,
-            ),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          "Enter a vehicle number above and\ntap Search to view the QR code.",
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 13,
+            color: _textMuted,
+            height: 1.5,
           ),
-        ],
-      ),
-    );
-  }
+        ),
+        const SizedBox(height: 18),
+
+        // Notice box
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF7E6),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFFFC107).withOpacity(0.45)),
+          ),
+          child: const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.info_outline_rounded,
+                color: Color(0xFF8A2C00),
+                size: 22,
+              ),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  "Notice: When you search a vehicle Fuel Pass QR, this search record will be saved in the system.",
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    height: 1.45,
+                    color: Color(0xFF8A2C00),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
   // ──────────────────────────────────────────────
   //  RESULT CARD (with tappable QR)
