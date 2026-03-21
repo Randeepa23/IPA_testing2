@@ -277,7 +277,10 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                             "New Password",
                             Icons.lock_outline,
                             suffix: IconButton(
-                              icon: Icon(_obscureNew ? Icons.visibility_off : Icons.visibility),
+                              icon: Icon(
+                                _obscureNew ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                color: Colors.grey.shade600,
+                              ),
                               onPressed: () => setState(() => _obscureNew = !_obscureNew),
                             ),
                           ),
@@ -327,7 +330,10 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                             "Confirm Password",
                             Icons.lock_outline,
                             suffix: IconButton(
-                              icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility),
+                              icon: Icon(
+                                _obscureConfirm ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                color: Colors.grey.shade600,
+                              ),
                               onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
                             ),
                           ),

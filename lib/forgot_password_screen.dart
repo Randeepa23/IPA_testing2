@@ -303,7 +303,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             "Recovery Key",
                             Icons.key_outlined,
                             suffix: IconButton(
-                              icon: Icon(_obscureRecovery ? Icons.visibility_off : Icons.visibility),
+                              icon: Icon(
+                                _obscureRecovery ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                color: Colors.grey.shade600,
+                              ),
                               onPressed: () => setState(() => _obscureRecovery = !_obscureRecovery),
                             ),
                           ),
@@ -346,7 +349,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             "New Password",
                             Icons.lock_outline,
                             suffix: IconButton(
-                              icon: Icon(_obscureNew ? Icons.visibility_off : Icons.visibility),
+                              icon: Icon(
+                                _obscureNew ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                color: Colors.grey.shade600,
+                              ),
                               onPressed: () => setState(() => _obscureNew = !_obscureNew),
                             ),
                           ),
@@ -409,7 +415,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             "Confirm Password",
                             Icons.lock_outline,
                             suffix: IconButton(
-                              icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility),
+                              icon: Icon(
+                                _obscureConfirm ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                color: Colors.grey.shade600,
+                              ),
                               onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
                             ),
                           ),

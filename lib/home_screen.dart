@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:test_app/Leaves/dashbord_screen.dart';
 import 'login_screen.dart';
@@ -30,6 +31,14 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+
+
+
+
+
+
+
+
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final msg = widget.successMessage;
@@ -296,17 +305,10 @@ class _HomeScreenState extends State<HomeScreen> {
       borderRadius: BorderRadius.circular(14),
       onTap: isDisabled ? null : onTap, // block tap when disabled
       child: Opacity(
-        opacity: isDisabled ? 0.65 : 1,
+        opacity: isDisabled ? 0.45 : 1,
         child: Container(
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFFFFFFFF),
-                Color(0xFFF5F9FF),
-              ],
-            ),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: const Color.fromARGB(255, 228, 228, 228)),
             boxShadow: [
@@ -352,7 +354,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-
 // helper model
 class _ServiceItem {
   final String image;

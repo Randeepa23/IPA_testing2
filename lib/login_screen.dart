@@ -230,7 +230,10 @@ SizedBox(height: (h * 0.08).clamp(20.0, 60.0)),
                           "Password",
                           Icons.lock_outline,
                           suffix: IconButton(
-                            icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                            icon: Icon(
+                              _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                              color: Colors.grey.shade600,
+                            ),
                             onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                           ),
                         ),
