@@ -124,6 +124,10 @@ class _AssignedTransferTripScreenState extends State<AssignedTransferTripScreen>
           "time": startTime,
           "assignedDate": assignedStartDate,
 
+          // Full datetimes kept for vehicle validation API
+          "assignedStartAt": startAt,
+          "assignedEndAt": (e["assigned_end_at"] ?? "").toString(),
+
           "startDate": startDate,
           "endDate": endDate,
 
@@ -404,6 +408,9 @@ void _showAssignVehicleDialog(Map<String, dynamic> trip) {
     context: context,
     vehicleType: (trip["vehicleType"] ?? "").toString(),
     title: "Assign Vehicle",
+    assignedStartAt: (trip["assignedStartAt"] ?? "").toString(),
+    assignedEndAt: (trip["assignedEndAt"] ?? "").toString(),
+    transportServiceId: int.tryParse(trip["id"].toString()),
     onConfirm: ({
       required String vehicleType,
       required String vehicleNo,
@@ -425,6 +432,9 @@ void _showChangeVehicleDialog(Map<String, dynamic> trip) {
     context: context,
     vehicleType: (trip["vehicleType"] ?? "").toString(),
     title: "Change Vehicle",
+    assignedStartAt: (trip["assignedStartAt"] ?? "").toString(),
+    assignedEndAt: (trip["assignedEndAt"] ?? "").toString(),
+    transportServiceId: int.tryParse(trip["id"].toString()),
     onConfirm: ({
       required String vehicleType,
       required String vehicleNo,
