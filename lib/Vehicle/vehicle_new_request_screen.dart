@@ -90,6 +90,9 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
   DateTime? fromDate;
   DateTime? toDate;
 
+  String? vehicleError;
+  String? vehicleTypeName;
+
   // Manager
   List<Map<String, String>> managers = [];
   String? selectedManagerId;
@@ -180,6 +183,14 @@ Future<void> _submitForm() async {
   if (!_formKey.currentState!.validate()) return;
   if (fromDate == null || toDate == null) return;
 
+  // ✅ ADD THIS BLOCK
+  if (vehicleError != null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(vehicleError!)),
+    );
+    return; // ❌ STOP REQUEST
+  }
+
   setState(() => _isSubmitting = true);
 
   try {
@@ -259,6 +270,64 @@ void _showVehicleSubmitConfirmation() {
     onConfirm: _submitForm,
   );
 }
+
+    // VALIDATION LOGIC
+    Future<String?> validateVehicleAvailability() async {
+      final prefix = vehiclePrefixController.text.trim();
+      final number = vehicleNumberController.text.trim();
+
+      if (prefix.isEmpty || number.isEmpty || fromDate == null || toDate == null) {
+        return null; // don't validate yet
+      }
+
+      final vehicleNo = "$prefix-$number";
+
+      final start = "${fromDate!.toString().split(' ')[0]} 00:00:00";
+      final end = "${toDate!.toString().split(' ')[0]} 23:59:59";
+
+      try {
+        final response = await http.post(
+          Uri.parse("http://exploredrive.lk/api/transport-services/validate-vehicle"),
+          headers: {"Content-Type": "application/json"},
+          body: jsonEncode({
+            "vehicle_no": vehicleNo,
+            "assigned_start_at": start,
+            "assigned_end_at": end,
+            "transport_service_id": null
+          }),
+        );
+
+      final data = jsonDecode(response.body);
+
+      if (data["ok"] == false) {
+        setState(() {
+          vehicleTypeName = data["vehicle"]?["vehicle_type_name"];
+        });
+        return data["message"];
+      }
+
+      // success case
+      setState(() {
+        vehicleTypeName = data["vehicle"]?["vehicle_type_name"];
+      });
+    }
+      catch (e) {
+        return "Error validating vehicle: $e";
+      }
+
+      return null; // no error
+    }
+
+    // Call this after vehicle no or dates change
+    void checkVehicle() async {
+      final msg = await validateVehicleAvailability();
+
+      setState(() {
+        vehicleError = msg;
+      });
+    }
+  
+
   
 
   @override
@@ -302,6 +371,47 @@ void _showVehicleSubmitConfirmation() {
 
               const SizedBox(height: 16),
 
+                            // From / To date
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const FormSectionTitle("From date *"),
+                        const SizedBox(height: 8),
+                        _buildDatePicker("From date", fromDate, (d) {
+                          setState(() {
+                            fromDate = d;
+                            if (toDate != null && toDate!.isBefore(d)) {
+                              toDate = null;
+                            }
+                          });
+
+                          checkVehicle(); 
+                        }),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const FormSectionTitle("To date *"),
+                        const SizedBox(height: 8),
+                        _buildDatePicker("To date", toDate, (d) {
+                          setState(() => toDate = d);
+                          checkVehicle();
+                        }, minDate: fromDate),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
               // Vehicle number
               const FormSectionTitle("Vehicle Number * (e.g. ABC-1234)"),
               const SizedBox(height: 8),
@@ -315,6 +425,7 @@ void _showVehicleSubmitConfirmation() {
                       textCapitalization: TextCapitalization.characters,
                       decoration: _inputDecoration("ABC").copyWith(counterText: ""),
                       maxLength: 3,
+                      onChanged: (_) => checkVehicle(),
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z]')),
                         TextInputFormatter.withFunction((oldValue, newValue) {
@@ -353,6 +464,7 @@ void _showVehicleSubmitConfirmation() {
                       keyboardType: TextInputType.number,
                       decoration: _inputDecoration("1234").copyWith(counterText: ""),
                       maxLength: 4,
+                      onChanged: (_) => checkVehicle(),
                       inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
                       ],
@@ -367,46 +479,24 @@ void _showVehicleSubmitConfirmation() {
                   ),
                 ],
               ),
-
-              const SizedBox(height: 16),
-
-              // From / To date
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const FormSectionTitle("From date *"),
-                        const SizedBox(height: 8),
-                        _buildDatePicker("From date", fromDate, (d) {
-                          setState(() {
-                            fromDate = d;
-                            if (toDate != null && toDate!.isBefore(d)) {
-                              toDate = null;
-                            }
-                          });
-                        }),
-                      ],
+              if (vehicleError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Text(
+                    vehicleError!,
+                    style: const TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const FormSectionTitle("To date *"),
-                        const SizedBox(height: 8),
-                        _buildDatePicker("To date", toDate, (d) {
-                          setState(() => toDate = d);
-                        }, minDate: fromDate),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 10),
+                ),
+                const SizedBox(height: 10),
+                if (vehicleTypeName != null)
+                Text(
+                  "Vehicle Type: $vehicleTypeName",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                            const SizedBox(height: 10),
 
                 const SizedBox(height: 10),
                 if (fromDate != null && toDate != null)
@@ -430,9 +520,9 @@ void _showVehicleSubmitConfirmation() {
                       ],
                     ),
                   ),
-
               const SizedBox(height: 16),
-              
+              const FormSectionTitle("Destination *"),
+              const SizedBox(height: 8),
               // Destination (Autocomplete)
               TypeAheadField<PlaceSuggestion>(
                 controller: destinationController, 
@@ -569,11 +659,11 @@ void _showVehicleSubmitConfirmation() {
 
               const SizedBox(height: 18),
               // Submit
-              GradientSubmitButton(
-                label: 'SUBMIT',
-                isLoading: _isSubmitting,
-                onPressed: _showVehicleSubmitConfirmation,
-              ),
+            GradientSubmitButton(
+              label: 'SUBMIT',
+              isLoading: _isSubmitting,
+              onPressed: vehicleError != null ? null : _showVehicleSubmitConfirmation,
+            ),
             ],
           ),
         ),
@@ -626,10 +716,16 @@ void _showVehicleSubmitConfirmation() {
       validator: (_) => selected == null ? 'Required' : null,
       onTap: () async {
         final now = DateTime.now();
+
+        final firstDate = minDate ?? DateTime(now.year, now.month, now.day);
+
+        final initialDate = selected ??
+            (now.isBefore(firstDate) ? firstDate : now);
+
         final picked = await showDatePicker(
           context: context,
-          initialDate: selected ?? now,
-          firstDate: (minDate ?? now).subtract(const Duration(days: 0)),
+          initialDate: initialDate,
+          firstDate: firstDate,
           lastDate: DateTime(2030),
           builder: (ctx, child) => Theme(
             data: Theme.of(ctx).copyWith(
@@ -644,6 +740,7 @@ void _showVehicleSubmitConfirmation() {
             child: child!,
           ),
         );
+
         if (picked != null) onSelect(picked);
       },
     );
