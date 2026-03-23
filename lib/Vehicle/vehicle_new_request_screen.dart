@@ -309,11 +309,12 @@ void _showVehicleSubmitConfirmation() {
 
           final response = await http.post(
             Uri.parse(
-                "http://exploredrive.lk/api/transport-services/validate-vehicle"),
+                "https://exploredrive.lk/api/transport-services/validate-vehicle"),
             headers: {"Content-Type": "application/json"},
             body: jsonEncode({
               "vehicle_no": vehicleNo,
               "assigned_start_at": start,
+              "vehicle_type_name": null,
               "assigned_end_at": end,
               "transport_service_id": null,
             }),
@@ -321,9 +322,11 @@ void _showVehicleSubmitConfirmation() {
 
           if (gen != _checkGeneration) return; // stale
 
-          // Only reject non-JSON bodies (HTML error pages, etc.)
-          final contentType = response.headers['content-type'] ?? '';
-          if (!contentType.contains('application/json')) {
+          Map<String, dynamic> data;
+          try {
+            data = Map<String, dynamic>.from(
+                jsonDecode(response.body) as Map);
+          } catch (_) {
             setState(() {
               vehicleError =
                   "Server error (${response.statusCode}). Please try again.";
@@ -332,7 +335,6 @@ void _showVehicleSubmitConfirmation() {
             return;
           }
 
-          final data = jsonDecode(response.body);
           final typeName =
               data["vehicle"]?["vehicle_type_name"]?.toString();
 
