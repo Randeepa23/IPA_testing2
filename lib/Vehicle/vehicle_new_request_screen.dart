@@ -217,6 +217,8 @@ Future<void> _submitForm() async {
     final fromDateTxt = DateFormat("yyyy-MM-dd").format(fromDate!);
     final toDateTxt = DateFormat("yyyy-MM-dd").format(toDate!);
 
+    final vehicleType = vehicleTypeName ?? "-"; // fallback
+
     final res = await VehicleApiService.createOfficeVehicleRequest(
       employeeId: empId,
       managerId: managerId,
@@ -227,7 +229,10 @@ Future<void> _submitForm() async {
       contactNo: employeePhone,
       employeeName: employeeName,
       reason: "Office Service",
+      vehicleType: vehicleType,   // ← new optional param
+      
     );
+    print("Vehicle Type Name: $vehicleType");
 
     if (res["success"] == true) {
           if (!mounted) return;
