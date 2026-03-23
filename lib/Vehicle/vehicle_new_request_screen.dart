@@ -92,6 +92,8 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
 
   String? vehicleError;
   String? vehicleTypeName;
+  bool _isCheckingVehicle = false;
+  int _checkGeneration = 0;
 
   // Manager
   List<Map<String, String>> managers = [];
@@ -183,12 +185,17 @@ Future<void> _submitForm() async {
   if (!_formKey.currentState!.validate()) return;
   if (fromDate == null || toDate == null) return;
 
-  // ✅ ADD THIS BLOCK
+  if (_isCheckingVehicle) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Please wait for vehicle validation to complete.")),
+    );
+    return;
+  }
   if (vehicleError != null) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(vehicleError!)),
     );
-    return; // ❌ STOP REQUEST
+    return;
   }
 
   setState(() => _isSubmitting = true);
@@ -271,60 +278,87 @@ void _showVehicleSubmitConfirmation() {
   );
 }
 
-    // VALIDATION LOGIC
-    Future<String?> validateVehicleAvailability() async {
+    // Call this after vehicle no or dates change
+    void checkVehicle() {
       final prefix = vehiclePrefixController.text.trim();
       final number = vehicleNumberController.text.trim();
 
-      if (prefix.isEmpty || number.isEmpty || fromDate == null || toDate == null) {
-        return null; // don't validate yet
-      }
-
-      final vehicleNo = "$prefix-$number";
-
-      final start = "${fromDate!.toString().split(' ')[0]} 00:00:00";
-      final end = "${toDate!.toString().split(' ')[0]} 23:59:59";
-
-      try {
-        final response = await http.post(
-          Uri.parse("http://exploredrive.lk/api/transport-services/validate-vehicle"),
-          headers: {"Content-Type": "application/json"},
-          body: jsonEncode({
-            "vehicle_no": vehicleNo,
-            "assigned_start_at": start,
-            "assigned_end_at": end,
-            "transport_service_id": null
-          }),
-        );
-
-      final data = jsonDecode(response.body);
-
-      if (data["ok"] == false) {
+      if (prefix.length < 2 || number.length < 4 ||
+          fromDate == null || toDate == null) {
         setState(() {
-          vehicleTypeName = data["vehicle"]?["vehicle_type_name"];
+          vehicleError = null;
+          vehicleTypeName = null;
+          _isCheckingVehicle = false;
         });
-        return data["message"];
+        return;
       }
 
-      // success case
-      setState(() {
-        vehicleTypeName = data["vehicle"]?["vehicle_type_name"];
-      });
-    }
-      catch (e) {
-        return "Error validating vehicle: $e";
-      }
-
-      return null; // no error
-    }
-
-    // Call this after vehicle no or dates change
-    void checkVehicle() async {
-      final msg = await validateVehicleAvailability();
+      final gen = ++_checkGeneration;
 
       setState(() {
-        vehicleError = msg;
+        _isCheckingVehicle = true;
+        vehicleError = null;
+        vehicleTypeName = null;
       });
+
+      () async {
+        try {
+          final vehicleNo = "$prefix-$number";
+          final start = "${fromDate!.toString().split(' ')[0]} 00:00:00";
+          final end = "${toDate!.toString().split(' ')[0]} 23:59:59";
+
+          final response = await http.post(
+            Uri.parse(
+                "http://exploredrive.lk/api/transport-services/validate-vehicle"),
+            headers: {"Content-Type": "application/json"},
+            body: jsonEncode({
+              "vehicle_no": vehicleNo,
+              "assigned_start_at": start,
+              "assigned_end_at": end,
+              "transport_service_id": null,
+            }),
+          );
+
+          if (gen != _checkGeneration) return; // stale
+
+          // Only reject non-JSON bodies (HTML error pages, etc.)
+          final contentType = response.headers['content-type'] ?? '';
+          if (!contentType.contains('application/json')) {
+            setState(() {
+              vehicleError =
+                  "Server error (${response.statusCode}). Please try again.";
+              _isCheckingVehicle = false;
+            });
+            return;
+          }
+
+          final data = jsonDecode(response.body);
+          final typeName =
+              data["vehicle"]?["vehicle_type_name"]?.toString();
+
+          if (data["ok"] == false) {
+            setState(() {
+              vehicleTypeName = typeName;
+              vehicleError = data["message"]?.toString();
+              _isCheckingVehicle = false;
+            });
+            return;
+          }
+
+          setState(() {
+            vehicleTypeName = typeName;
+            vehicleError = null;
+            _isCheckingVehicle = false;
+          });
+        } catch (_) {
+          if (gen != _checkGeneration) return;
+          setState(() {
+            vehicleError =
+                "Could not validate vehicle. Check your connection and try again.";
+            _isCheckingVehicle = false;
+          });
+        }
+      }();
     }
   
 
@@ -479,26 +513,77 @@ void _showVehicleSubmitConfirmation() {
                   ),
                 ],
               ),
-              if (vehicleError != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: Text(
-                    vehicleError!,
-                    style: const TextStyle(
-                      color: Colors.red,
-                      fontWeight: FontWeight.w600,
-                    ),
+              if (_isCheckingVehicle)
+                const Padding(
+                  padding: EdgeInsets.only(top: 10),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFF1565C0),
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        "Checking vehicle availability...",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF1565C0),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 10),
-                if (vehicleTypeName != null)
-                Text(
-                  "Vehicle Type: $vehicleTypeName",
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+              if (!_isCheckingVehicle && vehicleError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.error_outline,
+                          color: Colors.red, size: 15),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          vehicleError!,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.red,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                            const SizedBox(height: 10),
+              if (!_isCheckingVehicle &&
+                  vehicleError == null &&
+                  vehicleTypeName != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.check_circle_outline,
+                          color: Colors.green, size: 15),
+                      const SizedBox(width: 6),
+                      Text(
+                        "Vehicle available · Type: $vehicleTypeName",
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.green,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 10),
 
-                const SizedBox(height: 10),
+              const SizedBox(height: 10),
                 if (fromDate != null && toDate != null)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -662,7 +747,9 @@ void _showVehicleSubmitConfirmation() {
             GradientSubmitButton(
               label: 'SUBMIT',
               isLoading: _isSubmitting,
-              onPressed: vehicleError != null ? null : _showVehicleSubmitConfirmation,
+              onPressed: (vehicleError != null || _isCheckingVehicle)
+                  ? null
+                  : _showVehicleSubmitConfirmation,
             ),
             ],
           ),
