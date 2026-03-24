@@ -134,28 +134,39 @@ Future<void> showApproveDialog({
 
                               child: ElevatedButton(
                                 onPressed: () async {
+  try {
+    final leaveId = int.parse(
+      request["leave_request_id"].toString(),
+    );
 
-                                  final leaveId = int.parse(
-                                    request["leave_request_id"].toString(),
-                                  );
+    await ApiService.approveLeave(
+      managerId: managerId,
+      leaveRequestId: leaveId,
+    );
 
-                                  await ApiService.approveLeave(
-                                    managerId: managerId,
-                                    leaveRequestId: leaveId,
-                                  );
+    Navigator.pop(ctx);
 
-                                  Navigator.pop(ctx);
+    await reload();
 
-                                  await reload();
+    TopBanner.show(
+      context,
+      title: "Accept Request",
+      message:
+          "Your pending leave request has been accepted successfully.",
+      icon: Icons.check_circle,
+    );
 
-                                  TopBanner.show(
-                                    context,
-                                    title: "Accept Request",
-                                    message:
-                                        "Your pending leave request has been accepted successfully.",
-                                    icon: Icons.check_circle,
-                                  );
-                                },
+  } catch (e) {
+    print("Approve Error: $e");
+
+    TopBanner.show(
+      context,
+      title: "Error",
+      message: e.toString(),
+      icon: Icons.error,
+    );
+  }
+},
 
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.transparent,
