@@ -91,6 +91,9 @@ Future<void> showAssignVehicleDialog({
                   }),
                 );
 
+                print(response.statusCode);
+                print(response.body);
+
                 if (gen != checkGeneration) return;
 
                 Map<String, dynamic> data;
