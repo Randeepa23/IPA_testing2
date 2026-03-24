@@ -108,29 +108,37 @@ static const String baseUrl = "http://10.0.2.2/mobile-api/api";
 
 
   // Approve Leave API (use this in ManagerLeaveRequestsScreen)
-  static Future<void> approveLeave({
+  static Future<bool> approveLeave({
     required String managerId,
     required int leaveRequestId,
   }) async {
-    final uri = Uri.parse("$baseUrl/approve_leave.php");
+    try {
+      final uri = Uri.parse("$baseUrl/approve_leave.php");
 
-    final res = await http.post(uri, body: {
-      "manager_id": managerId,
-      "leave_request_id": leaveRequestId.toString(),
-    });
+      final res = await http.post(uri, body: {
+        "manager_id": managerId,
+        "leave_request_id": leaveRequestId.toString(),
+      });
 
-        print("STATUS: ${res.statusCode}");
-        print("APPROVE URL: $uri");
-        print("APPROVE BODY: ${res.body}");
+      print("STATUS: ${res.statusCode}");
+      print("APPROVE URL: $uri");
+      print("APPROVE BODY: ${res.body}");
 
+      if (res.statusCode != 200) {
+        throw Exception("Server error (${res.statusCode})");
+      }
 
-    if (res.statusCode != 200) {
-      throw Exception("HTTP ${res.statusCode}: ${res.body}");
-    }
+      final body = json.decode(res.body);
 
-    final body = json.decode(res.body);
-    if (body["success"] != true) {
-      throw Exception(body["message"] ?? "Approve failed");
+      if (body["success"] == true) {
+        return true;
+      } else {
+        throw Exception(body["message"] ?? "Approve failed");
+      }
+
+    } catch (e) {
+      print("Approve Error: $e");
+      rethrow;
     }
   }
 
