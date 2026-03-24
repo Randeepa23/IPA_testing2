@@ -119,6 +119,11 @@ static const String baseUrl = "http://10.0.2.2/mobile-api/api";
       "leave_request_id": leaveRequestId.toString(),
     });
 
+        print("STATUS: ${res.statusCode}");
+        print("APPROVE URL: $uri");
+        print("APPROVE BODY: ${res.body}");
+
+
     if (res.statusCode != 200) {
       throw Exception("HTTP ${res.statusCode}: ${res.body}");
     }
