@@ -274,9 +274,16 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
 
-                      SizedBox(height: (h * 0.08).clamp(20.0, 60.0)),
-                      SizedBox(height: sectionGap),
 
+                      if (_showBiometric) ...[
+                        SizedBox(height: (h * 0.04).clamp(20.0, 60.0)),
+                      ]
+                      else ...[
+                        SizedBox(height: (h * 0.08).clamp(20.0, 60.0)),
+                      ],
+                        SizedBox(height: sectionGap),
+
+                      // Show biometric login option if enabled and supported
                       if (_showBiometric) ...[
                         Center(
                           child: GestureDetector(
@@ -298,19 +305,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 8),
-                                const Text(
-                                  "Login with Biometrics",
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.grey,
-                                  ),
-                                ),
                               ],
                             ),
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 16),
                       ],
 
                       //Username Field

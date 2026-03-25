@@ -4,8 +4,8 @@ import '../Models/vehicle_q_model.dart';
 
 class VehicleQrService {
 
-  //static const String baseUrl= "http://10.0.2.2/mobile-api/api";
-  static const String baseUrl = "https://exploresuite.lk/mobile-api/api";
+  static const String baseUrl= "http://10.0.2.2/mobile-api/api";
+  //static const String baseUrl = "https://exploresuite.lk/mobile-api/api";
 
   static const String exploredrive = 'https://exploredrive.lk/api';
 
