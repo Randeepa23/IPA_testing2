@@ -417,14 +417,6 @@ Future<void> _loadManagerRequestCount() async {
                                     } else if (value == "logout") {
                                       _openLogoutDialog(context);
                                     }
-                                    else if (value == "settings") {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => SettingsScreen(),
-                                        ),
-                                      );
-                                    }
                                   },
                                   itemBuilder: (context) => const [
                                     PopupMenuItem(
@@ -444,16 +436,6 @@ Future<void> _loadManagerRequestCount() async {
                                           Icon(Icons.logout, color: Colors.red),
                                           SizedBox(width: 10),
                                           Text("Logout",style: TextStyle(color: Colors.black),),
-                                        ],
-                                      ),
-                                    ),
-                                    PopupMenuItem(
-                                      value: "settings",
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.settings, color: Colors.blue),
-                                          SizedBox(width: 10),
-                                          Text("Settings",style: TextStyle(color: Colors.black),),
                                         ],
                                       ),
                                     ),

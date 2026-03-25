@@ -6,6 +6,7 @@ import 'Leaves/top_banner.dart';
 import 'vehicle_home_screen.dart';
 import 'ui/dialogs/logout_dialog.dart';
 import '../QRCode/Vehicle_qr_screen.dart';
+import '../users/biometric_enabled_screen.dart';
 class HomeScreen extends StatefulWidget {
   final String username;
   final Map<String, dynamic> user;
@@ -97,6 +98,17 @@ class _HomeScreenState extends State<HomeScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) =>  VehicleQrScreen(user:widget.user)),
+          );
+        }
+      ),
+      _ServiceItem(
+        image: 'assets/setting.png',
+        label: "Settings",
+        disabled: false,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => SettingsScreen()),
           );
         }
       ),
