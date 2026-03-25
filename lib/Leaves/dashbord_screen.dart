@@ -8,6 +8,7 @@ import 'package:test_app/Services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:test_app/login_screen.dart';
 import '../ui/dialogs/logout_dialog.dart';
+import '../../users/biometric_enabled_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -416,6 +417,14 @@ Future<void> _loadManagerRequestCount() async {
                                     } else if (value == "logout") {
                                       _openLogoutDialog(context);
                                     }
+                                    else if (value == "settings") {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => SettingsScreen(),
+                                        ),
+                                      );
+                                    }
                                   },
                                   itemBuilder: (context) => const [
                                     PopupMenuItem(
@@ -435,6 +444,16 @@ Future<void> _loadManagerRequestCount() async {
                                           Icon(Icons.logout, color: Colors.red),
                                           SizedBox(width: 10),
                                           Text("Logout",style: TextStyle(color: Colors.black),),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: "settings",
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.settings, color: Colors.blue),
+                                          SizedBox(width: 10),
+                                          Text("Settings",style: TextStyle(color: Colors.black),),
                                         ],
                                       ),
                                     ),
