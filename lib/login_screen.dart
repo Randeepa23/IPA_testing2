@@ -4,6 +4,9 @@ import 'package:test_app/Services/api_service.dart';
 import 'create_new_password.dart';
 import 'forgot_password_screen.dart';
 import 'home_screen.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../Services/biometric_service.dart';
 class LoginScreen extends StatefulWidget {
   final String? initialUsername;
 
@@ -22,12 +25,54 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _loginError; // message shown near the fields
   bool _isLoggingIn = false; // Show loading state while logging in
 
-  @override
-  void initState() {
-    super.initState();
-    // Pre‑fill username if provided (e.g. after password change)
-    _usernameController.text = widget.initialUsername ?? '';
+  final _biometricService = BiometricService();
+  final _storage = const FlutterSecureStorage();
+
+  bool _showBiometric = false;
+
+@override
+void initState() {
+  super.initState();
+  _usernameController.text = widget.initialUsername ?? '';
+  _checkBiometric();
+}
+
+Future<void> _checkBiometric() async {
+  final prefs = await SharedPreferences.getInstance();
+  final enabled = prefs.getBool('biometric_enabled') ?? false;
+
+  final canUse = await _biometricService.canUseBiometric();
+
+  if (enabled && canUse) {
+    setState(() {
+      _showBiometric = true;
+    });
   }
+}
+
+Future<void> _biometricLogin() async {
+  final success = await _biometricService.authenticate();
+
+  if (!success) return;
+
+  // get saved token or user
+  final email = await _storage.read(key: 'email');
+  final name = await _storage.read(key: 'name');
+
+  if (email != null) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => HomeScreen(
+          name: name ?? "User",
+          user: const {},
+          username: email,
+          successMessage: "Login with biometric successful!",
+        ),
+      ),
+    );
+  }
+}
   @override
   void dispose() {
     _usernameController.dispose();
@@ -112,6 +157,8 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             );
           } else {
+            await _storage.write(key: 'email', value: email);
+            await _storage.write(key: 'name', value: name);
             // Normal login - go to home screen
             Navigator.pushReplacement(
               context,
@@ -206,8 +253,44 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
 
-SizedBox(height: (h * 0.08).clamp(20.0, 60.0)),
+                      SizedBox(height: (h * 0.08).clamp(20.0, 60.0)),
                       SizedBox(height: sectionGap),
+
+                      if (_showBiometric) ...[
+                        Center(
+                          child: GestureDetector(
+                            onTap: _biometricLogin,
+                            child: Column(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.blue.shade50,
+                                  ),
+                                  child: Icon(
+                                    Theme.of(context).platform == TargetPlatform.iOS
+                                        ? Icons.face
+                                        : Icons.fingerprint,
+                                    size: 40,
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  "Login with Biometrics",
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
 
                       //Username Field
                       TextField(
