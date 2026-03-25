@@ -296,12 +296,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                     shape: BoxShape.circle,
                                     color: Colors.blue.shade50,
                                   ),
-                                  child: Icon(
+                                  child: Image.asset(
                                     Theme.of(context).platform == TargetPlatform.iOS
-                                        ? Icons.face
-                                        : Icons.fingerprint,
-                                    size: 40,
-                                    color: Colors.blue,
+                                        ? 'assets/faceId.png'
+                                        : 'assets/fingerId.png',
+                                    width: 42,
+                                    height: 42,
+                                    color: Colors.black,
+                                    colorBlendMode: BlendMode.srcIn,
                                   ),
                                 ),
                                 const SizedBox(height: 8),
