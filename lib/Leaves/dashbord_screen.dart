@@ -8,7 +8,6 @@ import 'package:test_app/Services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:test_app/login_screen.dart';
 import '../ui/dialogs/logout_dialog.dart';
-import '../../users/biometric_enabled_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -43,23 +42,28 @@ bool get isManagers {
   bool photoLoading = false;
 
   Future<void> _loadProfilePhoto() async {
-  setState(() => photoLoading = true);
-  try {
-    final employeeId = widget.user["employeeId"]?.toString() ?? "";
-    if (employeeId.isEmpty) {
-      setState(() => profilePhotoUrl = null);
-      return;
+    if (!mounted) return;
+    setState(() => photoLoading = true);
+
+    String? url;
+    try {
+      final employeeId = widget.user["employeeId"]?.toString() ?? "";
+      if (employeeId.isNotEmpty) {
+        final photo = await ApiService.getProfilePhoto(
+            employeeId: int.parse(employeeId));
+        url = (photo?["fileUrl"] as String?)?.trim();
+      }
+    } catch (_) {
+      url = null;
     }
-    final photo = await ApiService.getProfilePhoto(employeeId: int.parse(employeeId));
+
+    // Single setState at the end — avoids the double rebuild that caused the flicker
+    if (!mounted) return;
     setState(() {
-      profilePhotoUrl = (photo?["fileUrl"] as String?)?.trim();
+      profilePhotoUrl = url;
+      photoLoading = false;
     });
-  } catch (_) {
-    setState(() => profilePhotoUrl = null);
-  } finally {
-    setState(() => photoLoading = false);
   }
-}
 
   @override
   void initState() {
@@ -448,6 +452,7 @@ Future<void> _loadManagerRequestCount() async {
                                           ? Image.network(
                                               profilePhotoUrl!,
                                               fit: BoxFit.cover,
+                                              gaplessPlayback: true,
                                               loadingBuilder: (context, child, progress) {
                                                 if (progress == null) return child;
                                                 return Container(
