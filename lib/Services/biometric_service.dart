@@ -1,4 +1,5 @@
 import 'package:local_auth/local_auth.dart';
+import 'package:flutter/foundation.dart';
 
 class BiometricService {
   final LocalAuthentication _auth = LocalAuthentication();
@@ -9,14 +10,18 @@ class BiometricService {
 
   Future<bool> authenticate() async {
     try {
+      //final availableBiometrics = await _auth.getAvailableBiometrics();
+
+      // biometrics aren't enrolled yet or fall back to PIN
       return await _auth.authenticate(
         localizedReason: 'Use biometric to login',
         options: const AuthenticationOptions(
-          biometricOnly: true,
+          biometricOnly: false, // Allow PIN/pattern fallback
           stickyAuth: true,
         ),
       );
-    } catch (e) {
+    } on Exception catch (e) {
+      debugPrint("Biometric error: $e");
       return false;
     }
   }

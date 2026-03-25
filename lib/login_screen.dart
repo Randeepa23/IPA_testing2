@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:test_app/Services/api_service.dart';
@@ -7,6 +8,7 @@ import 'home_screen.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Services/biometric_service.dart';
+
 class LoginScreen extends StatefulWidget {
   final String? initialUsername;
 
@@ -30,49 +32,62 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _showBiometric = false;
 
-@override
-void initState() {
-  super.initState();
-  _usernameController.text = widget.initialUsername ?? '';
-  _checkBiometric();
-}
+    // Check biometric availability on init and show option if enabled and supported
+    @override
+    void initState() {
+      super.initState();
+      _usernameController.text = widget.initialUsername ?? '';
+      _checkBiometric();
+    }
 
-Future<void> _checkBiometric() async {
-  final prefs = await SharedPreferences.getInstance();
-  final enabled = prefs.getBool('biometric_enabled') ?? false;
+    // Check if biometrics can be used and if user has enabled it in settings
+    Future<void> _checkBiometric() async {
+      final prefs = await SharedPreferences.getInstance();
+      final enabled = prefs.getBool('biometric_enabled') ?? false;
 
-  final canUse = await _biometricService.canUseBiometric();
+      final canUse = await _biometricService.canUseBiometric();
 
-  if (enabled && canUse) {
-    setState(() {
-      _showBiometric = true;
-    });
-  }
-}
+      if (enabled && canUse) {
+        setState(() {
+          _showBiometric = true;
+        });
+      }
+    }
 
-Future<void> _biometricLogin() async {
-  final success = await _biometricService.authenticate();
+      // Biometric login flow
+      Future<void> _biometricLogin() async {
+      final success = await _biometricService.authenticate();
+      if (!success) return;
 
-  if (!success) return;
+      final email    = await _storage.read(key: 'email');
+      final name     = await _storage.read(key: 'name');
+      final userJson = await _storage.read(key: 'user');
 
-  // get saved token or user
-  final email = await _storage.read(key: 'email');
-  final name = await _storage.read(key: 'name');
+      debugPrint("BIOMETRIC email: $email");
+      debugPrint("BIOMETRIC name: $name");
+      debugPrint("BIOMETRIC userJson: $userJson");
 
-  if (email != null) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => HomeScreen(
-          name: name ?? "User",
-          user: const {},
-          username: email,
-          successMessage: "Login with biometric successful!",
+      if (email == null || userJson == null) {
+        debugPrint("BIOMETRIC FAILED: missing data in storage");
+        return;
+      }
+
+      final user = Map<String, dynamic>.from(jsonDecode(userJson));
+
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => HomeScreen(
+            name: name ?? "User",
+            user: user, 
+            username: email,
+            successMessage: "Login successful, $name!",
+          ),
         ),
-      ),
-    );
-  }
-}
+      );
+    }
   @override
   void dispose() {
     _usernameController.dispose();
@@ -132,6 +147,12 @@ Future<void> _biometricLogin() async {
         if (data["success"] == true) {
           final user = Map<String, dynamic>.from(data["user"]);
           final name = user["name"] ?? "User";
+
+
+          // Save entire user object as single JSON string
+          await _storage.write(key: 'email', value: user["email"] ?? email);
+          await _storage.write(key: 'name',  value: name);
+          await _storage.write(key: 'user',  value: jsonEncode(user));
 
           // clear any previous error
           setState(() {
