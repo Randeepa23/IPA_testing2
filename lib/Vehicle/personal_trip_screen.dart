@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../ui/dialogs/start_trip_dialog.dart';
@@ -7,15 +8,15 @@ import '../Services/vehicle_api_service.dart';
 import '../Leaves/top_banner.dart';
 import '../ui/dialogs/cancel_trip_dialog.dart';
 
-class MyTripsScreen extends StatefulWidget {
+class PersonalTripScreen extends StatefulWidget {
   final Map<String, dynamic> user;
-  const MyTripsScreen({super.key, required this.user});
+  const PersonalTripScreen({super.key, required this.user});
 
   @override
-  State<MyTripsScreen> createState() => _MyTripsScreenState();
+  State<PersonalTripScreen> createState() => _PersonalTripScreenState();
 }
 
-class _MyTripsScreenState extends State<MyTripsScreen> {
+class _PersonalTripScreenState extends State<PersonalTripScreen> {
   int selectedTab = 0; // 0 Pending, 1 Approved, 2 In Progress, 3 Completed
   bool loading = false;
   String? errorText;
@@ -28,76 +29,129 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     _refreshTrips();
   }
 
-  String _employeeId() {
-    final u = widget.user;
-    final v = u["employee_id"] ?? u["employeeId"] ?? u["id"] ?? u["user_id"];
-    return (v ?? "").toString().trim();
+  String _statusFromTab(int tab) {
+    switch (tab) {
+      case 0:
+        return "PENDING";
+      case 1:
+        return "APPROVED";
+      case 2:
+        return "IN_PROGRESS";
+      case 3:
+        return "COMPLETED";
+      default:
+        return "PENDING";
+    }
   }
 
-  Future<void> _refreshTrips() async {
+Future<void> _loadTripsByTab() async {
     try {
-      setState(() {
-        loading = true;
-        errorText = null;
-      });
+      setState(() => loading = true);
 
-      final empId = _employeeId();
-      if (empId.isEmpty || empId == "0" || empId == "null") {
-        throw Exception("employee_id missing in login data");
+      // SAME AS YOUR RELIEVER SCREEN
+      final employeeId = widget.user["employeeId"]?.toString() ?? "";
+      if (employeeId.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("employeeId not found in login data")),
+          );
+        }
+        return;
       }
 
-      final res = await VehicleApiService.getMyTrips(employeeId: empId);
+      final status = _statusFromTab(selectedTab);
 
-      if (res["success"] != true) {
-        throw Exception(res["message"] ?? "Failed to load trips");
-      }
+      // API returns: List<Map> (from transport_services table)
+      final rows = await VehicleApiService.fetchPersonalTrips(
+        employeeId: employeeId, // String is OK (will be in URL)
+        status: status,
+      );
 
-      final data = res["data"] ?? [];
-final rawList = List<Map<String, dynamic>>.from(data);
+      // Map DB rows -> UI shape used in TripCard
+      final mapped = await Future.wait(rows.map((e) async {
+        
+        String _getDate(String v) => v.length >= 10 ? v.substring(0, 10) : "-";
 
-final mapped = await Future.wait(rawList.map((e) async {
-  final tripId = (e["id"] ?? "").toString();
+        String _getTime(String v) => v.length >= 16 ? v.substring(11, 16) : "-";
 
-  String vehicleMake = "-";
-  String vehicleModel = "-";
-  String vehicleName = (e["vehicle_name"] ?? "").toString();
+        // START
+        final startAt = (e["assigned_start_at"] ?? "").toString();
+        final assignedStartDate = _getDate(startAt);
+        final startTime = _getTime(startAt);
 
-  try {
-    final vehicleDetails =
-        await VehicleApiService.fetchVehicleDetails(
-      transportServiceId: tripId,
-    );
+        final tripId = (e["id"] ?? "").toString();
 
-    vehicleMake = (vehicleDetails["make"] ?? "-").toString();
-    vehicleModel = (vehicleDetails["model"] ?? "-").toString();
+        String vehicleMake = "-";
+        String vehicleModel = "-";
+        String vehicleName = (e["vehicle_name"] ?? "").toString();
 
-    if (vehicleMake != "-" || vehicleModel != "-") {
-      vehicleName = "$vehicleMake $vehicleModel".trim();
-    }
-  } catch (_) {}
+        try {
+          final vehicleDetails = await VehicleApiService.fetchVehicleDetails(
+            transportServiceId: tripId,
+          );
 
-  return {
-    ...e,
-    "vehicleName": vehicleName, // ✅ ADD THIS
-  };
-}));
+          vehicleMake = (vehicleDetails["make"] ?? "-").toString();
+          vehicleModel = (vehicleDetails["model"] ?? "-").toString();
 
-setState(() => trips = mapped);
+          if (vehicleMake != "-" || vehicleModel != "-") {
+            vehicleName = "$vehicleMake $vehicleModel".trim();
+          }
+        } catch (_) {
+          // optional: keep silent and fallback
+        }
+
+        
+        return <String, dynamic>{
+          "id": e["id"].toString(),
+          "status": (e["status"] ?? "").toString(),
+
+          "vehicleNo": (e["vehicle_no"] ?? "-").toString(),
+          "vehicleType": (e["vehicle_type"] ?? "").toString(),
+          "isVehicleAssigned": (e["is_vehicle_assigned"]?.toString() ?? "0") == "1",
+          "reason": (e["chauffer_reason"] ?? "-").toString(),
+
+          "vehicleName": vehicleName,
+
+          "pickup": (e["pickup_location"] ?? "-").toString(),
+          "dropoff": (e["dropoff_location"] ?? "-").toString(),
+
+          "passengers": "${e["passenger_count"] ?? "-"} pax",
+          "time": startTime,
+          "assignedDate": assignedStartDate,
+
+          // Full datetimes kept for vehicle validation API
+          "assignedStartAt": startAt,
+          "assignedEndAt": (e["assigned_end_at"] ?? "").toString(),
+
+          "fromDate": assignedStartDate,
+          "toDate": _getDate((e["assigned_end_at"] ?? "").toString()),
+
+          "tripCode": e["trip_code"],
+
+          // optional fields if you add later:
+          "startMeter": (e["trip_start_odometer"] ?? "-").toString(),
+          "endMeter": (e["trip_end_odometer"] ?? "-").toString(),
+          "odoDistance": (e["distance_km"] ?? "-").toString(),
+          "gpsDistance": e["gps_distance"],
+        };
+      }));
+
+      print(e);
+
+      if (!mounted) return;
+      setState(() => trips = mapped);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to load trips: $e")),
+      );
     } finally {
       if (mounted) setState(() => loading = false);
     }
   }
 
-  List<Map<String, dynamic>> _filteredTrips() {
-    final status = (selectedTab == 0)
-        ? "PENDING"
-        : (selectedTab == 1)
-            ? "APPROVED"
-            : (selectedTab == 2)
-                ? "IN_PROGRESS"
-                : "COMPLETED";
-
-    return trips.where((t) => (t["status"] ?? "") == status).toList();
+  Future<void> _refreshTrips() async {
+    await _loadTripsByTab();
   }
 Future<bool?> _confirmCancelTrip() async {
   return showCancelTripDialog(context);
@@ -232,7 +286,7 @@ Future<bool?> _confirmCancelTrip() async {
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _filteredTrips();
+    final filtered = trips;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -252,7 +306,10 @@ Future<bool?> _confirmCancelTrip() async {
                     padding: const EdgeInsets.only(bottom: 12),
                     child: _SegmentTabs(
                       selectedIndex: selectedTab,
-                      onChanged: (i) => setState(() => selectedTab = i),
+                      onChanged: (i) async {
+                        setState(() => selectedTab = i);
+                        await _refreshTrips();
+                      },
                     ),
                   ),
                   if (loading)
@@ -494,9 +551,7 @@ class TripCard extends StatelessWidget {
               children: [
                 // PENDING: only Reason, Destination, From, To (NO Trip Code)
                 if (isPending) ...[
-                  _infoRow("Reason", ("Office Service").toString()),
-                  const SizedBox(height: 8),
-                  _infoRow("Destination", (data["destination"] ?? "").toString()),
+                 _infoRow("Reason", (data["type"] ?? "Personal Request").toString()),
                   const SizedBox(height: 8),
                   _infoRow("From Date", (data["fromDate"] ?? "").toString()),
                   const SizedBox(height: 8),
@@ -539,7 +594,7 @@ class TripCard extends StatelessWidget {
                             required fuelPercent,
                             required meterPhoto,
                           }) async {
-                            final state = ctx.findAncestorStateOfType<_MyTripsScreenState>();
+                            final state = ctx.findAncestorStateOfType<_PersonalTripScreenState>();
                             await state?._startTripAndMoveToInProgress(
                               trip: data,
                               meterReading: meterReading,
@@ -578,7 +633,7 @@ class TripCard extends StatelessWidget {
                             required fuelPercent,
                             required meterPhoto,
                           }) async {
-                            final state = ctx.findAncestorStateOfType<_MyTripsScreenState>();
+                            final state = ctx.findAncestorStateOfType<_PersonalTripScreenState>();
                             await state?._stopTripAndMoveToCompleted(
                               trip: data,
                               meterReading: meterReading,

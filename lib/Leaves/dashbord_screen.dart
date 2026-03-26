@@ -8,7 +8,7 @@ import 'package:test_app/Services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:test_app/login_screen.dart';
 import '../ui/dialogs/logout_dialog.dart';
-
+import '../users/personal_vehicle_screen.dart';
 class DashboardScreen extends StatefulWidget {
   final Map<String, dynamic> user;
 
@@ -781,13 +781,20 @@ Future<void> _loadManagerRequestCount() async {
           );
         },
       ),
-
-          _QuickAction(
+      _QuickAction(
         icon: Icons.directions_car ,
         label: 'Vehicle Request',
-         onTap: () => showBottomMessage("Vehicle Request is coming soon 🚧"),
+        onTap: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => VehicleScreen(user: widget.user),
+            ),
+          );
+        },
       ),
     ];
+
 
     // Only HOD sees Request button
     if (isManagers) {
