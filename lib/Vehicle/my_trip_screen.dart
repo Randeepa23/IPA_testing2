@@ -53,11 +53,36 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
       }
 
       final data = res["data"] ?? [];
-      final list = List<Map<String, dynamic>>.from(data);
+final rawList = List<Map<String, dynamic>>.from(data);
 
-      setState(() => trips = list);
-    } catch (e) {
-      setState(() => errorText = e.toString());
+final mapped = await Future.wait(rawList.map((e) async {
+  final tripId = (e["id"] ?? "").toString();
+
+  String vehicleMake = "-";
+  String vehicleModel = "-";
+  String vehicleName = (e["vehicle_name"] ?? "").toString();
+
+  try {
+    final vehicleDetails =
+        await VehicleApiService.fetchVehicleDetails(
+      transportServiceId: tripId,
+    );
+
+    vehicleMake = (vehicleDetails["make"] ?? "-").toString();
+    vehicleModel = (vehicleDetails["model"] ?? "-").toString();
+
+    if (vehicleMake != "-" || vehicleModel != "-") {
+      vehicleName = "$vehicleMake $vehicleModel".trim();
+    }
+  } catch (_) {}
+
+  return {
+    ...e,
+    "vehicleName": vehicleName, // ✅ ADD THIS
+  };
+}));
+
+setState(() => trips = mapped);
     } finally {
       if (mounted) setState(() => loading = false);
     }
@@ -439,9 +464,23 @@ class TripCard extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: Text(
-                    (data["vehicleNo"] ?? "").toString(),
-                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF1E2A3A)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        (data["vehicleNo"] ?? "").toString(),
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF1E2A3A)),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        (data["vehicleName"] ?? "").toString(),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11.5,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 _statusPill(status),
@@ -455,7 +494,7 @@ class TripCard extends StatelessWidget {
               children: [
                 // PENDING: only Reason, Destination, From, To (NO Trip Code)
                 if (isPending) ...[
-                  _infoRow("Reason", (data["reason"] ?? "").toString()),
+                  _infoRow("Reason", ("Office Service").toString()),
                   const SizedBox(height: 8),
                   _infoRow("Destination", (data["destination"] ?? "").toString()),
                   const SizedBox(height: 8),
