@@ -6,8 +6,8 @@ import 'package:http/http.dart' as http;
 class VehicleApiService {
 
   //Android Emulator → PC localhost
-  //static const String baseUrl = "http://10.0.2.2/mobile-api/vehicle";
-  static const String baseUrl = "https://exploresuite.lk/mobile-api/vehicle";
+  static const String baseUrl = "http://10.0.2.2/mobile-api/vehicle";
+  //static const String baseUrl = "https://exploresuite.lk/mobile-api/vehicle";
 
   // For real device testing, use your PC's local network IP address
   // static const String baseUrl = "http://
@@ -66,6 +66,34 @@ class VehicleApiService {
     }) async {
       final uri = Uri.parse(
         "$baseUrl/get_shuttle_trips.php?employee_id=$employeeId&status=$status",
+      );
+
+      final res = await http.get(uri);
+
+      if (res.body.trim().isEmpty) {
+        throw Exception("Server returned EMPTY response");
+      }
+
+      final json = jsonDecode(res.body);
+
+      if (json["success"] != true) {
+        throw Exception(json["message"] ?? "API error");
+      }
+
+      final List list = json["data"] ?? [];
+      return list
+          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
+          .toList();
+    }
+
+    // For real device testing, use your PC's local network IP address
+    // static const String baseUrl = "http://
+    static Future<List<Map<String, dynamic>>> fetchPersonalTrips({
+      required String employeeId,
+      required String status,
+    }) async {
+      final uri = Uri.parse(
+        "$baseUrl/get_personal_trip.php?employee_id=$employeeId&status=$status",
       );
 
       final res = await http.get(uri);
@@ -238,6 +266,56 @@ class VehicleApiService {
         "from_date": fromDate,
         "to_date": toDate,
         "destination": destination,
+        "chauffer_phone": contactNo,
+        "chauffer_name": employeeName,
+        "reason": reason,
+        "vehicle_type": vehicleType,
+      }),
+    ).timeout(const Duration(seconds: 12));
+
+    if (res.body.trim().isEmpty) {
+      throw Exception("Server returned EMPTY response");
+    }
+
+    final decoded = jsonDecode(res.body);
+
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+
+    // fallback if API returns object but decoded as Map<dynamic,dynamic>
+    return Map<String, dynamic>.from(decoded);
+  }
+
+  /// Create Vehicle Request -> inserts into office (type = transfer)
+  static Future<Map<String, dynamic>> createPersonalVehicleRequest({
+    required String employeeId,
+    required String managerId,
+    required String vehicleNo,
+    required String fromDate,     // yyyy-MM-dd
+    required String toDate,       // yyyy-MM-dd
+    //required String destination,
+    required String contactNo,
+  required String employeeName,
+    String reason = "Personal Service",
+    String? vehicleType,          // ← new
+  }) async {
+    final url = Uri.parse("$baseUrl/create_personal_vehicle_request.php");
+
+    final res = await http.post(
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: jsonEncode({
+        "contact_no": contactNo,
+        "employee_id": employeeId,
+        "manager_id": managerId,
+        "vehicle_no": vehicleNo,
+        "from_date": fromDate,
+        "to_date": toDate,
+        //"destination": destination,
         "chauffer_phone": contactNo,
         "chauffer_name": employeeName,
         "reason": reason,
