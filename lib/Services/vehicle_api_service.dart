@@ -378,6 +378,20 @@ static Future<List<Map<String, dynamic>>> fetchManagerVehicleRequests({
   return List<Map<String, dynamic>>.from(decoded["data"] ?? []);
 }
 
+static Future<List<Map<String, dynamic>>> fetchManagerPersonalRequests({
+  required String managerId,
+}) async {
+  final url = Uri.parse("$baseUrl/get_manager_personal_request.php?manager_id=$managerId");
+  final res = await http.get(url, headers: {"Accept": "application/json"});
+
+  final decoded = jsonDecode(res.body);
+  if (decoded["success"] != true) {
+    throw Exception(decoded["message"] ?? "API failed");
+  }
+
+  return List<Map<String, dynamic>>.from(decoded["data"] ?? []);
+}
+
 static Future<void> approveVehicleRequest({required int requestId}) async {
   final url = Uri.parse("$baseUrl/approve_vehicle_request.php");
   final res = await http.post(
