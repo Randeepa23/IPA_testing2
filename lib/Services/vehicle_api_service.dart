@@ -423,4 +423,19 @@ static Future<void> rejectVehicleRequest({
   }
 }
 
+//Get Personal UsageCount
+static Future<int> getPersonalUsageCount(String employeeId) async {
+  final url = Uri.parse("$baseUrl/get_personal_usage_count.php?employee_id=$employeeId");
+
+  final res = await http.get(url);
+
+  final json = jsonDecode(res.body);
+
+  if (json["success"] != true) {
+    throw Exception(json["message"]);
+  }
+
+  return json["data"]["count"] ?? 0;
+}
+
 }

@@ -102,7 +102,8 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
 
   bool _isSubmitting = false;
 
-  
+  int _previousRequestCount = 0;
+  bool _loadingRequestCount = true;
 
   // Photo cache for manager avatars
   final Map<int, Future<Map<String, dynamic>?>> _photoFutureCache = {};
@@ -110,12 +111,36 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
   @override
   void initState() {
     super.initState();
-      _loadManagers();
+    _loadManagers();
+    _loadRequestCount();
 
     nameController.text = widget.user['name'] ?? '';
     employeeController.text = widget.user['employeeCode'] ?? '';
     departmentController.text = widget.user['department'] ?? '';
     contactController.text = widget.user['phone'] ?? '';
+  }
+
+  Future<void> _loadRequestCount() async {
+    try {
+      final employeeId = widget.user["employeeId"]?.toString() ?? "";
+
+      final count = await VehicleApiService.getPersonalUsageCount(employeeId);
+
+      if (!mounted) return;
+
+      setState(() {
+        _previousRequestCount = count;
+        _loadingRequestCount = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() => _loadingRequestCount = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to load usage count: $e")),
+      );
+    }
   }
 
     Future<Map<String, dynamic>?> _getPhotoFuture(int employeeId) {
@@ -384,6 +409,10 @@ void _showVehicleSubmitConfirmation() {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // ---------------- DISCOUNT NOTICE ----------------
+              _buildDiscountNotice(),
+              const SizedBox(height: 16),
+
               // ---------------- YOUR DETAILS ----------------
               const FormSectionTitle('Your Name'),
               const SizedBox(height: 8),
@@ -748,6 +777,216 @@ void _showVehicleSubmitConfirmation() {
       ),
     );
   }
+  // ── Discount notice ──────────────────────────────────────────────────────
+  Widget _buildDiscountNotice() {
+    // usage_count from API IS the current attempt number (server increments it)
+    final attempt = _previousRequestCount;
+
+    String discount;
+    Color discountColor;
+    if (attempt <= 2) {
+      discount = "100%";
+      discountColor = const Color(0xFF2E7D32);
+    } else if (attempt <= 4) {
+      discount = "50%";
+      discountColor = const Color(0xFF1565C0);
+    } else if (attempt == 5) {
+      discount = "25%";
+      discountColor = const Color(0xFFE65100);
+    } else {
+      discount = "0%";
+      discountColor = const Color(0xFFB71C1C);
+    }
+
+    final tableRows = [
+      ["1",  "1st",  "100%"],
+      ["2",  "2nd",  "100%"],
+      ["3",  "3rd",  "50%"],
+      ["4",  "4th",  "50%"],
+      ["5",  "5th",  "25%"],
+      ["6+", "6th+", "0%"],
+    ];
+
+    String currentKey = attempt >= 6 ? "6+" : attempt.toString();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F4FF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFBDD0F8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header ──
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            decoration: const BoxDecoration(
+              color: Color(0xFF1565C0),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(13)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.white, size: 17),
+                SizedBox(width: 8),
+                Text(
+                  "Personal Vehicle Request Policy",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Current attempt summary ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+            child: _loadingRequestCount
+                ? const Row(children: [
+                    SizedBox(
+                      width: 14, height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1565C0)),
+                    ),
+                    SizedBox(width: 8),
+                    Text("Loading your request info...",
+                        style: TextStyle(fontSize: 12.5, color: Color(0xFF6B7A90))),
+                  ])
+                : Row(
+                    children: [
+                      _statBox("Your Attempt", "#$attempt", const Color(0xFF1E2A3A)),
+                      const SizedBox(width: 20),
+                      _statBox("Discount", discount, discountColor),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFBDD0F8)),
+                        ),
+                        child: Text(
+                          "Usage count: $attempt",
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1565C0),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+
+          const Divider(height: 1, thickness: 1, color: Color(0xFFCDDAF8)),
+
+          // ── Policy table ──
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "DISCOUNT POLICY",
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF6B7A90),
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Table(
+                    border: TableBorder.all(
+                      color: const Color(0xFFCDDAF8),
+                      width: 1,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    columnWidths: const {
+                      0: FlexColumnWidth(1.3),
+                      1: FlexColumnWidth(1.2),
+                      2: FlexColumnWidth(1),
+                    },
+                    children: [
+                      // Header row
+                      TableRow(
+                        decoration: const BoxDecoration(color: Color(0xFFD6E4FF)),
+                        children: [
+                          _tableCell("Attempt No.", isHeader: true),
+                          _tableCell("Attempt",        isHeader: true),
+                          _tableCell("Discount",       isHeader: true),
+                        ],
+                      ),
+                      // Data rows
+                      ...tableRows.map((r) {
+                        final isCurrent = r[0] == currentKey;
+                        return TableRow(
+                          decoration: BoxDecoration(
+                            color: isCurrent
+                                ? const Color(0xFFE3EDFF)
+                                : Colors.white,
+                          ),
+                          children: [
+                            _tableCell(r[0], isCurrent: isCurrent),
+                            _tableCell(r[1], isCurrent: isCurrent),
+                            _tableCell(r[2], isCurrent: isCurrent, isDiscount: true),
+                          ],
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statBox(String label, String value, Color valueColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(
+                fontSize: 11, color: Color(0xFF6B7A90), fontWeight: FontWeight.w600)),
+        const SizedBox(height: 2),
+        Text(value,
+            style: TextStyle(
+                fontSize: 22, fontWeight: FontWeight.w900, color: valueColor)),
+      ],
+    );
+  }
+
+  Widget _tableCell(String text,
+      {bool isHeader = false, bool isCurrent = false, bool isDiscount = false}) {
+    Color textColor = const Color(0xFF1E2A3A);
+    if (isHeader) textColor = const Color(0xFF1565C0);
+    if (isDiscount && !isHeader) {
+      if (text == "100%")      textColor = const Color(0xFF2E7D32);
+      else if (text == "50%")  textColor = const Color(0xFF1565C0);
+      else if (text == "25%")  textColor = const Color(0xFFE65100);
+      else                     textColor = const Color(0xFFB71C1C);
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 11.5,
+          fontWeight: (isHeader || isCurrent) ? FontWeight.w800 : FontWeight.w600,
+          color: textColor,
+        ),
+      ),
+    );
+  }
+
   Widget _buildDatePicker(
     String label,
     DateTime? selected,
