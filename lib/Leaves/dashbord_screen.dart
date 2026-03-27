@@ -31,6 +31,7 @@ bool get isManagers {
   int relieverBadgeCount = 0;
   int managerBadgeCount = 0;
   int personalVehicleBadgeCount = 0;
+  int approvedPersonalTripCount = 0;
 
   Map<String, dynamic>? leaveBalance;
   bool loadingLeave = true;
@@ -77,6 +78,7 @@ bool get isManagers {
     _loadRelieverRequestCount();
     _loadManagerRequestCount();
     _loadPersonalVehicleRequestCount();
+    _loadApprovedPersonalTripCount();
     _loadProfilePhoto();
 
   }
@@ -153,6 +155,24 @@ Future<void> _loadPersonalVehicleRequestCount() async {
     setState(() => personalVehicleBadgeCount = list.length);
   } catch (e) {
     setState(() => personalVehicleBadgeCount = 0);
+  }
+}
+
+Future<void> _loadApprovedPersonalTripCount() async {
+  try {
+    final employeeId = widget.user["employeeId"]?.toString() ?? "";
+    if (employeeId.isEmpty) return;
+
+    final list = await VehicleApiService.fetchPersonalTrips(
+      employeeId: employeeId,
+      status: "APPROVED",
+    );
+
+    if (!mounted) return;
+    setState(() => approvedPersonalTripCount = list.length);
+  } catch (e) {
+    if (!mounted) return;
+    setState(() => approvedPersonalTripCount = 0);
   }
 }
 
@@ -305,6 +325,7 @@ Future<void> _loadPersonalVehicleRequestCount() async {
       _loadRelieverRequestCount(),
       _loadManagerRequestCount(),
       _loadPersonalVehicleRequestCount(),
+      _loadApprovedPersonalTripCount(),
     ]);
   }
 
@@ -409,7 +430,7 @@ Future<void> _loadPersonalVehicleRequestCount() async {
                             Row(
                               children: [
                                 badgeWrapper(
-                                  count: relieverBadgeCount + managerBadgeCount + personalVehicleBadgeCount,
+                                  count: relieverBadgeCount + managerBadgeCount + personalVehicleBadgeCount + approvedPersonalTripCount,
                                   child: const Icon(Icons.notifications, color: Colors.white),
                                 ),
                                 const SizedBox(width: 12),
@@ -804,9 +825,12 @@ Future<void> _loadPersonalVehicleRequestCount() async {
         },
       ),
       _QuickAction(
-        icon: Icons.directions_car ,
+        icon: Icons.directions_car,
         label: 'Vehicle Request',
+        badgeCount: approvedPersonalTripCount,
         onTap: () async {
+          setState(() => approvedPersonalTripCount = 0);
+
           await Navigator.push(
             context,
             MaterialPageRoute(

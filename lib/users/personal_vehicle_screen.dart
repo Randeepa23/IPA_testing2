@@ -33,18 +33,11 @@ Future<void> _loadTabBadges() async {
         ?? "";
     if (employeeId.isEmpty) return;
 
-    // 1) My Trips pending
-    final myRes = await VehicleApiService.getMyTrips(employeeId: employeeId);
-    final myList = List<Map<String, dynamic>>.from(myRes["data"] ?? []);
-
-    final myPending = myList.where((e) {
-      final status = (e["status"] ?? "").toString().toUpperCase().trim();
-      // If you ONLY want office pending, uncomment next 2 lines:
-      final type = (e["reason"] ?? e["type"] ?? "").toString().toUpperCase().trim();
-      return type == "OFFICE" && status == "APPROVED";
-      // If you want ALL pending (shuttle/transfer too), use:
-      // return status == "PENDING";
-    }).length;
+    final approvedList = await VehicleApiService.fetchPersonalTrips(
+      employeeId: employeeId,
+      status: "APPROVED",
+    );
+    final myPending = approvedList.length;
 
     // 2) Manager approvals pending
     int mgrPending = 0;
