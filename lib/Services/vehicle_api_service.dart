@@ -248,7 +248,9 @@ class VehicleApiService {
     required String contactNo,
   required String employeeName,
     String reason = "Office Service",
-    String? vehicleType,          // ← new
+    String? vehicleType, 
+    int? vehicleId,       // ← new
+         // ← new
   }) async {
     final url = Uri.parse("$baseUrl/create_office_vehicle_request.php");
 
@@ -270,6 +272,8 @@ class VehicleApiService {
         "chauffer_name": employeeName,
         "reason": reason,
         "vehicle_type": vehicleType,
+        "vehicle_id": vehicleId, // ← include this if provided
+
       }),
     ).timeout(const Duration(seconds: 12));
 
@@ -298,7 +302,8 @@ class VehicleApiService {
     required String contactNo,
   required String employeeName,
     String reason = "Personal Service",
-    String? vehicleType,          // ← new
+    String? vehicleType,   
+    int? vehicleId,       // ← new
   }) async {
     final url = Uri.parse("$baseUrl/create_personal_vehicle_request.php");
 
@@ -320,7 +325,9 @@ class VehicleApiService {
         "chauffer_name": employeeName,
         "reason": reason,
         "vehicle_type": vehicleType,
+        "vehicle_id": vehicleId, // ← include this if provided
       }),
+      
     ).timeout(const Duration(seconds: 12));
 
     if (res.body.trim().isEmpty) {
@@ -378,6 +385,20 @@ static Future<List<Map<String, dynamic>>> fetchManagerVehicleRequests({
   return List<Map<String, dynamic>>.from(decoded["data"] ?? []);
 }
 
+static Future<List<Map<String, dynamic>>> fetchManagerPersonalRequests({
+  required String managerId,
+}) async {
+  final url = Uri.parse("$baseUrl/get_manager_personal_request.php?manager_id=$managerId");
+  final res = await http.get(url, headers: {"Accept": "application/json"});
+
+  final decoded = jsonDecode(res.body);
+  if (decoded["success"] != true) {
+    throw Exception(decoded["message"] ?? "API failed");
+  }
+
+  return List<Map<String, dynamic>>.from(decoded["data"] ?? []);
+}
+
 static Future<void> approveVehicleRequest({required int requestId}) async {
   final url = Uri.parse("$baseUrl/approve_vehicle_request.php");
   final res = await http.post(
@@ -407,6 +428,21 @@ static Future<void> rejectVehicleRequest({
   if (decoded["success"] != true) {
     throw Exception(decoded["message"] ?? "Reject failed");
   }
+}
+
+//Get Personal Usage Count
+static Future<int> getPersonalUsageCount(String employeeId) async {
+  final url = Uri.parse("$baseUrl/get_personal_usage_count.php?employee_id=$employeeId");
+
+  final res = await http.get(url);
+
+  final json = jsonDecode(res.body);
+
+  if (json["success"] != true) {
+    throw Exception(json["message"]);
+  }
+
+  return json["data"]["count"] ?? 0;
 }
 
 }

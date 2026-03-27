@@ -9,6 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:test_app/login_screen.dart';
 import '../ui/dialogs/logout_dialog.dart';
 import '../users/personal_vehicle_screen.dart';
+import '../Vehicle/personal_request_screen.dart';
+import '../Services/vehicle_api_service.dart';
 class DashboardScreen extends StatefulWidget {
   final Map<String, dynamic> user;
 
@@ -28,6 +30,8 @@ bool get isManagers {
 
   int relieverBadgeCount = 0;
   int managerBadgeCount = 0;
+  int personalVehicleBadgeCount = 0;
+  int approvedPersonalTripCount = 0;
 
   Map<String, dynamic>? leaveBalance;
   bool loadingLeave = true;
@@ -73,6 +77,8 @@ bool get isManagers {
 
     _loadRelieverRequestCount();
     _loadManagerRequestCount();
+    _loadPersonalVehicleRequestCount();
+    _loadApprovedPersonalTripCount();
     _loadProfilePhoto();
 
   }
@@ -134,6 +140,41 @@ Future<void> _loadManagerRequestCount() async {
         setState(() => managerBadgeCount = 0);
       }
     }
+
+Future<void> _loadPersonalVehicleRequestCount() async {
+  try {
+    if (!isManagers) {
+      setState(() => personalVehicleBadgeCount = 0);
+      return;
+    }
+
+    final managerId = widget.user["employeeId"]?.toString() ?? "";
+    if (managerId.isEmpty) return;
+
+    final list = await VehicleApiService.fetchManagerPersonalRequests(managerId: managerId);
+    setState(() => personalVehicleBadgeCount = list.length);
+  } catch (e) {
+    setState(() => personalVehicleBadgeCount = 0);
+  }
+}
+
+Future<void> _loadApprovedPersonalTripCount() async {
+  try {
+    final employeeId = widget.user["employeeId"]?.toString() ?? "";
+    if (employeeId.isEmpty) return;
+
+    final list = await VehicleApiService.fetchPersonalTrips(
+      employeeId: employeeId,
+      status: "APPROVED",
+    );
+
+    if (!mounted) return;
+    setState(() => approvedPersonalTripCount = list.length);
+  } catch (e) {
+    if (!mounted) return;
+    setState(() => approvedPersonalTripCount = 0);
+  }
+}
 
     void _openLogoutDialog(BuildContext context) {
       showDialog(
@@ -283,6 +324,8 @@ Future<void> _loadManagerRequestCount() async {
       _loadRecentLeaves(),
       _loadRelieverRequestCount(),
       _loadManagerRequestCount(),
+      _loadPersonalVehicleRequestCount(),
+      _loadApprovedPersonalTripCount(),
     ]);
   }
 
@@ -387,7 +430,7 @@ Future<void> _loadManagerRequestCount() async {
                             Row(
                               children: [
                                 badgeWrapper(
-                                  count: relieverBadgeCount + managerBadgeCount,
+                                  count: relieverBadgeCount + managerBadgeCount + personalVehicleBadgeCount + approvedPersonalTripCount,
                                   child: const Icon(Icons.notifications, color: Colors.white),
                                 ),
                                 const SizedBox(width: 12),
@@ -782,9 +825,12 @@ Future<void> _loadManagerRequestCount() async {
         },
       ),
       _QuickAction(
-        icon: Icons.directions_car ,
+        icon: Icons.directions_car,
         label: 'Vehicle Request',
+        badgeCount: approvedPersonalTripCount,
         onTap: () async {
+          setState(() => approvedPersonalTripCount = 0);
+
           await Navigator.push(
             context,
             MaterialPageRoute(
@@ -814,6 +860,27 @@ Future<void> _loadManagerRequestCount() async {
               context,
               MaterialPageRoute(
                 builder: (context) => LeaveRequestScreen(managerId: managerId),
+              ),
+            );
+          },
+        ),
+      );
+      actions.add(
+        _QuickAction(
+          icon: Icons.car_crash,
+          label: 'Vehicle Request',
+          badgeCount: personalVehicleBadgeCount,
+          onTap: () async {
+
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool('manager_seen', true);
+
+            setState(() => personalVehicleBadgeCount = 0);
+
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PersonalRequestScreen(managerId: managerId),
               ),
             );
           },

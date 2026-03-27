@@ -103,6 +103,8 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
 
   bool _isSubmitting = false;
 
+  int? vehicleId;
+
   // Photo cache for manager avatars
   final Map<int, Future<Map<String, dynamic>?>> _photoFutureCache = {};
 
@@ -154,9 +156,7 @@ Future<void> _loadManagers() async {
       };
     }).toList();
 
-    // DEBUG (check in console)
-    print("Managers loaded: $list");
-    print("Reporting manager: $reportingId");
+    debugPrint("[LoadManagers] loaded: $list  reportingId: $reportingId");
 
     String? defaultId;
 
@@ -230,6 +230,8 @@ Future<void> _submitForm() async {
       employeeName: employeeName,
       reason: "Office Service",
       vehicleType: vehicleType,   // ← new optional param
+      vehicleId: vehicleId, // <-- pass the ID here
+
       
     );
     print("Vehicle Type Name: $vehicleType");
@@ -293,6 +295,7 @@ void _showVehicleSubmitConfirmation() {
         setState(() {
           vehicleError = null;
           vehicleTypeName = null;
+          vehicleId = null;
           _isCheckingVehicle = false;
         });
         return;
@@ -304,6 +307,7 @@ void _showVehicleSubmitConfirmation() {
         _isCheckingVehicle = true;
         vehicleError = null;
         vehicleTypeName = null;
+        vehicleId = null;
       });
 
       () async {
@@ -311,6 +315,8 @@ void _showVehicleSubmitConfirmation() {
           final vehicleNo = "$prefix-$number";
           final start = "${fromDate!.toString().split(' ')[0]} 00:00:00";
           final end = "${toDate!.toString().split(' ')[0]} 23:59:59";
+
+          debugPrint("[CheckVehicle] Validating vehicleNo=$vehicleNo  start=$start  end=$end");
 
           final response = await http.post(
             Uri.parse(
@@ -325,43 +331,62 @@ void _showVehicleSubmitConfirmation() {
             }),
           );
 
+          debugPrint("[CheckVehicle] HTTP ${response.statusCode}  body=${response.body}");
+
           if (gen != _checkGeneration) return; // stale
 
           Map<String, dynamic> data;
           try {
-            data = Map<String, dynamic>.from(
-                jsonDecode(response.body) as Map);
+            data = Map<String, dynamic>.from(jsonDecode(response.body) as Map);
           } catch (_) {
+            debugPrint("[CheckVehicle] JSON parse error, statusCode=${response.statusCode}");
             setState(() {
-              vehicleError =
-                  "Server error (${response.statusCode}). Please try again.";
+              vehicleError = "Server error (${response.statusCode}). Please try again.";
               _isCheckingVehicle = false;
             });
             return;
           }
 
-          final typeName =
-              data["vehicle"]?["vehicle_type_name"]?.toString();
+          debugPrint("[CheckVehicle] FULL RESPONSE: $data");
+          debugPrint("[CheckVehicle] vehicle object: ${data["vehicle"]}");
+          debugPrint("[CheckVehicle] vehicle keys: ${(data["vehicle"] as Map?)?.keys.toList()}");
+
+          final typeName = data["vehicle"]?["vehicle_type_name"]?.toString();
+
+          // Try every common key name the API might use for vehicle ID
+          final rawId = data["vehicle"]?["id"]
+              ?? data["vehicle"]?["vehicle_id"]
+              ?? data["vehicle"]?["vehicleId"]
+              ?? data["id"]
+              ?? data["vehicle_id"];
+
+          debugPrint("[CheckVehicle] typeName=$typeName  rawId=$rawId");
 
           if (data["ok"] == false) {
+            debugPrint("[CheckVehicle] NOT OK — ${data["message"]}");
             setState(() {
               vehicleTypeName = typeName;
               vehicleError = data["message"]?.toString();
+              vehicleId = null;
               _isCheckingVehicle = false;
             });
             return;
           }
+
+          final resolvedId = rawId != null ? int.tryParse(rawId.toString()) : null;
+          debugPrint("[CheckVehicle] OK — vehicleId=$resolvedId  typeName=$typeName");
 
           setState(() {
             vehicleTypeName = typeName;
             vehicleError = null;
+            vehicleId = resolvedId;
             _isCheckingVehicle = false;
           });
-        } catch (_) {
+        } catch (e) {
+          debugPrint("[CheckVehicle] EXCEPTION: $e");
           if (gen != _checkGeneration) return;
           setState(() {
-            vehicleError =
-                "Could not validate vehicle. Check your connection and try again.";
+            vehicleError = "Could not validate vehicle. Check your connection and try again.";
             _isCheckingVehicle = false;
           });
         }
