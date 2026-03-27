@@ -248,7 +248,9 @@ class VehicleApiService {
     required String contactNo,
   required String employeeName,
     String reason = "Office Service",
-    String? vehicleType,          // ← new
+    String? vehicleType, 
+    int? vehicleId,       // ← new
+         // ← new
   }) async {
     final url = Uri.parse("$baseUrl/create_office_vehicle_request.php");
 
@@ -270,6 +272,8 @@ class VehicleApiService {
         "chauffer_name": employeeName,
         "reason": reason,
         "vehicle_type": vehicleType,
+        "vehicle_id": vehicleId, // ← include this if provided
+
       }),
     ).timeout(const Duration(seconds: 12));
 
