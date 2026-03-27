@@ -298,7 +298,8 @@ class VehicleApiService {
     required String contactNo,
   required String employeeName,
     String reason = "Personal Service",
-    String? vehicleType,          // ← new
+    String? vehicleType,   
+    int? vehicleId,       // ← new
   }) async {
     final url = Uri.parse("$baseUrl/create_personal_vehicle_request.php");
 
@@ -320,7 +321,9 @@ class VehicleApiService {
         "chauffer_name": employeeName,
         "reason": reason,
         "vehicle_type": vehicleType,
+        "vehicle_id": vehicleId, // ← include this if provided
       }),
+      
     ).timeout(const Duration(seconds: 12));
 
     if (res.body.trim().isEmpty) {
@@ -423,7 +426,7 @@ static Future<void> rejectVehicleRequest({
   }
 }
 
-//Get Personal UsageCount
+//Get Personal Usage Count
 static Future<int> getPersonalUsageCount(String employeeId) async {
   final url = Uri.parse("$baseUrl/get_personal_usage_count.php?employee_id=$employeeId");
 

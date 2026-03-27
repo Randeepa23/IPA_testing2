@@ -105,6 +105,8 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
   int _previousRequestCount = 0;
   bool _loadingRequestCount = true;
 
+  int? vehicleId;
+
   // Photo cache for manager avatars
   final Map<int, Future<Map<String, dynamic>?>> _photoFutureCache = {};
 
@@ -246,6 +248,16 @@ Future<void> _submitForm() async {
 
     final vehicleType = vehicleTypeName ?? "-"; // fallback
 
+    debugPrint("[SubmitForm] ── Payload ──────────────────────");
+    debugPrint("[SubmitForm] employeeId  : $empId");
+    debugPrint("[SubmitForm] managerId   : $managerId");
+    debugPrint("[SubmitForm] vehicleNo   : $vehicleNo");
+    debugPrint("[SubmitForm] vehicleType : $vehicleType");
+    debugPrint("[SubmitForm] vehicleId   : $vehicleId");
+    debugPrint("[SubmitForm] fromDate    : $fromDateTxt");
+    debugPrint("[SubmitForm] toDate      : $toDateTxt");
+    debugPrint("[SubmitForm] ────────────────────────────────");
+
     final res = await VehicleApiService.createPersonalVehicleRequest(
       employeeId: empId,
       managerId: managerId,
@@ -256,7 +268,9 @@ Future<void> _submitForm() async {
       contactNo: employeePhone,
       employeeName: employeeName,
       reason: "Personal Request",
-      vehicleType: vehicleType,   // ← new optional param
+      vehicleType: vehicleType,  // ← new optional param
+      vehicleId: vehicleId, // <-- pass the ID here
+
       
     );
     print("Vehicle Type Name: $vehicleType");
@@ -320,6 +334,7 @@ void _showVehicleSubmitConfirmation() {
         setState(() {
           vehicleError = null;
           vehicleTypeName = null;
+          vehicleId = null;
           _isCheckingVehicle = false;
         });
         return;
@@ -331,6 +346,7 @@ void _showVehicleSubmitConfirmation() {
         _isCheckingVehicle = true;
         vehicleError = null;
         vehicleTypeName = null;
+        vehicleId = null;
       });
 
       () async {
@@ -356,39 +372,55 @@ void _showVehicleSubmitConfirmation() {
 
           Map<String, dynamic> data;
           try {
-            data = Map<String, dynamic>.from(
-                jsonDecode(response.body) as Map);
+            data = Map<String, dynamic>.from(jsonDecode(response.body) as Map);
           } catch (_) {
             setState(() {
-              vehicleError =
-                  "Server error (${response.statusCode}). Please try again.";
+              vehicleError = "Server error (${response.statusCode}). Please try again.";
               _isCheckingVehicle = false;
             });
             return;
           }
 
-          final typeName =
-              data["vehicle"]?["vehicle_type_name"]?.toString();
+          // Dump full response to find exact field names
+          debugPrint("[CheckVehicle] FULL RESPONSE: $data");
+          debugPrint("[CheckVehicle] vehicle object: ${data["vehicle"]}");
+          debugPrint("[CheckVehicle] vehicle keys: ${(data["vehicle"] as Map?)?.keys.toList()}");
+
+          final typeName = data["vehicle"]?["vehicle_type_name"]?.toString();
+
+          // Try every common key name the API might use for vehicle ID
+          final rawId = data["vehicle"]?["id"]
+              ?? data["vehicle"]?["vehicle_id"]
+              ?? data["vehicle"]?["vehicleId"]
+              ?? data["id"]
+              ?? data["vehicle_id"];
+
 
           if (data["ok"] == false) {
+            debugPrint("[CheckVehicle] NOT OK — ${data["message"]}");
             setState(() {
               vehicleTypeName = typeName;
               vehicleError = data["message"]?.toString();
+              vehicleId = null;
               _isCheckingVehicle = false;
             });
             return;
           }
+
+          final resolvedId = rawId != null ? int.tryParse(rawId.toString()) : null;
+          debugPrint("[CheckVehicle] OK — vehicleId=$resolvedId  typeName=$typeName");
 
           setState(() {
             vehicleTypeName = typeName;
             vehicleError = null;
+            vehicleId = resolvedId;
             _isCheckingVehicle = false;
           });
-        } catch (_) {
+        } catch (e) {
+          debugPrint("[CheckVehicle] EXCEPTION: $e");
           if (gen != _checkGeneration) return;
           setState(() {
-            vehicleError =
-                "Could not validate vehicle. Check your connection and try again.";
+            vehicleError = "Could not validate vehicle. Check your connection and try again.";
             _isCheckingVehicle = false;
           });
         }
@@ -779,8 +811,9 @@ void _showVehicleSubmitConfirmation() {
   }
   // ── Discount notice ──────────────────────────────────────────────────────
   Widget _buildDiscountNotice() {
-    // usage_count from API IS the current attempt number (server increments it)
-    final attempt = _previousRequestCount;
+    // usage_count from API IS the current attempt number (server increments before we load the form)
+    final usageCount = _previousRequestCount;
+    final attempt = _previousRequestCount; // no +1: usage_count already equals the attempt number
 
     String discount;
     Color discountColor;
@@ -868,11 +901,11 @@ void _showVehicleSubmitConfirmation() {
                           border: Border.all(color: const Color(0xFFBDD0F8)),
                         ),
                         child: Text(
-                          "Usage count: $attempt",
+                          "Usage count: $usageCount",
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF1565C0),
+                            color: Color(0xFF1E2A3A),
                           ),
                         ),
                       ),
@@ -916,7 +949,7 @@ void _showVehicleSubmitConfirmation() {
                       TableRow(
                         decoration: const BoxDecoration(color: Color(0xFFD6E4FF)),
                         children: [
-                          _tableCell("Attempt No.", isHeader: true),
+                          //_tableCell("Attempt No.", isHeader: true),
                           _tableCell("Attempt",        isHeader: true),
                           _tableCell("Discount",       isHeader: true),
                         ],
@@ -931,7 +964,7 @@ void _showVehicleSubmitConfirmation() {
                                 : Colors.white,
                           ),
                           children: [
-                            _tableCell(r[0], isCurrent: isCurrent),
+                            //_tableCell(r[0], isCurrent: isCurrent),
                             _tableCell(r[1], isCurrent: isCurrent),
                             _tableCell(r[2], isCurrent: isCurrent, isDiscount: true),
                           ],
