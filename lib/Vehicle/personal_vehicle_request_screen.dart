@@ -818,13 +818,13 @@ void _showVehicleSubmitConfirmation() {
     String discount;
     Color discountColor;
     if (attempt <= 2) {
-      discount = "100%";
+      discount = "FREE";
       discountColor = const Color(0xFF2E7D32);
     } else if (attempt <= 4) {
-      discount = "50%";
+      discount = "50% OFF";
       discountColor = const Color(0xFF1565C0);
     } else if (attempt == 5) {
-      discount = "25%";
+      discount = "25% OFF";
       discountColor = const Color(0xFFE65100);
     } else {
       discount = "0%";
