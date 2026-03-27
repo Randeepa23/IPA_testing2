@@ -813,7 +813,7 @@ void _showVehicleSubmitConfirmation() {
   Widget _buildDiscountNotice() {
     // usage_count from API IS the current attempt number (server increments before we load the form)
     final usageCount = _previousRequestCount;
-    final attempt = _previousRequestCount; // no +1: usage_count already equals the attempt number
+    final attempt = _previousRequestCount + 1; // no +1: usage_count already equals the attempt number
 
     String discount;
     Color discountColor;
