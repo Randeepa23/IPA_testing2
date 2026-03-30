@@ -28,6 +28,12 @@ bool get isManagers {
   return ["1", "2", "3"].contains(id);
 }
 
+/// General Manager — personal vehicle queue uses [get_general_manager_personal_vehicle_request.php].
+bool get isGeneralManager {
+  final id = widget.user["jobTitleId"] ?? widget.user["job_title_id"];
+  return id?.toString() == "2";
+}
+
   int relieverBadgeCount = 0;
   int managerBadgeCount = 0;
   int personalVehicleBadgeCount = 0;
@@ -151,7 +157,9 @@ Future<void> _loadPersonalVehicleRequestCount() async {
     final managerId = widget.user["employeeId"]?.toString() ?? "";
     if (managerId.isEmpty) return;
 
-    final list = await VehicleApiService.fetchManagerPersonalRequests(managerId: managerId);
+    final list = isGeneralManager
+        ? await VehicleApiService.fetchGeneralManagerPersonalRequests()
+        : await VehicleApiService.fetchManagerPersonalRequests(managerId: managerId);
     setState(() => personalVehicleBadgeCount = list.length);
   } catch (e) {
     setState(() => personalVehicleBadgeCount = 0);
@@ -880,7 +888,10 @@ Future<void> _loadApprovedPersonalTripCount() async {
             await Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => PersonalRequestScreen(managerId: managerId),
+                builder: (context) => PersonalRequestScreen(
+                  managerId: managerId,
+                  user: widget.user,
+                ),
               ),
             );
           },
