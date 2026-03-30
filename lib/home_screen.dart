@@ -28,8 +28,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   static const blue = Color(0xFF0060A6);
   /// Same pixel size for every service icon (inside a fixed box).
-  static const double _kServiceImageSize = 90;
-  static const double _kServiceLabelFontSize = 15;
+  static const double _kServiceImageSize = 75;
+  static const double _kServiceLabelFontSize = 13.5;
 
   @override
   void initState() {
