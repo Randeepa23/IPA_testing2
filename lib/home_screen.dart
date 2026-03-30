@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:test_app/Leaves/dashbord_screen.dart';
 import 'login_screen.dart';
@@ -27,19 +27,13 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   static const blue = Color(0xFF0060A6);
+  /// Same pixel size for every service icon (inside a fixed box).
+  static const double _kServiceImageSize = 90;
+  static const double _kServiceLabelFontSize = 15;
 
   @override
   void initState() {
     super.initState();
-
-
-
-
-
-
-
-
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final msg = widget.successMessage;
       if (msg != null && msg.trim().isNotEmpty) {
@@ -54,15 +48,17 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  String get _greeting {
+    final h = DateTime.now().hour;
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
   @override
   Widget build(BuildContext context) {
     final name = widget.name;
     final user = widget.user;
-
-    // responsive sizes
-    final screenW = MediaQuery.of(context).size.width;
-    final iconSize = screenW < 360 ? 54.0 : 70.0;
-    final fontSize = screenW < 360 ? 15.0 : 17.0;
 
     // services list (easy to add more)
     final services = <_ServiceItem>[
@@ -184,18 +180,37 @@ class _HomeScreenState extends State<HomeScreen> {
               // top row
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    'Hello, $name',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black
-                      //color: Colors.black54
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Hello, $name',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black,
+                          ),
+                        ),
+                        Text(
+                          _greeting,
+                          style: TextStyle(
+                            color: const Color(0xFF000000)
+                                .withOpacity(0.78),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.logout_outlined, color:Colors.black),
+                    icon: const Icon(Icons.logout_outlined, color: Colors.black),
                     onPressed: _showLogoutConfirmationDialog,
                   ),
                 ],
@@ -220,16 +235,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 16),
 
-              // responsive grid (no overlap on small devices)
+              // Fixed 3×3 grid — same image size on every card
               Expanded(
                 child: GridView.builder(
                   padding: const EdgeInsets.only(bottom: 12),
                   itemCount: services.length,
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 190, // auto columns
-                    mainAxisSpacing: 18,
-                    crossAxisSpacing: 18,
-                    childAspectRatio: 1.15, // better height for small screens
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 20,
+                    crossAxisSpacing: 20,
+                    childAspectRatio: 1.15,
                   ),
                   itemBuilder: (context, i) {
                     final s = services[i];
@@ -238,8 +253,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       label: s.label,
                       onTap: s.onTap,
                       isDisabled: s.disabled,
-                      iconSize: iconSize,
-                      fontSize: fontSize,
                     );
                   },
                 ),
@@ -303,18 +316,15 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // updated service card (responsive + no overflow)
   Widget _serviceCard({
     String? imagePath,
     required String label,
     required VoidCallback onTap,
     bool isDisabled = false,
-    double iconSize = 70,
-    double fontSize = 17,
   }) {
     return InkWell(
       borderRadius: BorderRadius.circular(14),
-      onTap: isDisabled ? null : onTap, // block tap when disabled
+      onTap: isDisabled ? null : onTap,
       child: Opacity(
         opacity: isDisabled ? 0.45 : 1,
         child: Container(
@@ -330,34 +340,40 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (imagePath != null)
-                    Image.asset(
-                      imagePath,
-                      width: iconSize,
-                      height: iconSize,
-                      fit: BoxFit.contain,
-                    ),
-                  const SizedBox(height: 10),
-                  Text(
-                    label,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: fontSize,
-                      fontWeight: FontWeight.w800,
-                      color: blue,
-                      height: 1.1,
-                    ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(6, 10, 6, 8),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Fixed slot so every asset draws at identical logical size
+                SizedBox(
+                  width: _kServiceImageSize + 12,
+                  height: _kServiceImageSize + 12,
+                  child: Center(
+                    child: imagePath != null
+                        ? Image.asset(
+                            imagePath,
+                            width: _kServiceImageSize,
+                            height: _kServiceImageSize,
+                            fit: BoxFit.contain,
+                          )
+                        : const SizedBox.shrink(),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: _kServiceLabelFontSize,
+                    fontWeight: FontWeight.w800,
+                    color: blue,
+                    height: 1.15,
+                  ),
+                ),
+              ],
             ),
           ),
         ),

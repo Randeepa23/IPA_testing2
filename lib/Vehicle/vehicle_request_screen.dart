@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import '../Services/vehicle_api_service.dart';
 import '../Leaves/top_banner.dart';
@@ -93,45 +92,34 @@ class _VehicleRequestScreenState extends State<VehicleRequestScreen> {
     );
   }
 
-  String _generateTripCode(String employeeName) {
-    final rnd = Random();
-    String cleanName = employeeName
-        .replaceAll(RegExp(r'\s+'), '')
-        .toUpperCase();
-    if (cleanName.length < 4) {
-      cleanName = cleanName.padRight(4, 'X');
-    }
-    final namePart = cleanName.substring(0, 4);
-    final numberPart = (1000 + rnd.nextInt(9000)).toString();
-    return "#$namePart$numberPart";
-  }
-
   // ====================== APPROVE POPUP (delegated to dialog file) ======================
   Future<void> _showApproveDialog(BuildContext context, Map<String, dynamic> r) async {
     final requestId = int.parse(r["request_id"].toString());
     final employeeName = (r["employee_name"] ?? r["employeeName"] ?? "USER").toString();
-    final code = _generateTripCode(employeeName);
 
     await showVehicleApproveDialog(
       context: context,
       employeeName: employeeName,
       onApprove: () async {
         try {
-          await VehicleApiService.approveVehicleRequest(
+          final res = await VehicleApiService.approveVehicleRequest(
             requestId: requestId,
           );
 
           await _loadManagerVehicleRequests();
 
-          if (mounted) {
-            TopBanner.show(
-              context,
-              title: "Request Approved",
-              message: "Vehicle request approved successfully. Trip Code: $code",
-              icon: Icons.check_circle,
-              isSuccess: true,
-            );
-          }
+          if (!mounted) return;
+
+          final tripCode = VehicleApiService.tripCodeFromApproveResponse(res);
+          TopBanner.show(
+            context,
+            title: "Request Approved",
+            message: tripCode != null
+                ? "Vehicle request approved successfully. Trip code: $tripCode"
+                : "Vehicle request approved successfully.",
+            icon: Icons.check_circle,
+            isSuccess: true,
+          );
         } catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(

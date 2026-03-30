@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../ui/dialogs/start_trip_dialog.dart';
@@ -48,7 +47,6 @@ Future<void> _loadTripsByTab() async {
     try {
       setState(() => loading = true);
 
-      // SAME AS YOUR RELIEVER SCREEN
       final employeeId = widget.user["employeeId"]?.toString() ?? "";
       if (employeeId.isEmpty) {
         if (mounted) {
@@ -59,13 +57,38 @@ Future<void> _loadTripsByTab() async {
         return;
       }
 
-      final status = _statusFromTab(selectedTab);
-
-      // API returns: List<Map> (from transport_services table)
-      final rows = await VehicleApiService.fetchPersonalTrips(
-        employeeId: employeeId, // String is OK (will be in URL)
-        status: status,
-      );
+      // Pending tab: PENDING + HOD_APPROVED (waiting for GM), merged & deduped
+      final List<Map<String, dynamic>> rows;
+      if (selectedTab == 0) {
+        final pending = await VehicleApiService.fetchPersonalTrips(
+          employeeId: employeeId,
+          status: "PENDING",
+        );
+        final hodApproved = await VehicleApiService.fetchPersonalTrips(
+          employeeId: employeeId,
+          status: "HOD_APPROVED",
+        );
+        final byId = <String, Map<String, dynamic>>{};
+        for (final r in pending) {
+          byId[r["id"]?.toString() ?? ""] = r;
+        }
+        for (final r in hodApproved) {
+          byId[r["id"]?.toString() ?? ""] = r;
+        }
+        byId.removeWhere((k, _) => k.isEmpty);
+        rows = byId.values.toList()
+          ..sort((a, b) {
+            final ia = int.tryParse(a["id"]?.toString() ?? "0") ?? 0;
+            final ib = int.tryParse(b["id"]?.toString() ?? "0") ?? 0;
+            return ib.compareTo(ia);
+          });
+      } else {
+        final status = _statusFromTab(selectedTab);
+        rows = await VehicleApiService.fetchPersonalTrips(
+          employeeId: employeeId,
+          status: status,
+        );
+      }
 
       // Map DB rows -> UI shape used in TripCard
       final mapped = await Future.wait(rows.map((e) async {
@@ -109,11 +132,15 @@ Future<void> _loadTripsByTab() async {
           "vehicleType": (e["vehicle_type"] ?? "").toString(),
           "isVehicleAssigned": (e["is_vehicle_assigned"]?.toString() ?? "0") == "1",
           "reason": (e["chauffer_reason"] ?? "-").toString(),
+          "type": (e["type"] ?? "personal").toString(),
 
           "vehicleName": vehicleName,
 
           "pickup": (e["pickup_location"] ?? "-").toString(),
           "dropoff": (e["dropoff_location"] ?? "-").toString(),
+          "destination": (e["dropoff_location"] ?? e["destination"] ?? "-").toString(),
+
+          "hodComment": (e["hod_comment"] ?? e["hodComment"] ?? "").toString().trim(),
 
           "passengers": "${e["passenger_count"] ?? "-"} pax",
           "time": startTime,
@@ -135,8 +162,6 @@ Future<void> _loadTripsByTab() async {
           "gpsDistance": e["gps_distance"],
         };
       }));
-
-      print(e);
 
       if (!mounted) return;
       setState(() => trips = mapped);
@@ -353,7 +378,7 @@ Future<bool?> _confirmCancelTrip() async {
               padding: const EdgeInsets.only(bottom: 14),
               child: TripCard(
                 data: t,
-                onCancel: (t["status"] == "PENDING")
+                onCancel: (t["status"]?.toString() == "PENDING")
                     ? () async {
                         final ok = await _confirmCancelTrip();
                         if (ok == true) _cancelTrip(t);
@@ -487,14 +512,23 @@ class TripCard extends StatelessWidget {
     );
   }
 
+  String get _reasonLabel {
+    final r = (data["reason"] ?? "").toString().trim();
+    if (r.isEmpty || r == "-") return "Personal Request";
+    return r;
+  }
+
   @override
   Widget build(BuildContext context) {
     final status = (data["status"] ?? "").toString();
 
     final isPending = status == "PENDING";
+    final isHodApproved = status == "HOD_APPROVED";
     final isApproved = status == "APPROVED";
     final isInProgress = status == "IN_PROGRESS";
     final isCompleted = status == "COMPLETED";
+
+    final hodNote = (data["hodComment"] ?? "").toString().trim();
 
     return Container(
       decoration: BoxDecoration(
@@ -549,14 +583,20 @@ class TripCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
             child: Column(
               children: [
-                // PENDING: only Reason, Destination, From, To (NO Trip Code)
-                if (isPending) ...[
-                 _infoRow("Reason", (data["type"] ?? "Personal Request").toString()),
+                // PENDING + HOD_APPROVED: same detail block (HOD adds comment + GM notice)
+                if (isPending || isHodApproved) ...[
+                
+                  _infoRow("Reason", _reasonLabel),
                   const SizedBox(height: 8),
                   _infoRow("From Date", (data["fromDate"] ?? "").toString()),
                   const SizedBox(height: 8),
                   _infoRow("To Date", (data["toDate"] ?? "").toString()),
-                  if (onCancel != null) ...[
+                  const SizedBox(height: 8),
+                   if (isHodApproved) ...[
+                    _hodCommentBox(hodNote),
+                    const SizedBox(height: 10),
+                  ],
+                  if (isPending  && onCancel != null) ...[
                     const SizedBox(height: 12),
                     _gradientButton(
                       text: "Cancel Request",
@@ -570,7 +610,7 @@ class TripCard extends StatelessWidget {
                 if (isApproved) ...[
                   _infoRow("Trip Code", (data["tripCode"] ?? "").toString(), highlight: true),
                   const SizedBox(height: 8),
-                  _infoRow("Reason", (data["type"] ?? "Personal Request").toString()),
+                  _infoRow("Reason", _reasonLabel),
                   const SizedBox(height: 8),
                   _infoRow("From Date", (data["fromDate"] ?? "").toString()),
                   const SizedBox(height: 8),
@@ -609,7 +649,7 @@ class TripCard extends StatelessWidget {
                 if (isInProgress) ...[
                   _infoRow("Trip Code", (data["tripCode"] ?? "").toString(), highlight: true),
                   const SizedBox(height: 8),
-                  _infoRow("Reason", (data["type"] ?? "Personal Request").toString()),
+                  _infoRow("Reason", _reasonLabel),
                   const SizedBox(height: 8),
                   _infoRow("Start Meter", "${data["startMeter"] ?? "-"} km"),
                   const SizedBox(height: 12),
@@ -646,7 +686,7 @@ class TripCard extends StatelessWidget {
                 if (isCompleted) ...[
                   _infoRow("Trip Code", (data["tripCode"] ?? "").toString(), highlight: true),
                   const SizedBox(height: 8),
-                  _infoRow("Reason", (data["type"] ?? "Personal Request").toString()),
+                  _infoRow("Reason", _reasonLabel),
                   const SizedBox(height: 8),
                   _infoRow("Start Meter", "${data["startMeter"] ?? "-"} km"),
                   const SizedBox(height: 8),
@@ -664,14 +704,51 @@ class TripCard extends StatelessWidget {
     );
   }
 
+  Widget _hodCommentBox(String note) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7FAFF),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE8EDF5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "HOD Comment",
+            style: TextStyle(
+              color: Color(0xFF6B7A90),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            note.isEmpty ? "—" : note,
+            style: const TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1E2A3A),
+              height: 1.25,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _statusPill(String status) {
     final label = status == "PENDING"
         ? "Pending"
-        : status == "APPROVED"
-            ? "Approved"
-            : status == "IN_PROGRESS"
-                ? "In-progress"
-                : "Completed";
+        : status == "HOD_APPROVED"
+            ? "HOD approved"
+            : status == "APPROVED"
+                ? "Approved"
+                : status == "IN_PROGRESS"
+                    ? "In-progress"
+                    : "Completed";
 
     Color bg;
     Color border;
@@ -685,6 +762,12 @@ class TripCard extends StatelessWidget {
       text = const Color(0xFF8A6D3B);
       icon = Icons.hourglass_bottom;
       iconColor = const Color(0xFF8A6D3B);
+    } else if (status == "HOD_APPROVED") {
+      bg = const Color(0xFFE8F5E9);
+      border = const Color(0xFFA5D6A7);
+      text = const Color(0xFF1B5E20);
+      icon = Icons.verified_user_outlined;
+      iconColor = const Color(0xFF1B5E20);
     } else if (status == "APPROVED") {
       bg = const Color(0xFFE5E5E5);
       border = const Color(0xFFD3D3D3);

@@ -399,18 +399,61 @@ static Future<List<Map<String, dynamic>>> fetchManagerPersonalRequests({
   return List<Map<String, dynamic>>.from(decoded["data"] ?? []);
 }
 
-static Future<void> approveVehicleRequest({required int requestId}) async {
-  final url = Uri.parse("$baseUrl/approve_vehicle_request.php");
-  final res = await http.post(
-    url,
-    headers: {"Content-Type": "application/json", "Accept": "application/json"},
-    body: jsonEncode({"request_id": requestId}),
-  );
+/// HOD-approved personal trips for General Manager.
+///
+/// **Do not send [userId]** unless your PHP uses it only for auth/audit. Many backends
+/// incorrectly add `AND e.employee_id = user_id`, which hides every request not filed
+/// by that employee (empty inbox for the GM).
+static Future<List<Map<String, dynamic>>> fetchGeneralManagerPersonalRequests({
+  String? userId,
+}) async {
+  final base = Uri.parse("$baseUrl/get_general_manager_personal_vehicle_request.php");
+  final url = (userId != null && userId.isNotEmpty)
+      ? base.replace(queryParameters: {"user_id": userId})
+      : base;
+  final res = await http.get(url, headers: {"Accept": "application/json"});
 
   final decoded = jsonDecode(res.body);
   if (decoded["success"] != true) {
+    throw Exception(decoded["message"] ?? "API failed");
+  }
+
+  return List<Map<String, dynamic>>.from(decoded["data"] ?? []);
+}
+
+/// Calls approve endpoint. PHP expects `hod_comment` (manager/HOD note on forward step).
+/// Response [data] may include `trip_code` only after final approval (e.g. GM step for personal).
+static Future<Map<String, dynamic>> approveVehicleRequest({
+  required int requestId,
+  String? hodComment,
+}) async {
+  final url = Uri.parse("$baseUrl/approve_vehicle_request.php");
+  final note = (hodComment ?? "").trim();
+  final body = <String, dynamic>{
+    "request_id": requestId,
+    "hod_comment": note,
+  };
+  final res = await http.post(
+    url,
+    headers: {"Content-Type": "application/json", "Accept": "application/json"},
+    body: jsonEncode(body),
+  );
+
+  final decoded = jsonDecode(res.body) as Map<String, dynamic>;
+  if (decoded["success"] != true) {
     throw Exception(decoded["message"] ?? "Approve failed");
   }
+  return decoded;
+}
+
+/// Trip code from API [data], if server generated one (not sent on HOD forward-only step).
+static String? tripCodeFromApproveResponse(Map<String, dynamic> decoded) {
+  final data = decoded["data"];
+  if (data is! Map) return null;
+  final t = data["trip_code"];
+  if (t == null) return null;
+  final s = t.toString().trim();
+  return s.isEmpty ? null : s;
 }
 
 static Future<void> rejectVehicleRequest({
