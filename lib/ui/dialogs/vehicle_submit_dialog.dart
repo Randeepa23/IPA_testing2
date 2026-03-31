@@ -67,7 +67,7 @@ Future<void> showVehicleSubmitDialog({
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFE8EDF5)),
+                          border: Border.all(color: const Color(0xFFC4C4C4)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
