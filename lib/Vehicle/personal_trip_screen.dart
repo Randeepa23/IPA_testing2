@@ -807,18 +807,19 @@ class TripCard extends StatelessWidget {
       ),
     );
   }
-
-  Widget _infoRow(String label, String value, {bool highlight = false}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      decoration: BoxDecoration(
-        color: highlight ? const Color(0xFFD8E7F4) : Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFD7E3F3)),
-      ),
+Widget _infoRow(String label, String value, {bool highlight = false}) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+    decoration: BoxDecoration(
+      color: highlight ? const Color(0xFFD8E7F4) : Colors.white,
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: const Color(0xFFD7E3F3)),
+    ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
+            flex: 2,
             child: Text(
               label,
               style: const TextStyle(
@@ -828,12 +829,18 @@ class TripCard extends StatelessWidget {
               ),
             ),
           ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 11.8,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF0F172A),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              softWrap: true,
+              style: const TextStyle(
+                fontSize: 11.8,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF0F172A),
+              ),
             ),
           ),
         ],

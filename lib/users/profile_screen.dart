@@ -324,7 +324,9 @@ Widget _profileCard(Color blue, Map<String, dynamic> user) {
               const SizedBox(height: 4),
 
               Text(
-                "${department.isEmpty ? "No Department" : department} ",
+                department.isEmpty
+                    ? "No Department"
+                    : "$department Department",
                 style: const TextStyle(
                   fontSize: 13,
                   color: Colors.white70,
