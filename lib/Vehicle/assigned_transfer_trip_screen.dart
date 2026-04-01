@@ -930,18 +930,19 @@ class TripCard extends StatelessWidget {
   }
 
   // Same row UI
-  Widget _infoRow(String label, String value, {bool highlight = false}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      decoration: BoxDecoration(
-        color: highlight ? const Color(0xFFD8E7F4) : Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFD7E3F3)),
-      ),
+Widget _infoRow(String label, String value, {bool highlight = false}) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+    decoration: BoxDecoration(
+      color: highlight ? const Color(0xFFD8E7F4) : Colors.white,
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: const Color(0xFFD7E3F3)),
+    ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            flex: 4,
+            flex: 2,
             child: Text(
               label,
               style: const TextStyle(
@@ -951,20 +952,17 @@ class TripCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
-            flex: 6,
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                value,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 11.8,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF0F172A),
-                ),
+            flex: 3,
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              softWrap: true,
+              style: const TextStyle(
+                fontSize: 11.8,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF0F172A),
               ),
             ),
           ),
