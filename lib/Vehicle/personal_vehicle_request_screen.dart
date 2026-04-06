@@ -104,6 +104,7 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
 
   int _previousRequestCount = 0;
   bool _loadingRequestCount = true;
+  static const int _maxFocDaysPerRequest = 2;
 
   int? vehicleId;
 
@@ -213,6 +214,20 @@ Future<void> _loadManagers() async {
 Future<void> _submitForm() async {
   if (!_formKey.currentState!.validate()) return;
   if (fromDate == null || toDate == null) return;
+
+  final attempt = _previousRequestCount + 1;
+  final isFreeAttempt = attempt <= 2;
+  final requestedDays = toDate!.difference(fromDate!).inDays + 1;
+  if (isFreeAttempt && requestedDays > _maxFocDaysPerRequest) {
+     TopBanner.show(
+            context,
+            title: "Request Failed",
+            message: "Free requests are limited to maximum 2 days per request.",
+            icon: Icons.error,
+            isSuccess: false,
+        );
+    return;
+  }
 
   if (_isCheckingVehicle) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -655,25 +670,51 @@ void _showVehicleSubmitConfirmation() {
 
               const SizedBox(height: 10),
                 if (fromDate != null && toDate != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEAF1FF),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Total Days',
-                          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF1E2A3A)),
-                        ),
-                        Text(
-                          '${toDate!.difference(fromDate!).inDays + 1} days',
-                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900, color: Color(0xFF1E2A3A)),
-                        ),
-                      ],
-                    ),
+                  Builder(
+                    builder: (_) {
+                      final attempt = _previousRequestCount + 1;
+                      final isFreeAttempt = attempt <= 2;
+                      final requestedDays = toDate!.difference(fromDate!).inDays + 1;
+                      final isOverFreeLimit =
+                          isFreeAttempt && requestedDays > _maxFocDaysPerRequest;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEAF1FF),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Total Days',
+                                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF1E2A3A)),
+                                ),
+                                Text(
+                                  '$requestedDays days',
+                                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900, color: Color(0xFF1E2A3A)),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (isOverFreeLimit)
+                            const Padding(
+                              padding: EdgeInsets.only(top: 8, left: 2),
+                              child: Text(
+                                'Free requests are limited to maximum 2 days per request.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFFD32F2F),
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
                   ),
 
               const SizedBox(height: 16),

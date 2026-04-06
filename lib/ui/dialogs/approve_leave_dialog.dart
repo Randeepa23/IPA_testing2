@@ -100,7 +100,7 @@ Future<void> showApproveDialog({
                                 foregroundColor: const Color(0xFF0060A6),
 
                                 side: const BorderSide(
-                                  color: Color.fromARGB(255, 196, 196, 196),
+                                  color: Color(0xFFC4C4C4),
                                   width: 1.2,
                                 ),
 
