@@ -193,6 +193,7 @@ class _PersonalVehiclePolicyDialogState
                                   style: TextStyle(
                                     fontSize: 13.5,
                                     fontWeight: FontWeight.w800,
+                                    color: Colors.white,
                                   ),
                                 ),
                               ),
