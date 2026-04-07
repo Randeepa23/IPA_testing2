@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../ui/dialogs/vehicle_submit_dialog.dart';
+import '../ui/dialogs/personal_vehicle_policy_dialog.dart';
 import '../Services/vehicle_api_service.dart';
 import '../Leaves/top_banner.dart';
 import 'dart:convert';
@@ -71,6 +72,8 @@ Future<List<PlaceSuggestion>> fetchPlaceSuggestions(String input) async {
 
 class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScreen> {
   final _formKey = GlobalKey<FormState>();
+  bool _policyDialogVisible = false;
+  bool _policyAccepted = false;
 
   // Read-only user details
   final nameController = TextEditingController();
@@ -105,6 +108,7 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
   int _previousRequestCount = 0;
   bool _loadingRequestCount = true;
   static const int _maxFocDaysPerRequest = 2;
+  static const int _maxHalfOffDaysPerRequest = 3;
 
   int? vehicleId;
 
@@ -121,6 +125,33 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
     employeeController.text = widget.user['employeeCode'] ?? '';
     departmentController.text = widget.user['department'] ?? '';
     contactController.text = widget.user['phone'] ?? '';
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => _enforcePolicyAcceptance());
+  }
+
+  Future<void> _enforcePolicyAcceptance() async {
+    if (!mounted || _policyAccepted || _policyDialogVisible) {
+      return;
+    }
+    _policyDialogVisible = true;
+
+    final agreed = await showPersonalVehiclePolicyDialog(context: context);
+    _policyDialogVisible = false;
+    if (!mounted) return;
+
+    if (agreed) {
+      setState(() => _policyAccepted = true);
+      return;
+    }
+
+    TopBanner.show(
+      context,
+      title: "Policy Required",
+      message: "You must agree to the vehicle policy to continue.",
+      icon: Icons.error_outline,
+      isSuccess: false,
+    );
+    Navigator.of(context).pop();
   }
 
   Future<void> _loadRequestCount() async {
@@ -217,12 +248,23 @@ Future<void> _submitForm() async {
 
   final attempt = _previousRequestCount + 1;
   final isFreeAttempt = attempt <= 2;
+  final isHalfOffAttempt = attempt >= 3 && attempt <= 5;
   final requestedDays = toDate!.difference(fromDate!).inDays + 1;
   if (isFreeAttempt && requestedDays > _maxFocDaysPerRequest) {
      TopBanner.show(
             context,
             title: "Request Failed",
             message: "Free requests are limited to maximum 2 days per request.",
+            icon: Icons.error,
+            isSuccess: false,
+        );
+    return;
+  }
+  if (isHalfOffAttempt && requestedDays > _maxHalfOffDaysPerRequest) {
+     TopBanner.show(
+            context,
+            title: "Request Failed",
+            message: "50% off requests are limited to maximum 3 days per request.",
             icon: Icons.error,
             isSuccess: false,
         );
@@ -674,9 +716,12 @@ void _showVehicleSubmitConfirmation() {
                     builder: (_) {
                       final attempt = _previousRequestCount + 1;
                       final isFreeAttempt = attempt <= 2;
+                      final isHalfOffAttempt = attempt >= 3 && attempt <= 5;
                       final requestedDays = toDate!.difference(fromDate!).inDays + 1;
                       final isOverFreeLimit =
                           isFreeAttempt && requestedDays > _maxFocDaysPerRequest;
+                      final isOverHalfOffLimit =
+                          isHalfOffAttempt && requestedDays > _maxHalfOffDaysPerRequest;
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -705,6 +750,18 @@ void _showVehicleSubmitConfirmation() {
                               padding: EdgeInsets.only(top: 8, left: 2),
                               child: Text(
                                 'Free requests are limited to maximum 2 days per request.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFFD32F2F),
+                                ),
+                              ),
+                            ),
+                          if (isOverHalfOffLimit)
+                            const Padding(
+                              padding: EdgeInsets.only(top: 8, left: 2),
+                              child: Text(
+                                '50% off requests are limited to maximum 3 days per request.',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
@@ -861,12 +918,9 @@ void _showVehicleSubmitConfirmation() {
     if (attempt <= 2) {
       discount = "FREE";
       discountColor = const Color(0xFF2E7D32);
-    } else if (attempt <= 4) {
+    } else if (attempt <= 5) {
       discount = "50% OFF";
       discountColor = const Color(0xFF1565C0);
-    } else if (attempt == 5) {
-      discount = "25% OFF";
-      discountColor = const Color(0xFFE65100);
     } else {
       discount = "0%";
       discountColor = const Color(0xFFB71C1C);
@@ -877,7 +931,7 @@ void _showVehicleSubmitConfirmation() {
       ["2",  "2nd",  "100%"],
       ["3",  "3rd",  "50%"],
       ["4",  "4th",  "50%"],
-      ["5",  "5th",  "25%"],
+      ["5",  "5th",  "50%"],
       ["6+", "6th+", "0%"],
     ];
 
