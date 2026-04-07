@@ -204,7 +204,7 @@ Future<Map<String, dynamic>?> _getPhotoFuture(int employeeId) {
     final to = getStr(["to", "leave_end_date"]);
     final days = getStr(["days", "number_of_days"], fallback: "0");
     final applyOn = getStr(["applyOn", "requested_at"], fallback: "-");
-    final status = getStr(["status"], fallback: "Awaiting Your Response");
+    final status = getStr(["status"], fallback: "Awaiting");
 
     print("RELIEVER ITEM keys: employee_id=${r["employee_id"]}, employee_code=${r["employee_code"]}, empNo=${r["empNo"]}, employeeId=${r["employeeId"]}");
 

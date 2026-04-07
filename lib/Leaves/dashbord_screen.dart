@@ -25,7 +25,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 // Helper getter to check if user is HOD (for showing manager approvals)
 bool get isManagers {
   final id = widget.user["jobTitleId"]?.toString() ?? "";
-  return ["11", "14", "15", "16", "17", "18", "19", "20"].contains(id);
+  return ["3", "14", "15", "16", "17", "18", "19", "20"].contains(id);
 }
 
 /// General Manager — personal vehicle queue uses [get_general_manager_personal_vehicle_request.php].
@@ -875,8 +875,8 @@ Future<void> _loadApprovedPersonalTripCount() async {
       );
       actions.add(
         _QuickAction(
-          icon: Icons.car_crash,
-          label: 'Vehicle Request',
+          icon: Icons.assignment_turned_in,
+          label: 'Vehicle Approval Queue',
           badgeCount: personalVehicleBadgeCount,
           onTap: () async {
 
