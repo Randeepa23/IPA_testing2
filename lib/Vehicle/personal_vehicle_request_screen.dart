@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../ui/dialogs/vehicle_submit_dialog.dart';
+import '../ui/dialogs/personal_vehicle_policy_dialog.dart';
 import '../Services/vehicle_api_service.dart';
 import '../Leaves/top_banner.dart';
 import 'dart:convert';
@@ -71,6 +72,8 @@ Future<List<PlaceSuggestion>> fetchPlaceSuggestions(String input) async {
 
 class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScreen> {
   final _formKey = GlobalKey<FormState>();
+  bool _policyDialogVisible = false;
+  bool _policyAccepted = false;
 
   // Read-only user details
   final nameController = TextEditingController();
@@ -122,6 +125,33 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
     employeeController.text = widget.user['employeeCode'] ?? '';
     departmentController.text = widget.user['department'] ?? '';
     contactController.text = widget.user['phone'] ?? '';
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => _enforcePolicyAcceptance());
+  }
+
+  Future<void> _enforcePolicyAcceptance() async {
+    if (!mounted || _policyAccepted || _policyDialogVisible) {
+      return;
+    }
+    _policyDialogVisible = true;
+
+    final agreed = await showPersonalVehiclePolicyDialog(context: context);
+    _policyDialogVisible = false;
+    if (!mounted) return;
+
+    if (agreed) {
+      setState(() => _policyAccepted = true);
+      return;
+    }
+
+    TopBanner.show(
+      context,
+      title: "Policy Required",
+      message: "You must agree to the vehicle policy to continue.",
+      icon: Icons.error_outline,
+      isSuccess: false,
+    );
+    Navigator.of(context).pop();
   }
 
   Future<void> _loadRequestCount() async {
