@@ -875,8 +875,8 @@ Future<void> _loadApprovedPersonalTripCount() async {
       );
       actions.add(
         _QuickAction(
-          icon: Icons.car_crash,
-          label: 'Vehicle Request',
+          icon: Icons.assignment_turned_in,
+          label: 'Vehicle Approval Queue',
           badgeCount: personalVehicleBadgeCount,
           onTap: () async {
 

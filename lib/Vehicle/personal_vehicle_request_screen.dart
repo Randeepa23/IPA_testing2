@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import '../Leaves/dashbord_screen.dart';
 import '../ui/dialogs/vehicle_submit_dialog.dart';
 import '../ui/dialogs/personal_vehicle_policy_dialog.dart';
 import '../Services/vehicle_api_service.dart';
@@ -151,7 +152,10 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
       icon: Icons.error_outline,
       isSuccess: false,
     );
-    Navigator.of(context).pop();
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => DashboardScreen(user: widget.user)),
+      (route) => false,
+    );
   }
 
   Future<void> _loadRequestCount() async {
