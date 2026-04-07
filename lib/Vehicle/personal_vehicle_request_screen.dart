@@ -931,12 +931,12 @@ void _showVehicleSubmitConfirmation() {
     }
 
     final tableRows = [
-      ["1",  "1st",  "100%"],
-      ["2",  "2nd",  "100%"],
-      ["3",  "3rd",  "50%"],
-      ["4",  "4th",  "50%"],
-      ["5",  "5th",  "50%"],
-      ["6+", "6th+", "0%"],
+      ["1",  "1st",  "100%", "2", "Mini/Sedan"],
+      ["2",  "2nd",  "100%", "2", "Mini/Sedan"],
+      ["3",  "3rd",  "50%",  "3", "Mini/Sedan/Compact SUV"],
+      ["4",  "4th",  "50%",  "3", "Mini/Sedan/Compact SUV"],
+      ["5",  "5th",  "50%",  "3", "Mini/Sedan/Compact SUV"],
+      ["6+", "6th+", "0%",   "-", "Not under policy"],
     ];
 
     String currentKey = attempt >= 6 ? "6+" : attempt.toString();
@@ -1039,18 +1039,20 @@ void _showVehicleSubmitConfirmation() {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     columnWidths: const {
-                      0: FlexColumnWidth(1.3),
-                      1: FlexColumnWidth(1.2),
+                      0: FlexColumnWidth(1.1),
+                      1: FlexColumnWidth(1),
                       2: FlexColumnWidth(1),
+                      3: FlexColumnWidth(1.6),
                     },
                     children: [
                       // Header row
                       TableRow(
                         decoration: const BoxDecoration(color: Color(0xFFD6E4FF)),
                         children: [
-                          //_tableCell("Attempt No.", isHeader: true),
-                          _tableCell("Attempt",        isHeader: true),
-                          _tableCell("Discount",       isHeader: true),
+                          _tableCell("Attempt", isHeader: true),
+                          _tableCell("Discount", isHeader: true),
+                          _tableCell("Max Days", isHeader: true),
+                          _tableCell("Category", isHeader: true),
                         ],
                       ),
                       // Data rows
@@ -1063,9 +1065,10 @@ void _showVehicleSubmitConfirmation() {
                                 : Colors.white,
                           ),
                           children: [
-                            //_tableCell(r[0], isCurrent: isCurrent),
                             _tableCell(r[1], isCurrent: isCurrent),
                             _tableCell(r[2], isCurrent: isCurrent, isDiscount: true),
+                            _tableCell(r[3], isCurrent: isCurrent),
+                            _tableCell(r[4], isCurrent: isCurrent),
                           ],
                         );
                       }),
