@@ -69,37 +69,21 @@ class _PrivacyNoticeDialog extends StatelessWidget {
                       child: const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _PrivacyPoint(
-                            "No data is stored locally on the device.",
-                          ),
+                          _NoticePoint("The mobile application does not store any data locally on the device."),
                           SizedBox(height: 8),
-                          _PrivacyPoint(
-                            "All app data is securely stored in the company ERP system.",
-                          ),
+                          _NoticePoint("All data entered through the app is securely stored in the company ERP system."),
                           SizedBox(height: 8),
-                          _PrivacyPoint(
-                            "No data is shared with third parties.",
-                          ),
+                          _NoticePoint("No data is shared with any third parties."),
                           SizedBox(height: 8),
-                          _PrivacyPoint(
-                            "No user activity, device, or location tracking is performed.",
-                          ),
+                          _NoticePoint("No device or location tracking is performed."),
                           SizedBox(height: 8),
-                          _PrivacyPoint(
-                            "No background monitoring is enabled.",
-                          ),
+                          _NoticePoint("No background monitoring is enabled."),
                           SizedBox(height: 8),
-                          _PrivacyPoint(
-                            "App usage is for internal operational purposes only.",
-                          ),
+                          _NoticePoint("The app is used only for internal operational purposes."),
                           SizedBox(height: 8),
-                          _PrivacyPoint(
-                            "Access is restricted to authorized staff only.",
-                          ),
+                          _NoticePoint("Access is restricted to authorized staff only."),
                           SizedBox(height: 8),
-                          _PrivacyPoint(
-                            "Keep your login credentials confidential.",
-                          ),
+                          _NoticePoint("Users are responsible for maintaining the confidentiality of login credentials."),
                         ],
                       ),
                     ),
@@ -148,9 +132,9 @@ class _PrivacyNoticeDialog extends StatelessWidget {
   }
 }
 
-class _PrivacyPoint extends StatelessWidget {
+class _NoticePoint extends StatelessWidget {
   final String text;
-  const _PrivacyPoint(this.text);
+  const _NoticePoint(this.text);
 
   @override
   Widget build(BuildContext context) {
@@ -158,20 +142,16 @@ class _PrivacyPoint extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Padding(
-          padding: EdgeInsets.only(top: 1),
-          child: Icon(
-            Icons.check_circle,
-            size: 15,
-            color: Color(0xFF5F6F86),
-          ),
+          padding: EdgeInsets.only(top: 2),
+          child: Icon(Icons.fiber_manual_record, size: 8, color: Color(0xFF1E2A3A)),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 4),
         Expanded(
           child: Text(
             text,
             style: const TextStyle(
-              fontSize: 12.6,
-              height: 1.35,
+              fontSize: 12.5,
+              height: 1.45,
               color: Color(0xFF1E2A3A),
               fontWeight: FontWeight.w600,
             ),
