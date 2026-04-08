@@ -38,16 +38,12 @@ class _PrivacyNoticeDialog extends StatelessWidget {
                   children: [
                     const Row(
                       children: [
-                        Icon(Icons.verified_user_outlined, color: Color(0xFFC62828)),
+                        Icon(Icons.verified_user_outlined, color: Color(0xFF0060A6)),
                         SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            "PRIVACY NOTICE",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFFC62828),
-                            ),
+                            "Privacy Notice",
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                           ),
                         ),
                       ],
@@ -57,7 +53,7 @@ class _PrivacyNoticeDialog extends StatelessWidget {
                       "This app is developed for internal staff use within Explore Holdings.",
                       style: TextStyle(
                         fontSize: 12.5,
-                        color: Color(0xFF5F6F86),
+                        color: Color(0xFFC62828),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
