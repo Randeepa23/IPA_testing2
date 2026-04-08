@@ -5,6 +5,7 @@ import 'login_screen.dart';
 import 'Leaves/top_banner.dart';
 import 'vehicle_home_screen.dart';
 import 'ui/dialogs/logout_dialog.dart';
+import 'ui/dialogs/privacy_notice_dialog.dart';
 import '../QRCode/Vehicle_qr_screen.dart';
 import '../users/biometric_enabled_screen.dart';
 class HomeScreen extends StatefulWidget {
@@ -27,6 +28,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   static const blue = Color(0xFF0060A6);
+  bool _privacyNoticeShown = false;
   /// Same pixel size for every service icon (inside a fixed box).
   static const double _kServiceImageSize = 75;
   static const double _kServiceLabelFontSize = 13.5;
@@ -45,7 +47,19 @@ class _HomeScreenState extends State<HomeScreen> {
           rightButtonText: "OK",
         );
       }
+      _showPrivacyNoticeAfterLogin();
     });
+  }
+
+  //Show privacy notice dialog after login
+  Future<void> _showPrivacyNoticeAfterLogin() async {
+    if (!mounted || _privacyNoticeShown) return;
+    _privacyNoticeShown = true;
+
+    // Small delay avoids clashing with welcome banner animation.
+    await Future.delayed(const Duration(milliseconds: 350));
+    if (!mounted) return;
+    await showPrivacyNoticeDialog(context);
   }
 
   String get _greeting {
