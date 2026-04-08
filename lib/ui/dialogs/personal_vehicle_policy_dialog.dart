@@ -107,15 +107,7 @@ class _PersonalVehiclePolicyDialogState
                           child: SingleChildScrollView(
                             controller: _scrollController,
                             padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                            child: const Text(
-                              _policyText,
-                              style: TextStyle(
-                                fontSize: 12.6,
-                                height: 1.52,
-                                color: Color(0xFF1E2A3A),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
+                            child: _buildPolicyContent(),
                           ),
                         ),
                       ),
@@ -215,6 +207,72 @@ class _PersonalVehiclePolicyDialogState
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPolicyContent() {
+    final lines = _policyText.split('\n');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: lines.map((raw) {
+        final line = raw.trimRight();
+        if (line.trim().isEmpty) {
+          return const SizedBox(height: 8);
+        }
+
+        final trimmed = line.trimLeft();
+        if (trimmed.startsWith('- ')) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 7),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(top: 4),
+                  child: Icon(
+                    Icons.fiber_manual_record,
+                    size: 8,
+                    color: Color(0xFF1E2A3A),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    trimmed.substring(2),
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      height: 1.45,
+                      color: Color(0xFF1E2A3A),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final isMainHeading = RegExp(r'^\d+\.\s').hasMatch(trimmed);
+        final isTitle =
+            trimmed == "PERSONAL USAGE OF COMPANY VEHICLES POLICY" ||
+            trimmed.startsWith("Company:") ||
+            trimmed.startsWith("Effective Date:");
+
+        return Padding(
+          padding: EdgeInsets.only(bottom: isMainHeading ? 7 : 5),
+          child: Text(
+            trimmed,
+            style: TextStyle(
+              fontSize: isTitle ? 12.8 : 12.6,
+              height: 1.4,
+              color: const Color(0xFF1E2A3A),
+              fontWeight: (isMainHeading || isTitle)
+                  ? FontWeight.w800
+                  : FontWeight.w600,
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }
