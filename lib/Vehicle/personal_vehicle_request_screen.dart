@@ -117,6 +117,13 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
   // Photo cache for manager avatars
   final Map<int, Future<Map<String, dynamic>?>> _photoFutureCache = {};
 
+
+//check if the vehicle type is a car type
+  bool _isCarTypeForFreeAttempt(String? typeName) {
+    final t = (typeName ?? "").trim().toLowerCase();
+    return t.contains("car");
+  }
+
   @override
   void initState() {
     super.initState();
@@ -275,6 +282,16 @@ Future<void> _submitForm() async {
         );
     return;
   }
+  if (isFreeAttempt && !_isCarTypeForFreeAttempt(vehicleTypeName)) {
+     TopBanner.show(
+            context,
+            title: "Request Failed",
+            message: "For the 1st and 2nd free attempts, only Car type vehicles are allowed.",
+            icon: Icons.error,
+            isSuccess: false,
+        );
+    return;
+  }
 
   if (_isCheckingVehicle) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -383,6 +400,7 @@ void _showVehicleSubmitConfirmation() {
     destinationTxt: destinationTxt,
     isSubmitting: _isSubmitting,
     onConfirm: _submitForm,
+    showDestination: false,
   );
 }
 
@@ -470,6 +488,19 @@ void _showVehicleSubmitConfirmation() {
 
           final resolvedId = rawId != null ? int.tryParse(rawId.toString()) : null;
           debugPrint("[CheckVehicle] OK — vehicleId=$resolvedId  typeName=$typeName");
+
+          final attempt = _previousRequestCount + 1;
+          final isFreeAttempt = attempt <= 2;
+          if (isFreeAttempt && !_isCarTypeForFreeAttempt(typeName)) {
+            setState(() {
+              vehicleTypeName = typeName;
+              vehicleError =
+                  "For the 1st and 2nd free attempts, only Car type vehicles are allowed.";
+              vehicleId = null;
+              _isCheckingVehicle = false;
+            });
+            return;
+          }
 
           setState(() {
             vehicleTypeName = typeName;
