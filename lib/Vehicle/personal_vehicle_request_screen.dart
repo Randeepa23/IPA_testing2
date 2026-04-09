@@ -5,6 +5,7 @@ import '../Leaves/dashbord_screen.dart';
 import '../ui/dialogs/vehicle_submit_dialog.dart';
 import '../ui/dialogs/personal_vehicle_policy_dialog.dart';
 import '../Services/vehicle_api_service.dart';
+import '../Services/transport_service_config.dart';
 import '../Leaves/top_banner.dart';
 import 'dart:convert';
 import '../Services/api_service.dart';
@@ -417,8 +418,7 @@ void _showVehicleSubmitConfirmation() {
           final end = "${toDate!.toString().split(' ')[0]} 23:59:59";
 
           final response = await http.post(
-            Uri.parse(
-                "https://exploredrive.lk/api/transport-services/validate-vehicle"),
+            Uri.parse(TransportServiceConfig.validateVehicleUrl),
             headers: {"Content-Type": "application/json"},
             body: jsonEncode({
               "vehicle_no": vehicleNo,

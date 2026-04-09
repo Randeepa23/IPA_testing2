@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import '../../Services/transport_service_config.dart';
 
 class UpperCaseTextFormatter extends TextInputFormatter {
   @override
@@ -78,8 +79,7 @@ Future<void> showAssignVehicleDialog({
               try {
                 final vNo = "$prefix-$number";
                 final response = await http.post(
-                  Uri.parse(
-                      "https://exploredrive.lk/api/transport-services/validate-vehicle"),
+                  Uri.parse(TransportServiceConfig.validateVehicleUrl),
                   headers: {"Content-Type": "application/json"},
                   body: jsonEncode({
                     "vehicle_no": vNo,
