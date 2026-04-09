@@ -59,7 +59,8 @@ class _VehicleQrScreenState extends State<VehicleQrScreen> {
       vehicleData = null;
     });
 
-    final result = await VehicleQrService.getVehicleDetailsWithLog(
+    final result = await VehicleQrService.getVehicleDetails(
+      fullVehicleNo,
       employeeId: employeeId,
       preferredName: preferredName,
       vehicleNumber: fullVehicleNo,
