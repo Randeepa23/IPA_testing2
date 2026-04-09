@@ -53,7 +53,7 @@ class _PrivacyNoticeDialog extends StatelessWidget {
                       "This app is developed for internal staff use within Explore Holdings.",
                       style: TextStyle(
                         fontSize: 12.5,
-                        color: Color(0xFFC62828),
+                        color: Color(0xFF5F6F86),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
