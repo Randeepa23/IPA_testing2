@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 
 Future<void> showVehicleSubmitDialog({
   required BuildContext context,
-  required String vehicleNoTxt,   
-  required String fromTxt,         
-  required String toTxt,          
-  required String destinationTxt,   
+  required String vehicleNoTxt,
+  required String fromTxt,
+  required String toTxt,
+  required String destinationTxt,
   required bool isSubmitting,
   required VoidCallback onConfirm,
+  /// When false, the destination row is hidden (e.g. personal vehicle request).
+  bool showDestination = true,
 }) {
   return showDialog(
     context: context,
@@ -72,11 +74,13 @@ Future<void> showVehicleSubmitDialog({
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                           _row(context, "Destination", destinationTxt),
-                          const SizedBox(height: 6),
-                          _row(context, "Vehicle No", vehicleNoTxt),
-                          const SizedBox(height: 6),
-                          _row(context, "Date", "$fromTxt  To  $toTxt"),
+                            if (showDestination) ...[
+                              _row(context, "Destination", destinationTxt),
+                              const SizedBox(height: 6),
+                            ],
+                            _row(context, "Vehicle No", vehicleNoTxt),
+                            const SizedBox(height: 6),
+                            _row(context, "Date", "$fromTxt  To  $toTxt"),
                           ],
                         ),
                       ),
