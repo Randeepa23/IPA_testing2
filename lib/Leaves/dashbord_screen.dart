@@ -25,7 +25,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 // Helper getter to check if user is HOD (for showing manager approvals)
 bool get isManagers {
   final id = widget.user["jobTitleId"]?.toString() ?? "";
-  return ["11", "14", "15", "16", "17", "18", "19", "20"].contains(id);
+  return ["11", "14", "15", "16", "17", "18", "19", "20", "48"].contains(id);
 }
 
 /// General Manager — personal vehicle queue uses [get_general_manager_personal_vehicle_request.php].

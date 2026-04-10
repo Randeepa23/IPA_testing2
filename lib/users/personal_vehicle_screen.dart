@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../Vehicle/personal_vehicle_request_screen.dart';
 import '../Services/vehicle_api_service.dart';
 import '../Vehicle/personal_trip_screen.dart';
@@ -37,7 +38,30 @@ Future<void> _loadTabBadges() async {
       employeeId: employeeId,
       status: "APPROVED",
     );
-    final myPending = approvedList.length;
+    final rejectedList = await VehicleApiService.fetchPersonalTrips(
+      employeeId: employeeId,
+      status: "REJECTED",
+    );
+
+    // Show rejected notifications only once per rejected trip id.
+    int maxRejectedId = 0;
+    for (final e in rejectedList) {
+      final id = int.tryParse((e["id"] ?? "").toString()) ?? 0;
+      if (id > maxRejectedId) maxRejectedId = id;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final seenKey = "personal_vehicle_rejected_seen_max_id_$employeeId";
+    final seenMaxRejectedId = prefs.getInt(seenKey) ?? 0;
+    final hasNewRejected = maxRejectedId > seenMaxRejectedId;
+    final rejectedNotifyCount = hasNewRejected ? rejectedList.length : 0;
+
+    // Mark all current rejected as seen after first display.
+    if (hasNewRejected) {
+      await prefs.setInt(seenKey, maxRejectedId);
+    }
+
+    final myStatusCount = approvedList.length + rejectedNotifyCount;
 
     // 2) Manager approvals pending
     int mgrPending = 0;
@@ -52,7 +76,7 @@ Future<void> _loadTabBadges() async {
 
     if (!mounted) return;
     setState(() {
-      myTripsPendingCount = myPending;
+      myTripsPendingCount = myStatusCount;
       managerPendingCount = mgrPending;
       hideMyTripsBadge = false;
       hideManagerBadge = false;
