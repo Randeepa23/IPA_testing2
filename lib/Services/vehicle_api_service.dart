@@ -58,6 +58,38 @@ class VehicleApiService {
       return Map<String, dynamic>.from(json);
     }
 
+  static int? transportServiceIdFromRequest(Map<String, dynamic> r) {
+    for (final key in [
+      "transport_service_id",
+      "transportServiceId",
+      "trip_id",
+      "tripId",
+      "request_id",
+      "id",
+    ]) {
+      final v = r[key];
+      final n = int.tryParse((v ?? "").toString());
+      if (n != null && n > 0) return n;
+    }
+    return null;
+  }
+
+  static Future<String?> fetchVehicleMakeModelForRequest(
+    Map<String, dynamic> request,
+  ) async {
+    final tsId = transportServiceIdFromRequest(request);
+    if (tsId == null) return null;
+    try {
+      final d = await fetchVehicleDetails(transportServiceId: tsId.toString());
+      final make = (d["make"] ?? "").toString().trim();
+      final model = (d["model"] ?? "").toString().trim();
+      final name = "$make $model".trim();
+      return name.isEmpty ? null : name;
+    } catch (_) {
+      return null;
+    }
+  }
+
     // For real device testing, use your PC's local network IP address
     // static const String baseUrl = "http://
   static Future<List<Map<String, dynamic>>> fetchShuttleTrips({
