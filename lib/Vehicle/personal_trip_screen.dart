@@ -16,7 +16,7 @@ class PersonalTripScreen extends StatefulWidget {
 }
 
 class _PersonalTripScreenState extends State<PersonalTripScreen> {
-  int selectedTab = 0; // 0 Pending, 1 Approved, 2 In Progress, 3 Completed
+  int selectedTab = 0; // 0 Pending, 1 Approved, 2 In Progress, 3 Completed, 4 Rejected
   bool loading = false;
   String? errorText;
 
@@ -38,6 +38,8 @@ class _PersonalTripScreenState extends State<PersonalTripScreen> {
         return "IN_PROGRESS";
       case 3:
         return "COMPLETED";
+      case 4:
+        return "REJECTED";
       default:
         return "PENDING";
     }
@@ -68,11 +70,18 @@ Future<void> _loadTripsByTab() async {
           employeeId: employeeId,
           status: "HOD_APPROVED",
         );
+        final hodRejected = await VehicleApiService.fetchPersonalTrips(
+          employeeId: employeeId,
+          status: "HOD_REJECTED",
+        );
         final byId = <String, Map<String, dynamic>>{};
         for (final r in pending) {
           byId[r["id"]?.toString() ?? ""] = r;
         }
         for (final r in hodApproved) {
+          byId[r["id"]?.toString() ?? ""] = r;
+        }
+        for (final r in hodRejected) {
           byId[r["id"]?.toString() ?? ""] = r;
         }
         byId.removeWhere((k, _) => k.isEmpty);
@@ -141,6 +150,7 @@ Future<void> _loadTripsByTab() async {
           "destination": (e["dropoff_location"] ?? e["destination"] ?? "-").toString(),
 
           "hodComment": (e["hod_comment"] ?? e["hodComment"] ?? "").toString().trim(),
+          "rejectReason": (e["reject_reason"] ?? e["rejectReason"] ?? "").toString().trim(),
 
           "passengers": "${e["passenger_count"] ?? "-"} pax",
           "time": startTime,
@@ -378,7 +388,8 @@ Future<bool?> _confirmCancelTrip() async {
               padding: const EdgeInsets.only(bottom: 14),
               child: TripCard(
                 data: t,
-                onCancel: (t["status"]?.toString() == "PENDING")
+                onCancel: ((t["status"]?.toString() == "PENDING") ||
+                        (t["status"]?.toString() == "HOD_REJECTED"))
                     ? () async {
                         final ok = await _confirmCancelTrip();
                         if (ok == true) _cancelTrip(t);
@@ -420,6 +431,8 @@ class _SegmentTabs extends StatelessWidget {
           _pill("In Progress" , 2),
           const SizedBox(width: 6),
           _pill("Completed" , 3),
+          const SizedBox(width: 6),
+          _pill("Rejected" , 4),
         ],
       ),
     );
@@ -524,11 +537,14 @@ class TripCard extends StatelessWidget {
 
     final isPending = status == "PENDING";
     final isHodApproved = status == "HOD_APPROVED";
+    final isHodRejected = status == "HOD_REJECTED";
     final isApproved = status == "APPROVED";
     final isInProgress = status == "IN_PROGRESS";
     final isCompleted = status == "COMPLETED";
+    final isRejected = status == "REJECTED";
 
     final hodNote = (data["hodComment"] ?? "").toString().trim();
+    final rejectReason = (data["rejectReason"] ?? "").toString().trim();
 
     return Container(
       decoration: BoxDecoration(
@@ -584,7 +600,7 @@ class TripCard extends StatelessWidget {
             child: Column(
               children: [
                 // PENDING + HOD_APPROVED: same detail block (HOD adds comment + GM notice)
-                if (isPending || isHodApproved) ...[
+                if (isPending || isHodApproved || isHodRejected) ...[
                 
                   _infoRow("Reason", _reasonLabel),
                   const SizedBox(height: 8),
@@ -592,11 +608,18 @@ class TripCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   _infoRow("To Date", (data["toDate"] ?? "").toString()),
                   const SizedBox(height: 8),
-                   if (isHodApproved) ...[
-                    _hodCommentBox(hodNote),
+                  if (isHodApproved) ...[
+                    _commentBox("HOD Comment", hodNote),
                     const SizedBox(height: 10),
                   ],
-                  if (isPending  && onCancel != null) ...[
+                  if (isHodRejected) ...[
+                    _commentBox(
+                      "HOD Comment",
+                      hodNote.isNotEmpty ? hodNote : rejectReason,
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                  if ((isPending || isHodRejected) && onCancel != null) ...[
                     const SizedBox(height: 12),
                     _gradientButton(
                       text: "Cancel Request",
@@ -696,6 +719,20 @@ class TripCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   _infoRow("GPS Calculated Distance", "${data["gpsDistance"] ?? "-"} km"),
                 ],
+
+                // REJECTED (by manager/GM): show reject reason
+                if (isRejected) ...[
+                  _infoRow("Reason", _reasonLabel),
+                  const SizedBox(height: 8),
+                  _infoRow("From Date", (data["fromDate"] ?? "").toString()),
+                  const SizedBox(height: 8),
+                  _infoRow("To Date", (data["toDate"] ?? "").toString()),
+                  const SizedBox(height: 8),
+                  _commentBox(
+                    "Manager Comment",
+                    rejectReason.isNotEmpty ? rejectReason : hodNote,
+                  ),
+                ],
               ],
             ),
           ),
@@ -704,7 +741,7 @@ class TripCard extends StatelessWidget {
     );
   }
 
-  Widget _hodCommentBox(String note) {
+  Widget _commentBox(String title, String note) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(10),
@@ -716,9 +753,9 @@ class TripCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "HOD Comment",
-            style: TextStyle(
+          Text(
+            title,
+            style: const TextStyle(
               color: Color(0xFF6B7A90),
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -744,10 +781,14 @@ class TripCard extends StatelessWidget {
         ? "Pending"
         : status == "HOD_APPROVED"
             ? "HOD approved"
+            : status == "HOD_REJECTED"
+                ? "HOD rejected"
             : status == "APPROVED"
                 ? "Approved"
                 : status == "IN_PROGRESS"
                     ? "In-progress"
+                    : status == "REJECTED"
+                        ? "Rejected"
                     : "Completed";
 
     Color bg;
@@ -762,12 +803,24 @@ class TripCard extends StatelessWidget {
       text = const Color(0xFF8A6D3B);
       icon = Icons.hourglass_bottom;
       iconColor = const Color(0xFF8A6D3B);
+    } else if (status == "HOD_REJECTED") {
+      bg = const Color(0xFFFFE5E5);
+      border = const Color(0xFFFFB3B3);
+      text = const Color(0xFF8A1C1C);
+      icon = Icons.cancel_outlined;
+      iconColor = const Color(0xFF8A1C1C);
     } else if (status == "HOD_APPROVED") {
       bg = const Color(0xFFE8F5E9);
       border = const Color(0xFFA5D6A7);
       text = const Color(0xFF1B5E20);
       icon = Icons.verified_user_outlined;
       iconColor = const Color(0xFF1B5E20);
+    } else if (status == "REJECTED") {
+      bg = const Color(0xFFFFE5E5);
+      border = const Color(0xFFFFB3B3);
+      text = const Color(0xFF8A1C1C);
+      icon = Icons.block;
+      iconColor = const Color(0xFF8A1C1C);
     } else if (status == "APPROVED") {
       bg = const Color(0xFFE5E5E5);
       border = const Color(0xFFD3D3D3);
