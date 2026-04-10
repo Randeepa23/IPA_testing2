@@ -546,6 +546,8 @@ class _VehicleRequestCard extends StatelessWidget {
               children: [
                 _detailRow("Vehicle No", vehicleNo),
                 const SizedBox(height: 8),
+                _vehicleModelRow(),
+                const SizedBox(height: 8),
                 _detailRow("Reason", reason),
                 const SizedBox(height: 8),
                 _detailRow("From date", fromDate),
@@ -652,6 +654,19 @@ class _VehicleRequestCard extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _vehicleModelRow() {
+    return FutureBuilder<String?>(
+      future: VehicleApiService.fetchVehicleMakeModelForRequest(data),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return _detailRow("Vehicle model", "...");
+        }
+        final text = (snap.data ?? "").trim();
+        return _detailRow("Vehicle model", text.isEmpty ? "-" : text);
+      },
     );
   }
 }

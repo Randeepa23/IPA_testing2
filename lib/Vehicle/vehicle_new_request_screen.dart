@@ -256,8 +256,17 @@ Future<void> _submitForm() async {
       throw Exception(res["message"] ?? "Submission failed");
     }
   } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Error: $e")),
+    if (!mounted) return;
+    final errText = e
+        .toString()
+        .replaceFirst(RegExp(r'^Exception:\s*'), '')
+        .trim();
+    TopBanner.show(
+      context,
+      title: "Submission Failed",
+      message: errText.isEmpty ? "Something went wrong." : errText,
+      icon: Icons.error_outline,
+      isSuccess: false,
     );
   } finally {
     if (mounted) setState(() => _isSubmitting = false);
