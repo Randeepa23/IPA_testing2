@@ -550,6 +550,7 @@ void _showSubmitConfirmation() {
                               setState(() => toDate = date);
                               _loadRelievers();
                             },
+                            notBefore: fromDate,
                           ),
                       ],
                     ),
@@ -1058,8 +1059,18 @@ void _showSubmitConfirmation() {
 
   // ---------------- UI HELPERS (UI ONLY) ----------------
 
+  /// Earliest day selectable in leave calendars: same calendar day, two months ago.
+  DateTime _leavePickerFirstDate() {
+    final today = DateUtils.dateOnly(DateTime.now());
+    return DateTime(today.year, today.month - 2, today.day);
+  }
+
   Widget _buildDatePicker(
-      String hint, DateTime? selected, Function(DateTime) onSelect) {
+    String hint,
+    DateTime? selected,
+    Function(DateTime) onSelect, {
+    DateTime? notBefore,
+  }) {
     return TextFormField(
       readOnly: true,
       style: const TextStyle(color: Colors.black, fontSize: 15),
@@ -1072,11 +1083,22 @@ void _showSubmitConfirmation() {
       ),
       validator: (_) => selected == null ? 'Required' : null,
       onTap: () async {
+        final today = DateUtils.dateOnly(DateTime.now());
+        var firstDate = _leavePickerFirstDate();
+        if (notBefore != null) {
+          final nb = DateUtils.dateOnly(notBefore);
+          if (nb.isAfter(firstDate)) firstDate = nb;
+        }
+        final lastDate = DateTime(2030);
+        var initialDate = selected ?? today;
+        if (initialDate.isBefore(firstDate)) initialDate = firstDate;
+        if (initialDate.isAfter(lastDate)) initialDate = lastDate;
+
         final picked = await showDatePicker(
           context: context,
-          initialDate: selected ?? DateTime.now(),
-          firstDate: DateTime.now().subtract(const Duration(days: 1)),
-          lastDate: DateTime(2030),
+          initialDate: initialDate,
+          firstDate: firstDate,
+          lastDate: lastDate,
           builder: (ctx, child) => Theme(
             data: Theme.of(ctx).copyWith(
               colorScheme: const ColorScheme.light(
