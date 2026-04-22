@@ -8,6 +8,7 @@ import 'ui/dialogs/logout_dialog.dart';
 import 'ui/dialogs/privacy_notice_dialog.dart';
 import '../QRCode/Vehicle_qr_screen.dart';
 import '../users/biometric_enabled_screen.dart';
+import 'Meeting&Events/dashbord_screen.dart';
 class HomeScreen extends StatefulWidget {
   final String username;
   final Map<String, dynamic> user;
@@ -122,6 +123,19 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
       ),
+            // more placeholders can be added here without changing the UI code
+      _ServiceItem(
+        image: 'assets/meeting&event.png',
+        label: "Meeting & Events",
+        disabled: false,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => MeetingDashboardScreen(user: user)),
+          );
+        },
+      ),
+
       // only one real service for now, but placeholders can be added easily
       _ServiceItem(
         image: 'assets/itSupport.png',
@@ -135,13 +149,6 @@ class _HomeScreenState extends State<HomeScreen> {
         label: "Inventory Management",
         disabled: true,
         onTap: () => showBottomMessage("Inventory Management is coming soon 🚧"),
-      ),
-      // more placeholders can be added here without changing the UI code
-      _ServiceItem(
-        image: 'assets/meeting&event.png',
-        label: "Meeting & Events",
-        disabled: true,
-        onTap: () => showBottomMessage("Meeting & Events is coming soon 🚧"),
       ),
       // more placeholders can be added here without changing the UI code
       _ServiceItem(

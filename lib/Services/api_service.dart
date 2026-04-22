@@ -7,8 +7,8 @@ class ApiService {
 
 
 //Android Emulator → PC localhost
-//static const String baseUrl = "http://10.0.2.2/mobile-api/api";
-static const String baseUrl = "https://exploresuite.lk/mobile-api/api";
+static const String baseUrl = "http://10.0.2.2/mobile-api/api";
+//static const String baseUrl = "https://exploresuite.lk/mobile-api/api";
 
   // File upload API (use this in LeaveFormScreen after applying leave request)
   static Future<void> uploadLeaveDocument({
@@ -32,7 +32,7 @@ static const String baseUrl = "https://exploresuite.lk/mobile-api/api";
     static Future<Map<String, dynamic>?> getProfilePhoto({
       required int employeeId,
     }) async {
-      final uri = Uri.parse("$baseUrl/get_profile_photo.php?employee_id=$employeeId");
+      final uri = Uri.parse("https://exploresuite.lk/mobile-api/api/get_profile_photo.php?employee_id=$employeeId");
 
       final res = await http
           .get(uri)
