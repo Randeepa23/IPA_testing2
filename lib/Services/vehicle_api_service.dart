@@ -15,6 +15,7 @@ class VehicleApiService {
     required int tripId,
     required String vehicleType,
     required String vehicleNo,
+    required int vehicleId,
     required String reason,
   }) async {
     final uri = Uri.parse("$baseUrl/assign_vehicle_to_trip.php");
@@ -23,6 +24,7 @@ class VehicleApiService {
       ..fields["trip_id"] = tripId.toString()
       ..fields["vehicle_type"] = vehicleType
       ..fields["vehicle_no"] = vehicleNo
+      ..fields["vehicle_id"] = vehicleId.toString()
       ..fields["reason"] = reason;
 
     final streamedResponse = await request.send();
