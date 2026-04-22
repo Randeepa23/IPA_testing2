@@ -606,50 +606,15 @@ class _VehicleRequestCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            employeeName,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 13.5,
-                              color: Color(0xFF1E2A3A),
-                            ),
-                          ),
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _statusBadge(),
-                            const SizedBox(width: 4),
-                            PopupMenuButton<String>(
-                              icon: const Icon(
-                                Icons.more_vert,
-                                color: Color(0xFF64748B),
-                                size: 20,
-                              ),
-                              onSelected: (value) {
-                                if (value == "change_vehicle") {
-                                  onChangeVehicle();
-                                }
-                              },
-                              itemBuilder: (context) => [
-                                PopupMenuItem<String>(
-                                  value: "change_vehicle",
-                                  child: const Text(
-                                    "Change Vehicle",
-                                    style: TextStyle(
-                                      color: Color(0xFF1E2A3A),
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
+                    Text(
+                      employeeName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13.5,
+                        color: Color(0xFF1E2A3A),
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -659,6 +624,80 @@ class _VehicleRequestCard extends StatelessWidget {
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,
                         height: 1.25,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 4),
+              SizedBox(
+                width: 108,
+                height: 30,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned(
+                      right: 22,
+                      top: 2,
+                      child: _statusBadge(),
+                    ),
+                    Positioned(
+                      right: -16,
+                      top: -22,
+                      child: Theme(
+                        data: Theme.of(context).copyWith(
+                          splashColor: Colors.transparent,
+                          highlightColor: Colors.transparent,
+                          popupMenuTheme: const PopupMenuThemeData(
+                            color: Colors.white,
+                            surfaceTintColor: Colors.white,
+                            shadowColor: Colors.black26,
+                            elevation: 8,
+                            textStyle: TextStyle(
+                              color: Color(0xFF1E2A3A),
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        child: PopupMenuButton<String>(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 22,
+                            minHeight: 22,
+                          ),
+                          color: Colors.white,
+                          surfaceTintColor: Colors.white,
+                          shadowColor: Colors.black26,
+                          elevation: 8,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            side: const BorderSide(color: Color(0xFFE2E8F0)),
+                          ),
+                          splashRadius: 12,
+                          icon: const Icon(
+                            Icons.more_vert,
+                            color: Color(0xFF64748B),
+                            size: 16,
+                          ),
+                          onSelected: (value) {
+                            if (value == "change_vehicle") {
+                              onChangeVehicle();
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem<String>(
+                              value: "change_vehicle",
+                              child: Text(
+                                "Change Vehicle",
+                                style: TextStyle(
+                                  color: Color(0xFF1E2A3A),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
