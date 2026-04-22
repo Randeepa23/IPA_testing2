@@ -33,6 +33,56 @@ class VehicleApiService {
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
+  static Future<Map<String, dynamic>> changeVehicleByManager({
+    required int tripId,
+    required String currentVehicleType,
+    required String selectedVehicleType,
+    required String vehicleNo,
+    required int vehicleId,
+    String reason = "Changed by manager",
+  }) async {
+    final fixedType = currentVehicleType.trim().toLowerCase();
+    final selectedType = selectedVehicleType.trim().toLowerCase();
+    if (fixedType.isNotEmpty && fixedType != selectedType) {
+      throw Exception("Only $currentVehicleType type can be changed");
+    }
+
+    return assignVehicleToTrip(
+      tripId: tripId,
+      vehicleType: selectedVehicleType.trim(),
+      vehicleNo: vehicleNo.trim(),
+      vehicleId: vehicleId,
+      reason: reason,
+    );
+  }
+
+  static Future<Map<String, dynamic>> changePersonalRequestVehicle({
+    required int requestId,
+    required String currentVehicleType,
+    required String selectedVehicleType,
+    required String vehicleNo,
+    required int vehicleId,
+    String reason = "Changed by manager",
+  }) async {
+    final fixedType = currentVehicleType.trim().toLowerCase();
+    final selectedType = selectedVehicleType.trim().toLowerCase();
+    if (fixedType.isNotEmpty && fixedType != selectedType) {
+      throw Exception("Only $currentVehicleType type can be changed");
+    }
+
+    final uri = Uri.parse("$baseUrl/change_personal_request_vehicle.php");
+    final request = http.MultipartRequest("POST", uri)
+      ..fields["request_id"] = requestId.toString()
+      ..fields["vehicle_type"] = selectedVehicleType.trim()
+      ..fields["vehicle_no"] = vehicleNo.trim()
+      ..fields["vehicle_id"] = vehicleId.toString()
+      ..fields["reason"] = reason;
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
   static Future<Map<String, dynamic>> fetchVehicleDetails({
       required String transportServiceId,
     }) async {
