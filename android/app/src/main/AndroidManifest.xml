@@ -25,7 +25,8 @@
         android:label="Explore Enterprise Suite"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
-        android:usesCleartextTraffic="true">
+        android:enableOnBackInvokedCallback="true"
+        android:usesCleartextTraffic="true">    
 
         <!-- FileProvider (required for camera/photo on real devices) -->
         <provider
