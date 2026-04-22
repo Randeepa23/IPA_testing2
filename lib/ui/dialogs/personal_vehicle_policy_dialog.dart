@@ -50,157 +50,177 @@ class _PersonalVehiclePolicyDialogState
           child: Container(color: Colors.black.withOpacity(0.15)),
         ),
         Center(
-          child: Dialog(
-            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 22),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: dialogWidth,
-                maxHeight: MediaQuery.of(context).size.height * 0.88,
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              brightness: Brightness.light,
+              scaffoldBackgroundColor: Colors.white,
+              dialogBackgroundColor: Colors.white,
+              colorScheme: const ColorScheme.light(
+                surface: Colors.white,
+                onSurface: Color(0xFF1E2A3A),
+                primary: Color(0xFF1565C0),
               ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.policy_outlined, color: Color(0xFF1565C0)),
-                        const SizedBox(width: 8),
-                        const Expanded(
-                          child: Text(
-                            "Personal Usage Policy",
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF1E2A3A),
+              popupMenuTheme: const PopupMenuThemeData(
+                color: Colors.white,
+                surfaceTintColor: Colors.white,
+              ),
+            ),
+            child: Dialog(
+              backgroundColor: Colors.white,
+              surfaceTintColor: const Color(0xFFC9C7C7),
+              insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 22),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: dialogWidth,
+                  maxHeight: MediaQuery.of(context).size.height * 0.88,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.policy_outlined, color: Color(0xFF1565C0)),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              "Personal Usage Policy",
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF1E2A3A),
+                              ),
                             ),
                           ),
-                        ),
-                        IconButton(
-                          tooltip: "Decline and close",
-                          onPressed: () => Navigator.pop(context, false),
-                          icon: const Icon(Icons.close),
-                        ),
-                      ],
-                    ),
-                    const Text(
-                      "Please review the policy and confirm your agreement to continue.",
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF5F6F86),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Expanded(
-                      child: Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF7FAFF),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFD6E4FF)),
-                        ),
-                        child: Scrollbar(
-                          controller: _scrollController,
-                          thumbVisibility: true,
-                          child: SingleChildScrollView(
-                            controller: _scrollController,
-                            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                            child: _buildPolicyContent(),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Checkbox(
-                          value: _isChecked,
-                          onChanged: (v) =>
-                              setState(() => _isChecked = v ?? false),
-                          activeColor: const Color(0xFF1565C0),
-                        ),
-                        const Expanded(
-                          child: Text(
-                            "I have read and agree to this policy.",
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF1E2A3A),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
+                          IconButton(
+                            tooltip: "Decline and close",
+                            color: const Color(0xFF1E2A3A),
                             onPressed: () => Navigator.pop(context, false),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFF1565C0),
-                              side: const BorderSide(color: Color(0xFFC4C4C4), width: 1.2),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
+                      ),
+                      const Text(
+                        "Please review the policy and confirm your agreement to continue.",
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF5F6F86),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Expanded(
+                        child: Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF7FAFF),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFD6E4FF)),
+                          ),
+                          child: Scrollbar(
+                            controller: _scrollController,
+                            thumbVisibility: true,
+                            child: SingleChildScrollView(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                              child: _buildPolicyContent(),
                             ),
-                            child: const Text("Decline"),
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: SizedBox(
-                            height: 46,
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                gradient: canAgree
-                                    ? const LinearGradient(
-                                        colors: [Color(0xFF1565C0), Color(0xFF003580)],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      )
-                                    : null,
-                                color: canAgree ? null : const Color(0xFFB0BECF),
-                                borderRadius: BorderRadius.circular(12),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Checkbox(
+                            value: _isChecked,
+                            onChanged: (v) =>
+                                setState(() => _isChecked = v ?? false),
+                            activeColor: const Color(0xFF1565C0),
+                            checkColor: Colors.white,
+                          ),
+                          const Expanded(
+                            child: Text(
+                              "I have read and agree to this policy.",
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1E2A3A),
                               ),
-                              child: ElevatedButton(
-                                onPressed: canAgree
-                                    ? () => Navigator.pop(context, true)
-                                    : null,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  shadowColor: Colors.transparent,
-                                  disabledBackgroundColor: Colors.transparent,
-                                  disabledForegroundColor: Colors.white,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xFF1565C0),
+                                side: const BorderSide(color: Color(0xFFC4C4C4), width: 1.2),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Text(
-                                    "Agree & Continue",
-                                    maxLines: 1,
-                                    softWrap: false,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              child: const Text("Decline"),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: SizedBox(
+                              height: 46,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: canAgree
+                                      ? const LinearGradient(
+                                          colors: [Color(0xFF1565C0), Color(0xFF003580)],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        )
+                                      : null,
+                                  color: canAgree ? null : const Color(0xFFB0BECF),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: ElevatedButton(
+                                  onPressed: canAgree
+                                      ? () => Navigator.pop(context, true)
+                                      : null,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    disabledBackgroundColor: Colors.transparent,
+                                    disabledForegroundColor: Colors.white,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: const FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      "Agree & Continue",
+                                      maxLines: 1,
+                                      softWrap: false,
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
