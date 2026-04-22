@@ -355,6 +355,7 @@ Future<void> _assignVehicleToTrip({
   required Map<String, dynamic> trip,
   required String vehicleType,
   required String vehicleNo,
+  required int vehicleId,
   required String reason,
 }) async {
   final tripId = int.tryParse(trip["id"].toString()) ?? 0;
@@ -369,6 +370,7 @@ Future<void> _assignVehicleToTrip({
       tripId: tripId,
       vehicleType: vehicleType,
       vehicleNo: vehicleNo,
+      vehicleId: vehicleId,
       reason: reason,
     );
 
@@ -414,12 +416,14 @@ void _showAssignVehicleDialog(Map<String, dynamic> trip) {
     onConfirm: ({
       required String vehicleType,
       required String vehicleNo,
+      required int vehicleId,
       required String reason,
     }) async {
       await _assignVehicleToTrip(
         trip: trip,
         vehicleType: vehicleType,
         vehicleNo: vehicleNo,
+        vehicleId: vehicleId,
         reason: reason,
       );
     },
@@ -438,12 +442,14 @@ void _showChangeVehicleDialog(Map<String, dynamic> trip) {
     onConfirm: ({
       required String vehicleType,
       required String vehicleNo,
+      required int vehicleId,
       required String reason,
     }) async {
       await _assignVehicleToTrip(
         trip: trip,
         vehicleType: vehicleType,
         vehicleNo: vehicleNo,
+        vehicleId: vehicleId,
         reason: reason,
       );
     },

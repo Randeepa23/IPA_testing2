@@ -4,6 +4,7 @@ import '../Leaves/top_banner.dart';
 import '../Services/api_service.dart';
 import '../ui/dialogs/vehicle_reject_dialog.dart';
 import '../ui/dialogs/vehicle_approve_dialog.dart';
+import '../ui/dialogs/manager_vehicle_change_dialog.dart';
 
 class PersonalRequestScreen extends StatefulWidget {
   final String managerId;
@@ -40,6 +41,23 @@ class _PersonalRequestScreenState extends State<PersonalRequestScreen> {
 
   static String _hodComment(Map<String, dynamic> r) {
     return (r["hod_comment"] ?? r["hodComment"] ?? "").toString().trim();
+  }
+
+  static String _resolveVehicleType(Map<String, dynamic> r) {
+    final candidates = [
+      r["vehicle_type"],
+      r["vehicleType"],
+      r["vehicle_type_name"],
+      r["vehicleTypeName"],
+      r["request_vehicle_type"],
+      r["requested_vehicle_type"],
+      r["type_name"],
+    ];
+    for (final c in candidates) {
+      final v = (c ?? "").toString().trim();
+      if (v.isNotEmpty && v != "-") return v;
+    }
+    return "";
   }
 
   @override
@@ -212,6 +230,90 @@ class _PersonalRequestScreenState extends State<PersonalRequestScreen> {
     );
   }
 
+  Future<void> _changeVehicleByManager(Map<String, dynamic> request, {
+    required String vehicleType,
+    required String vehicleNo,
+    required int vehicleId,
+  }) async {
+    final requestId = VehicleApiService.transportServiceIdFromRequest(request) ?? 0;
+    if (requestId <= 0) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Invalid request id")),
+      );
+      return;
+    }
+
+    final currentType = _resolveVehicleType(request);
+    if (currentType.isNotEmpty &&
+        currentType.toLowerCase() != vehicleType.trim().toLowerCase()) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Only $currentType type can be changed")),
+      );
+      return;
+    }
+
+    try {
+      final res = await VehicleApiService.changePersonalRequestVehicle(
+        requestId: requestId,
+        currentVehicleType: currentType,
+        selectedVehicleType: vehicleType.trim(),
+        vehicleNo: vehicleNo.trim(),
+        vehicleId: vehicleId,
+      );
+
+      if (res["success"] == true) {
+        await _loadManagerVehicleRequests();
+        if (!mounted) return;
+        TopBanner.show(
+          context,
+          title: "Vehicle changed",
+          message: "Vehicle updated successfully.",
+          icon: Icons.check_circle,
+          isSuccess: true,
+        );
+      } else {
+        throw Exception((res["message"] ?? "Vehicle change failed").toString());
+      }
+    } catch (e) {
+      if (!mounted) return;
+      TopBanner.show(
+        context,
+        title: "Vehicle change failed",
+        message: e.toString(),
+        icon: Icons.error_outline,
+        isSuccess: false,
+      );
+    }
+  }
+
+  Future<void> _showManagerChangeVehicleDialog(Map<String, dynamic> request) async {
+    final vehicleType = _resolveVehicleType(request);
+
+    final fromDate = (request["from_date"] ?? request["fromDate"] ?? "").toString();
+    final toDate = (request["to_date"] ?? request["toDate"] ?? "").toString();
+
+    await showManagerVehicleChangeDialog(
+      context: context,
+      currentVehicleType: vehicleType,
+      fromDate: fromDate,
+      toDate: toDate,
+      onConfirm: ({
+        required String vehicleType,
+        required String vehicleNo,
+        required int vehicleId,
+      }) async {
+        await _changeVehicleByManager(
+          request,
+          vehicleType: vehicleType,
+          vehicleNo: vehicleNo,
+          vehicleId: vehicleId,
+        );
+      },
+    );
+  }
+
   String get _appBarTitle =>
       _isGeneralManager ? "Personal Vehicle Requests" : "Personal Vehicle Requests";
 
@@ -287,6 +389,7 @@ class _PersonalRequestScreenState extends State<PersonalRequestScreen> {
                         : () => _showApproveDialog(context, r),
                     primaryLabel: gm ? "Approve" : "Accept & Forward",
                     getPhoto: _getPhotoFuture,
+                    onChangeVehicle: () => _showManagerChangeVehicleDialog(r),
                   ),
                 );
               }),
@@ -307,6 +410,7 @@ class _VehicleRequestCard extends StatelessWidget {
   final VoidCallback onPrimary;
   final String primaryLabel;
   final Future<Map<String, dynamic>?> Function(int employeeId) getPhoto;
+  final VoidCallback onChangeVehicle;
 
   const _VehicleRequestCard({
     required this.data,
@@ -317,6 +421,7 @@ class _VehicleRequestCard extends StatelessWidget {
     required this.onPrimary,
     required this.primaryLabel,
     required this.getPhoto,
+    required this.onChangeVehicle,
   });
 
   Widget _statusBadge() {
@@ -501,20 +606,15 @@ class _VehicleRequestCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            employeeName,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 13.5,
-                              color: Color(0xFF1E2A3A),
-                            ),
-                          ),
-                        ),
-                        _statusBadge(),
-                      ],
+                    Text(
+                      employeeName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13.5,
+                        color: Color(0xFF1E2A3A),
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -524,6 +624,80 @@ class _VehicleRequestCard extends StatelessWidget {
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,
                         height: 1.25,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 4),
+              SizedBox(
+                width: 108,
+                height: 30,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned(
+                      right: 22,
+                      top: 2,
+                      child: _statusBadge(),
+                    ),
+                    Positioned(
+                      right: -16,
+                      top: -22,
+                      child: Theme(
+                        data: Theme.of(context).copyWith(
+                          splashColor: Colors.transparent,
+                          highlightColor: Colors.transparent,
+                          popupMenuTheme: const PopupMenuThemeData(
+                            color: Colors.white,
+                            surfaceTintColor: Colors.white,
+                            shadowColor: Colors.black26,
+                            elevation: 8,
+                            textStyle: TextStyle(
+                              color: Color(0xFF1E2A3A),
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        child: PopupMenuButton<String>(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 22,
+                            minHeight: 22,
+                          ),
+                          color: Colors.white,
+                          surfaceTintColor: Colors.white,
+                          shadowColor: Colors.black26,
+                          elevation: 8,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            side: const BorderSide(color: Color(0xFFE2E8F0)),
+                          ),
+                          splashRadius: 12,
+                          icon: const Icon(
+                            Icons.more_vert,
+                            color: Color(0xFF64748B),
+                            size: 16,
+                          ),
+                          onSelected: (value) {
+                            if (value == "change_vehicle") {
+                              onChangeVehicle();
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem<String>(
+                              value: "change_vehicle",
+                              child: Text(
+                                "Change Vehicle",
+                                style: TextStyle(
+                                  color: Color(0xFF1E2A3A),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
