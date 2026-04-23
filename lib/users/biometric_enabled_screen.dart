@@ -12,6 +12,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _biometricEnabled = false;
+  bool _rememberCredentials = false;
   bool _isLoading = false;
 
   final _biometricService = BiometricService();
@@ -27,7 +28,176 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _biometricEnabled = prefs.getBool('biometric_enabled') ?? false;
+      _rememberCredentials =
+          prefs.getBool('remember_credentials_enabled') ?? false;
     });
+  }
+
+  Future<void> _toggleRememberCredentials(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    if (value) {
+      final email = await _storage.read(key: 'email');
+      final name = await _storage.read(key: 'name');
+      if (email == null || name == null) {
+        if (!mounted) return;
+        setState(() => _rememberCredentials = false);
+        _showStyledSnackBar(
+          message:
+              "Please log in first, then enable credential saving from settings.",
+          type: _SnackType.info,
+        );
+        return;
+      }
+
+      if (!mounted) return;
+      final shouldSave = await showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Save credentials?'),
+            content: const Text(
+              'Credentials are stored securely and autofill on login. Tap Save to enable, or Never to keep it off.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Never'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0060A6),
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Save'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (shouldSave == true) {
+        final credentials = await _showCredentialInputDialog(defaultEmail: email);
+        if (credentials == null) {
+          await prefs.setBool('remember_credentials_enabled', false);
+          if (!mounted) return;
+          setState(() => _rememberCredentials = false);
+          _showStyledSnackBar(
+            message: "Credential saving is disabled.",
+            type: _SnackType.info,
+          );
+          return;
+        }
+
+        await _storage.write(key: 'saved_email', value: credentials['email']);
+        await _storage.write(
+          key: 'saved_password',
+          value: credentials['password'],
+        );
+        await prefs.setBool('remember_credentials_enabled', true);
+        if (!mounted) return;
+        setState(() => _rememberCredentials = true);
+        _showStyledSnackBar(
+          message: "Credentials saved securely for autofill.",
+          type: _SnackType.success,
+        );
+      } else {
+        await prefs.setBool('remember_credentials_enabled', false);
+        await _storage.delete(key: 'saved_email');
+        await _storage.delete(key: 'saved_password');
+        if (!mounted) return;
+        setState(() => _rememberCredentials = false);
+        _showStyledSnackBar(
+          message: "Credential saving is disabled.",
+          type: _SnackType.info,
+        );
+      }
+      return;
+    }
+
+    await prefs.setBool('remember_credentials_enabled', false);
+    await _storage.delete(key: 'saved_email');
+    await _storage.delete(key: 'saved_password');
+    if (!mounted) return;
+    setState(() => _rememberCredentials = false);
+    _showStyledSnackBar(
+      message: "Saved credentials removed.",
+      type: _SnackType.info,
+    );
+  }
+
+  Future<Map<String, String>?> _showCredentialInputDialog({
+    required String defaultEmail,
+  }) async {
+    String enteredEmail = defaultEmail;
+    String enteredPassword = '';
+    String? localError;
+
+    final result = await showDialog<Map<String, String>>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              title: const Text('Save credentials'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    initialValue: defaultEmail,
+                    onChanged: (value) => enteredEmail = value,
+                    decoration: const InputDecoration(labelText: 'Username'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    onChanged: (value) => enteredPassword = value,
+                    obscureText: true,
+                    decoration: const InputDecoration(labelText: 'Password'),
+                  ),
+                  if (localError != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      localError!,
+                      style: const TextStyle(color: Colors.red, fontSize: 12.5),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Never'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final trimmedEmail = enteredEmail.trim();
+                    final trimmedPassword = enteredPassword.trim();
+                    if (trimmedEmail.isEmpty || trimmedPassword.isEmpty) {
+                      setModalState(() {
+                        localError = "Please enter username and password.";
+                      });
+                      return;
+                    }
+                    Navigator.pop(
+                      context,
+                      {'email': trimmedEmail, 'password': trimmedPassword},
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0060A6),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    return result;
   }
 
   void _showStyledSnackBar({
@@ -178,6 +348,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _sectionLabel("Security"),
           const SizedBox(height: 10),
           _buildBiometricCard(),
+          const SizedBox(height: 12),
+          _buildRememberCredentialsCard(),
         ],
       ),
     );
@@ -263,6 +435,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onChanged: _toggleBiometric,
                     activeColor: Colors.blue,
                   ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRememberCredentialsCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.07),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        child: Row(
+          children: [
+            const Icon(Icons.lock_person_rounded, color: Color(0xFF0060A6)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Remember Credentials",
+                    style: TextStyle(
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1A1A2E),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    "Save username and password securely for autofill",
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Switch.adaptive(
+              value: _rememberCredentials,
+              onChanged: _toggleRememberCredentials,
+              activeColor: Colors.blue,
+            ),
           ],
         ),
       ),
