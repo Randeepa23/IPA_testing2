@@ -46,12 +46,6 @@ class _PersonalRequestScreenState extends State<PersonalRequestScreen> {
   static String _resolveVehicleType(Map<String, dynamic> r) {
     final candidates = [
       r["vehicle_type"],
-      r["vehicleType"],
-      r["vehicle_type_name"],
-      r["vehicleTypeName"],
-      r["request_vehicle_type"],
-      r["requested_vehicle_type"],
-      r["type_name"],
     ];
     for (final c in candidates) {
       final v = (c ?? "").toString().trim();
