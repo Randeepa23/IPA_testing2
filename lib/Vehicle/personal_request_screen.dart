@@ -681,17 +681,22 @@ class _VehicleRequestCard extends StatelessWidget {
                             size: 16,
                           ),
                           onSelected: (value) {
-                            if (value == "change_vehicle") {
+                            if (value == "change_vehicle" && generalManagerView) {
                               onChangeVehicle();
                             }
                           },
                           itemBuilder: (context) => [
-                            const PopupMenuItem<String>(
+                            PopupMenuItem<String>(
                               value: "change_vehicle",
+                              enabled: generalManagerView,
                               child: Text(
-                                "Change Vehicle",
+                                generalManagerView
+                                    ? "Change Vehicle"
+                                    : "Change Vehicle (GM only)",
                                 style: TextStyle(
-                                  color: Color(0xFF1E2A3A),
+                                  color: generalManagerView
+                                      ? const Color(0xFF1E2A3A)
+                                      : const Color(0xFF9AA4B2),
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
