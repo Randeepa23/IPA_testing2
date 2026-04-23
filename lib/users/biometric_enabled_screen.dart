@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -95,7 +96,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<Map<String, String>?> _showCredentialInputDialog({
     required String defaultEmail,
   }) async {
-    String enteredEmail = defaultEmail;
     String enteredPassword = '';
     String? localError;
     bool isVerifying = false;
@@ -103,98 +103,213 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final result = await showDialog<Map<String, String>>(
       context: context,
       barrierDismissible: false,
+      barrierColor: Colors.transparent,
       builder: (context) {
+        final w = MediaQuery.of(context).size.width;
+        final dialogW = (w * 0.92).clamp(280.0, 420.0);
+
         return StatefulBuilder(
           builder: (context, setModalState) {
-            return AlertDialog(
-              title: const Text('Save credentials'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    initialValue: defaultEmail,
-                    onChanged: (value) => enteredEmail = value,
-                    decoration: const InputDecoration(labelText: 'Username'),
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    onChanged: (value) => enteredPassword = value,
-                    obscureText: true,
-                    decoration: const InputDecoration(labelText: 'Password'),
-                  ),
-                  if (localError != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      localError!,
-                      style: const TextStyle(color: Colors.red, fontSize: 12.5),
-                    ),
-                  ],
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: isVerifying ? null : () => Navigator.pop(context),
-                  child: const Text('Never'),
+            return Stack(
+              children: [
+                BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                  child: Container(color: Colors.black.withOpacity(0.15)),
                 ),
-                ElevatedButton(
-                  onPressed: isVerifying
-                      ? null
-                      : () async {
-                    final trimmedEmail = enteredEmail.trim();
-                    final trimmedPassword = enteredPassword.trim();
-                    if (trimmedEmail.isEmpty || trimmedPassword.isEmpty) {
-                      setModalState(() {
-                        localError = "Please enter username and password.";
-                      });
-                      return;
-                    }
-                    setModalState(() {
-                      localError = null;
-                      isVerifying = true;
-                    });
+                Center(
+                  child: Dialog(
+                    insetPadding: const EdgeInsets.all(16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: SizedBox(
+                      width: dialogW,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.lock_outline, color: Color(0xFF0060A6)),
+                                const SizedBox(width: 10),
+                                const Expanded(
+                                  child: Text(
+                                    "Save Credentials",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed: isVerifying
+                                      ? null
+                                      : () => Navigator.pop(context),
+                                  icon: const Icon(Icons.close),
+                                ),
+                              ],
+                            ),
+                            const Text(
+                              "Enter your current login password to confirm. We will save it securely for next login autofill.",
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12.5,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            TextFormField(
+                              onChanged: (value) => enteredPassword = value,
+                              obscureText: true,
+                              decoration: InputDecoration(
+                                labelText: 'Password',
+                                prefixIcon: const Icon(Icons.lock_outline),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(color: Color(0xFF0060A6)),
+                                ),
+                              ),
+                            ),
+                            if (localError != null) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                localError!,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: isVerifying
+                                        ? null
+                                        : () => Navigator.pop(context),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: const Color(0xFF0060A6),
+                                      side: const BorderSide(
+                                        color: Color.fromARGB(255, 196, 196, 196),
+                                        width: 1.2,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                    ),
+                                    child: const Text("Never"),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: SizedBox(
+                                    height: 48,
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        gradient: isVerifying
+                                            ? null
+                                            : const LinearGradient(
+                                                colors: [Color(0xFF0060A6), Color(0xFF003580)],
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
+                                              ),
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      child: ElevatedButton(
+                                        onPressed: isVerifying
+                                            ? null
+                                            : () async {
+                                                final trimmedPassword = enteredPassword.trim();
+                                                if (trimmedPassword.isEmpty) {
+                                                  setModalState(() {
+                                                    localError = "Please enter your password.";
+                                                  });
+                                                  return;
+                                                }
+                                                setModalState(() {
+                                                  localError = null;
+                                                  isVerifying = true;
+                                                });
 
-                    try {
-                      final data = await ApiService.login(
-                        email: trimmedEmail,
-                        password: trimmedPassword,
-                      );
+                                                try {
+                                                  final data = await ApiService.login(
+                                                    email: defaultEmail,
+                                                    password: trimmedPassword,
+                                                  );
 
-                      if (data["success"] == true) {
-                        if (!context.mounted) return;
-                        Navigator.pop(
-                          context,
-                          {'email': trimmedEmail, 'password': trimmedPassword},
-                        );
-                      } else {
-                        setModalState(() {
-                          localError = data["message"]?.toString() ??
-                              "Invalid username or password.";
-                          isVerifying = false;
-                        });
-                      }
-                    } catch (_) {
-                      setModalState(() {
-                        localError =
-                            "Unable to verify password now. Check internet and try again.";
-                        isVerifying = false;
-                      });
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0060A6),
-                    foregroundColor: Colors.white,
+                                                  if (data["success"] == true) {
+                                                    if (!context.mounted) return;
+                                                    Navigator.pop(
+                                                      context,
+                                                      {
+                                                        'email': defaultEmail,
+                                                        'password': trimmedPassword,
+                                                      },
+                                                    );
+                                                  } else {
+                                                    setModalState(() {
+                                                      localError = data["message"]?.toString() ??
+                                                          "Invalid password. Please try again.";
+                                                      isVerifying = false;
+                                                    });
+                                                  }
+                                                } catch (_) {
+                                                  setModalState(() {
+                                                    localError =
+                                                        "Unable to verify password now. Check internet and try again.";
+                                                    isVerifying = false;
+                                                  });
+                                                }
+                                              },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.transparent,
+                                          shadowColor: Colors.transparent,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(14),
+                                          ),
+                                          elevation: 0,
+                                        ),
+                                        child: isVerifying
+                                            ? const SizedBox(
+                                                width: 22,
+                                                height: 22,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2.5,
+                                                  valueColor:
+                                                      AlwaysStoppedAnimation<Color>(Colors.white),
+                                                ),
+                                              )
+                                            : const Text(
+                                                'Save',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 17,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-                  child: isVerifying
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : const Text('Save'),
                 ),
               ],
             );
