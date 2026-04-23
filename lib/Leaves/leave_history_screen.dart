@@ -225,16 +225,19 @@ Widget build(BuildContext context) {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(999),
               ),
-              child: Row(
-                children: [
-                  _filterChip('All (${counts['all']})', 0, blue),
-                  const SizedBox(width: 8),
-                  _filterChip('Pending (${counts['pending']})', 1, blue),
-                  const SizedBox(width: 8),
-                  _filterChip('Approved (${counts['approved']})', 2, blue),
-                  const SizedBox(width: 8),
-                  _filterChip('Rejected (${counts['rejected']})', 3, blue),
-                ],
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _filterChip('All (${counts['all']})', 0, blue),
+                    const SizedBox(width: 8),
+                    _filterChip('Pending (${counts['pending']})', 1, blue),
+                    const SizedBox(width: 8),
+                    _filterChip('Approved (${counts['approved']})', 2, blue),
+                    const SizedBox(width: 8),
+                    _filterChip('Rejected (${counts['rejected']})', 3, blue),
+                  ],
+                ),
               ),
             ),
 

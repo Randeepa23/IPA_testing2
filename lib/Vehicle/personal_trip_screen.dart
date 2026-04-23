@@ -140,7 +140,7 @@ Future<void> _loadTripsByTab() async {
           "vehicleNo": (e["vehicle_no"] ?? "-").toString(),
           "vehicleType": (e["vehicle_type"] ?? "").toString(),
           "isVehicleAssigned": (e["is_vehicle_assigned"]?.toString() ?? "0") == "1",
-          "reason": (e["chauffer_reason"] ?? "-").toString(),
+          "reason": (e["type"] ?? "-").toString(),
           "type": (e["type"] ?? "personal").toString(),
 
           "vehicleName": vehicleName,
@@ -422,18 +422,21 @@ class _SegmentTabs extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Row(
-        children: [
-          _pill("Pending" , 0),
-          const SizedBox(width: 6),
-          _pill("Approved" , 1),
-          const SizedBox(width: 6),
-          _pill("In Progress" , 2),
-          const SizedBox(width: 6),
-          _pill("Completed" , 3),
-          const SizedBox(width: 6),
-          _pill("Rejected" , 4),
-        ],
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _pill("Pending", 0),
+            const SizedBox(width: 2),
+            _pill("Approved", 1),
+            const SizedBox(width: 2),
+            _pill("In Progress", 2),
+            const SizedBox(width: 2),
+            _pill("Completed", 3),
+            const SizedBox(width: 2),
+            _pill("Rejected", 4),
+          ],
+        ),
       ),
     );
   }
@@ -441,12 +444,11 @@ class _SegmentTabs extends StatelessWidget {
   Widget _pill(String text, int index) {
     final active = selectedIndex == index;
 
-    return Expanded(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(999),
-        onTap: () => onChanged(index),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: () => onChanged(index),
+      child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
             color: active
                 ? const Color(0xFF0B5FA5)
@@ -471,7 +473,6 @@ class _SegmentTabs extends StatelessWidget {
               color: active ? Colors.white : const Color(0xFF334155),
             ),
           ),
-        ),
       ),
     );
   }
