@@ -1,6 +1,8 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../Services/api_service.dart';
 import '../Services/biometric_service.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -12,6 +14,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _biometricEnabled = false;
+  bool _rememberCredentials = false;
   bool _isLoading = false;
 
   final _biometricService = BiometricService();
@@ -27,7 +30,294 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _biometricEnabled = prefs.getBool('biometric_enabled') ?? false;
+      _rememberCredentials =
+          prefs.getBool('remember_credentials_enabled') ?? false;
     });
+  }
+
+  Future<void> _toggleRememberCredentials(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    if (value) {
+      final email = await _storage.read(key: 'email');
+      final name = await _storage.read(key: 'name');
+      if (email == null || name == null) {
+        if (!mounted) return;
+        setState(() => _rememberCredentials = false);
+        _showStyledSnackBar(
+          message:
+              "Please log in first, then enable credential saving from settings.",
+          type: _SnackType.info,
+        );
+        return;
+      }
+
+      if (!mounted) return;
+      final credentials = await _showCredentialInputDialog(defaultEmail: email);
+      if (credentials == null) {
+        await prefs.setBool('remember_credentials_enabled', false);
+        await _storage.delete(key: 'saved_email');
+        await _storage.delete(key: 'saved_password');
+        if (!mounted) return;
+        setState(() => _rememberCredentials = false);
+        _showStyledSnackBar(
+          message: "Credential saving is disabled.",
+          type: _SnackType.info,
+        );
+        return;
+      }
+
+      await _storage.write(key: 'saved_email', value: credentials['email']);
+      await _storage.write(
+        key: 'saved_password',
+        value: credentials['password'],
+      );
+      await prefs.setBool('remember_credentials_enabled', true);
+      if (!mounted) return;
+      setState(() => _rememberCredentials = true);
+      _showStyledSnackBar(
+        message: "Credentials saved securely for autofill.",
+        type: _SnackType.success,
+      );
+      return;
+    }
+
+    await prefs.setBool('remember_credentials_enabled', false);
+    await _storage.delete(key: 'saved_email');
+    await _storage.delete(key: 'saved_password');
+    if (!mounted) return;
+    setState(() => _rememberCredentials = false);
+    _showStyledSnackBar(
+      message: "Saved credentials removed.",
+      type: _SnackType.info,
+    );
+  }
+
+  Future<Map<String, String>?> _showCredentialInputDialog({
+    required String defaultEmail,
+  }) async {
+    String enteredPassword = '';
+    String? localError;
+    bool isVerifying = false;
+
+    final result = await showDialog<Map<String, String>>(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.transparent,
+      builder: (context) {
+        final w = MediaQuery.of(context).size.width;
+        final dialogW = (w * 0.92).clamp(280.0, 420.0);
+
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Stack(
+              children: [
+                BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                  child: Container(color: Colors.black.withOpacity(0.15)),
+                ),
+                Center(
+                  child: Dialog(
+                    insetPadding: const EdgeInsets.all(16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: SizedBox(
+                      width: dialogW,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.lock_outline, color: Color(0xFF0060A6)),
+                                const SizedBox(width: 10),
+                                const Expanded(
+                                  child: Text(
+                                    "Save Credentials",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed: isVerifying
+                                      ? null
+                                      : () => Navigator.pop(context),
+                                  icon: const Icon(Icons.close),
+                                ),
+                              ],
+                            ),
+                            const Text(
+                              "Enter your current login password to confirm. We will save it securely for next login autofill.",
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12.5,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            TextFormField(
+                              onChanged: (value) => enteredPassword = value,
+                              obscureText: true,
+                              decoration: InputDecoration(
+                                labelText: 'Password',
+                                prefixIcon: const Icon(Icons.lock_outline),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(color: Color(0xFF0060A6)),
+                                ),
+                              ),
+                            ),
+                            if (localError != null) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                localError!,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: isVerifying
+                                        ? null
+                                        : () => Navigator.pop(context),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: const Color(0xFF0060A6),
+                                      side: const BorderSide(
+                                        color: Color.fromARGB(255, 196, 196, 196),
+                                        width: 1.2,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                    ),
+                                    child: const Text("Never"),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: SizedBox(
+                                    height: 48,
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        gradient: isVerifying
+                                            ? null
+                                            : const LinearGradient(
+                                                colors: [Color(0xFF0060A6), Color(0xFF003580)],
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
+                                              ),
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      child: ElevatedButton(
+                                        onPressed: isVerifying
+                                            ? null
+                                            : () async {
+                                                final trimmedPassword = enteredPassword.trim();
+                                                if (trimmedPassword.isEmpty) {
+                                                  setModalState(() {
+                                                    localError = "Please enter your password.";
+                                                  });
+                                                  return;
+                                                }
+                                                setModalState(() {
+                                                  localError = null;
+                                                  isVerifying = true;
+                                                });
+
+                                                try {
+                                                  final data = await ApiService.login(
+                                                    email: defaultEmail,
+                                                    password: trimmedPassword,
+                                                  );
+
+                                                  if (data["success"] == true) {
+                                                    if (!context.mounted) return;
+                                                    Navigator.pop(
+                                                      context,
+                                                      {
+                                                        'email': defaultEmail,
+                                                        'password': trimmedPassword,
+                                                      },
+                                                    );
+                                                  } else {
+                                                    setModalState(() {
+                                                      localError = data["message"]?.toString() ??
+                                                          "Invalid password. Please try again.";
+                                                      isVerifying = false;
+                                                    });
+                                                  }
+                                                } catch (_) {
+                                                  setModalState(() {
+                                                    localError =
+                                                        "Unable to verify password now. Check internet and try again.";
+                                                    isVerifying = false;
+                                                  });
+                                                }
+                                              },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.transparent,
+                                          shadowColor: Colors.transparent,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(14),
+                                          ),
+                                          elevation: 0,
+                                        ),
+                                        child: isVerifying
+                                            ? const SizedBox(
+                                                width: 22,
+                                                height: 22,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2.5,
+                                                  valueColor:
+                                                      AlwaysStoppedAnimation<Color>(Colors.white),
+                                                ),
+                                              )
+                                            : const Text(
+                                                'Save',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 17,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    return result;
   }
 
   void _showStyledSnackBar({
@@ -178,6 +468,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _sectionLabel("Security"),
           const SizedBox(height: 10),
           _buildBiometricCard(),
+          const SizedBox(height: 12),
+          _buildRememberCredentialsCard(),
         ],
       ),
     );
@@ -263,6 +555,68 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onChanged: _toggleBiometric,
                     activeColor: Colors.blue,
                   ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRememberCredentialsCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.07),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 46,
+              height: 46,
+              child: Image.asset(
+                'assets/credentials.png',
+                color: Colors.black,
+                colorBlendMode: BlendMode.srcIn,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Remember Credentials",
+                    style: TextStyle(
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1A1A2E),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    "Save username and password securely for autofill",
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Switch.adaptive(
+              value: _rememberCredentials,
+              onChanged: _toggleRememberCredentials,
+              activeColor: Colors.blue,
+            ),
           ],
         ),
       ),

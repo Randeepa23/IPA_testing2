@@ -37,7 +37,26 @@ class _LoginScreenState extends State<LoginScreen> {
     void initState() {
       super.initState();
       _usernameController.text = widget.initialUsername ?? '';
+      _loadSavedCredentials();
       _checkBiometric();
+    }
+
+    Future<void> _loadSavedCredentials() async {
+      final prefs = await SharedPreferences.getInstance();
+      final rememberCredentials =
+          prefs.getBool('remember_credentials_enabled') ?? false;
+      if (!rememberCredentials) return;
+
+      final savedEmail = await _storage.read(key: 'saved_email');
+      final savedPassword = await _storage.read(key: 'saved_password');
+
+      if (!mounted) return;
+      if (savedEmail != null && savedPassword != null) {
+        setState(() {
+          _usernameController.text = savedEmail;
+          _passwordController.text = savedPassword;
+        });
+      }
     }
 
     // Check if biometrics can be used and if user has enabled it in settings
@@ -123,6 +142,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
 
     Future<void> _loginApi() async {
+      if (_usernameController.text.trim().isEmpty ||
+          _passwordController.text.trim().isEmpty) {
+        await _loadSavedCredentials();
+      }
+
       final email = _usernameController.text.trim();
       final password = _passwordController.text.trim();
 
@@ -147,12 +171,23 @@ class _LoginScreenState extends State<LoginScreen> {
         if (data["success"] == true) {
           final user = Map<String, dynamic>.from(data["user"]);
           final name = user["name"] ?? "User";
+          final prefs = await SharedPreferences.getInstance();
+          final rememberCredentials =
+              prefs.getBool('remember_credentials_enabled') ?? false;
 
 
           // Save entire user object as single JSON string
           await _storage.write(key: 'email', value: user["email"] ?? email);
           await _storage.write(key: 'name',  value: name);
           await _storage.write(key: 'user',  value: jsonEncode(user));
+
+          if (rememberCredentials) {
+            await _storage.write(key: 'saved_email', value: email);
+            await _storage.write(key: 'saved_password', value: password);
+          } else {
+            await _storage.delete(key: 'saved_email');
+            await _storage.delete(key: 'saved_password');
+          }
 
           // clear any previous error
           setState(() {
