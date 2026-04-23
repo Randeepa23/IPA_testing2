@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../Services/api_service.dart';
 import '../Services/biometric_service.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -51,58 +52,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
 
       if (!mounted) return;
-      final shouldSave = await showDialog<bool>(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('Save credentials?'),
-            content: const Text(
-              'Credentials are stored securely and autofill on login. Tap Save to enable, or Never to keep it off.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Never'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0060A6),
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Save'),
-              ),
-            ],
-          );
-        },
-      );
-
-      if (shouldSave == true) {
-        final credentials = await _showCredentialInputDialog(defaultEmail: email);
-        if (credentials == null) {
-          await prefs.setBool('remember_credentials_enabled', false);
-          if (!mounted) return;
-          setState(() => _rememberCredentials = false);
-          _showStyledSnackBar(
-            message: "Credential saving is disabled.",
-            type: _SnackType.info,
-          );
-          return;
-        }
-
-        await _storage.write(key: 'saved_email', value: credentials['email']);
-        await _storage.write(
-          key: 'saved_password',
-          value: credentials['password'],
-        );
-        await prefs.setBool('remember_credentials_enabled', true);
-        if (!mounted) return;
-        setState(() => _rememberCredentials = true);
-        _showStyledSnackBar(
-          message: "Credentials saved securely for autofill.",
-          type: _SnackType.success,
-        );
-      } else {
+      final credentials = await _showCredentialInputDialog(defaultEmail: email);
+      if (credentials == null) {
         await prefs.setBool('remember_credentials_enabled', false);
         await _storage.delete(key: 'saved_email');
         await _storage.delete(key: 'saved_password');
@@ -112,7 +63,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
           message: "Credential saving is disabled.",
           type: _SnackType.info,
         );
+        return;
       }
+
+      await _storage.write(key: 'saved_email', value: credentials['email']);
+      await _storage.write(
+        key: 'saved_password',
+        value: credentials['password'],
+      );
+      await prefs.setBool('remember_credentials_enabled', true);
+      if (!mounted) return;
+      setState(() => _rememberCredentials = true);
+      _showStyledSnackBar(
+        message: "Credentials saved securely for autofill.",
+        type: _SnackType.success,
+      );
       return;
     }
 
@@ -133,6 +98,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     String enteredEmail = defaultEmail;
     String enteredPassword = '';
     String? localError;
+    bool isVerifying = false;
 
     final result = await showDialog<Map<String, String>>(
       context: context,
@@ -167,11 +133,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: isVerifying ? null : () => Navigator.pop(context),
                   child: const Text('Never'),
                 ),
                 ElevatedButton(
-                  onPressed: () {
+                  onPressed: isVerifying
+                      ? null
+                      : () async {
                     final trimmedEmail = enteredEmail.trim();
                     final trimmedPassword = enteredPassword.trim();
                     if (trimmedEmail.isEmpty || trimmedPassword.isEmpty) {
@@ -180,16 +148,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       });
                       return;
                     }
-                    Navigator.pop(
-                      context,
-                      {'email': trimmedEmail, 'password': trimmedPassword},
-                    );
+                    setModalState(() {
+                      localError = null;
+                      isVerifying = true;
+                    });
+
+                    try {
+                      final data = await ApiService.login(
+                        email: trimmedEmail,
+                        password: trimmedPassword,
+                      );
+
+                      if (data["success"] == true) {
+                        if (!context.mounted) return;
+                        Navigator.pop(
+                          context,
+                          {'email': trimmedEmail, 'password': trimmedPassword},
+                        );
+                      } else {
+                        setModalState(() {
+                          localError = data["message"]?.toString() ??
+                              "Invalid username or password.";
+                          isVerifying = false;
+                        });
+                      }
+                    } catch (_) {
+                      setModalState(() {
+                        localError =
+                            "Unable to verify password now. Check internet and try again.";
+                        isVerifying = false;
+                      });
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0060A6),
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text('Save'),
+                  child: isVerifying
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text('Save'),
                 ),
               ],
             );
@@ -458,7 +463,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         child: Row(
           children: [
-            const Icon(Icons.lock_person_rounded, color: Color(0xFF0060A6)),
+            SizedBox(
+              width: 46,
+              height: 46,
+              child: Image.asset(
+                'assets/credentials.png',
+                color: Colors.black,
+                colorBlendMode: BlendMode.srcIn,
+              ),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
