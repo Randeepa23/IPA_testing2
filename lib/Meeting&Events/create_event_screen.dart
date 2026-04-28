@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'dart:convert';
 import '../Constants/app_colors.dart';
 import '../Services/api_service.dart';
 import '../Services/meeting_and_event_service.dart';
-import 'package:http/http.dart' as http;
 
 class CreateEventScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -115,7 +113,7 @@ Future<void> _loadStaffMembers() async {
         .map<Map<String, String>>((e) {
           final item = Map<String, dynamic>.from(e);
 
-          final id = (item["id"] ?? "").toString();
+          final id = (item["id"] ?? item["employee_id"] ?? "").toString();
           final name = (item["name"] ?? "Unknown").toString();
           final jobTitle = (item["job_title"] ?? "").toString();
 
@@ -161,6 +159,45 @@ Future<void> _loadStaffMembers() async {
     );
   }
 
+  int? _parseInt(dynamic value) {
+    if (value == null) return null;
+    return int.tryParse(value.toString().trim());
+  }
+
+  int? _resolveUserId() {
+    // Primary expected key from login/user payload.
+    final topLevel = _parseInt(widget.user["employee_id"]) ??
+        _parseInt(widget.user["employeeId"]) ??
+        _parseInt(widget.user["id"]) ??
+        _parseInt(widget.user["emp_id"]) ??
+        _parseInt(widget.user["user_id"]) ??
+        _parseInt(widget.user["staff_id"]);
+    if (topLevel != null) return topLevel;
+
+    // Some APIs wrap user details in nested objects.
+    final nestedCandidates = [
+      widget.user["user"],
+      widget.user["employee"],
+      widget.user["data"],
+      widget.user["profile"],
+    ];
+
+    for (final candidate in nestedCandidates) {
+      if (candidate is Map) {
+        final nested = Map<String, dynamic>.from(candidate);
+        final nestedId = _parseInt(nested["employee_id"]) ??
+            _parseInt(nested["employeeId"]) ??
+            _parseInt(nested["id"]) ??
+            _parseInt(nested["emp_id"]) ??
+            _parseInt(nested["user_id"]) ??
+            _parseInt(nested["staff_id"]);
+        if (nestedId != null) return nestedId;
+      }
+    }
+
+    return null;
+  }
+
   String _computedDurationText() {
     final from = _toDateTime(startTime);
     final to = _toDateTime(endTime);
@@ -185,10 +222,11 @@ Future<void> _loadStaffMembers() async {
       return;
     }
 
-    final userId = int.tryParse('${widget.user['id'] ?? ''}');
+    final userId = _resolveUserId();
     if (userId == null) {
+      debugPrint("CreateEventScreen user payload: ${widget.user}");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Missing user id")),
+        const SnackBar(content: Text("Missing employee_id")),
       );
       return;
     }
@@ -216,36 +254,40 @@ Future<void> _loadStaffMembers() async {
         "${startTime!.hour.toString().padLeft(2, '0')}:${startTime!.minute.toString().padLeft(2, '0')}:00";
     final String formattedEndTime =
         "${endTime!.hour.toString().padLeft(2, '0')}:${endTime!.minute.toString().padLeft(2, '0')}:00";
-    final String durationMinutes = to.difference(from).inMinutes.toString();
-
-    var response = await http.post(
-      Uri.parse("http://YOUR_API/create_event.php"),
-      body: {
-        "meeting_type": meetingType,
-        "title": titleController.text,
-        "description": descriptionController.text,
-        "date": formattedDate,
-        "start_time": formattedStartTime,
-        "end_time": formattedEndTime,
-        "duration_minutes": durationMinutes,
-        "location_type": locationType,
-        "location": locationType == "physical" ? "Meeting Room" : "",
-        "meeting_link": locationType == "online" ? meetingLinkController.text : "",
-        "created_by": userId.toString(),
-        "participants": jsonEncode(selectedParticipantIds.toList()),
-      },
-    );
-
-    setState(() => isLoading = false);
-
-    if (response.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Event Created Successfully")),
+    try {
+      final response = await MeetingAndEventService.createMeeting(
+        type: meetingType.toLowerCase(),
+        title: titleController.text.trim(),
+        description: descriptionController.text.trim(),
+        meetingDate: formattedDate,
+        startTime: formattedStartTime,
+        endTime: formattedEndTime,
+        locationType: locationType,
+        location: locationType == "physical"
+            ? locationController.text.trim()
+            : meetingLinkController.text.trim(),
+        membersIds: selectedParticipantIds.toList(),
+        createdBy: userId,
       );
-      Navigator.pop(context);
-    } else {
+
+      if (!mounted) return;
+      setState(() => isLoading = false);
+
+      if (response["success"] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(response["message"] ?? "Event Created Successfully")),
+        );
+        Navigator.pop(context, true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(response["message"] ?? "Failed to create event")),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to create event")),
+        SnackBar(content: Text("Failed to create event: $e")),
       );
     }
   }
@@ -280,7 +322,7 @@ Future<void> _loadStaffMembers() async {
               // Event title
               TextFormField(
                 controller: titleController,
-                decoration: const InputDecoration(labelText: "Subject"),
+                decoration: const InputDecoration(labelText: "Title"),
                 validator: (v) => v!.isEmpty ? "Enter title" : null,
               ),
 
