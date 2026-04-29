@@ -30,6 +30,43 @@ class MeetingAndEventService {
     return decoded;
   }
 
+  // Get all meetings/events API
+  static Future<List<Map<String, dynamic>>> getAllMeetings() async {
+    final url = Uri.parse("$baseUrl/get_all_meetings.php");
+
+    final res = await http.get(
+      url,
+      headers: {
+        "Accept": "application/json",
+      },
+    ).timeout(const Duration(seconds: 15));
+
+    if (res.body.trim().isEmpty) {
+      throw Exception("EMPTY response");
+    }
+
+    if (res.statusCode != 200) {
+      throw Exception("HTTP ${res.statusCode}: ${res.body}");
+    }
+
+    final decoded = jsonDecode(res.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception("Invalid JSON format");
+    }
+
+    if (decoded["success"] != true) {
+      throw Exception(decoded["message"]?.toString() ?? "Failed to fetch meetings");
+    }
+
+    final rawList = decoded["data"];
+    if (rawList is! List) return [];
+
+    return rawList
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
   // Create meeting/event API
   static Future<Map<String, dynamic>> createMeeting({
     required String type,
