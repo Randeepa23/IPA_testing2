@@ -1,11 +1,11 @@
-﻿import 'dart:ui';
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:test_app/Leaves/dashbord_screen.dart';
 import 'login_screen.dart';
 import 'Leaves/top_banner.dart';
 import 'vehicle_home_screen.dart';
 import 'ui/dialogs/logout_dialog.dart';
 import 'ui/dialogs/privacy_notice_dialog.dart';
+import 'VehicleUtilization/vehicle_utilization_screen.dart';
 import '../QRCode/Vehicle_qr_screen.dart';
 import '../users/biometric_enabled_screen.dart';
 import 'Meeting&Events/dashbord_screen.dart';
@@ -123,7 +123,20 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
       ),
-            // more placeholders can be added here without changing the UI code
+      _ServiceItem(
+        image: 'assets/vehicleUtilization.png',
+        label: "Vehicle Utilization",
+        disabled: false,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const VehicleUtilizationScreen(),
+            ),
+          );
+        },
+      ),
+      // more placeholders can be added here without changing the UI code
       _ServiceItem(
         image: 'assets/meeting&event.png',
         label: "Meeting & Events",
@@ -135,6 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
+
 
       // only one real service for now, but placeholders can be added easily
       _ServiceItem(

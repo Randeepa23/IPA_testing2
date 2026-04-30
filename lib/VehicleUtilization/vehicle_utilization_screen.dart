@@ -1,0 +1,946 @@
+import 'dart:math';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:test_app/Constants/app_colors.dart';
+import 'package:test_app/Models/vehicle_utilization_model.dart';
+import 'package:test_app/Services/vehicle_utilization_service.dart';
+
+class VehicleUtilizationScreen extends StatefulWidget {
+  final String? from;
+  final String? to;
+
+  const VehicleUtilizationScreen({
+    super.key,
+    this.from,
+    this.to,
+  });
+
+  @override
+  State<VehicleUtilizationScreen> createState() =>
+      _VehicleUtilizationScreenState();
+}
+
+class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
+  late Future<VehicleUtilizationResponse> _future;
+  late DateTime _fromDate;
+  late DateTime _toDate;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    final today = DateTime.now();
+    _fromDate = widget.from?.trim().isNotEmpty == true
+        ? VehicleUtilizationService.parseApiDate(widget.from!)
+        : today;
+    _toDate = widget.to?.trim().isNotEmpty == true
+        ? VehicleUtilizationService.parseApiDate(widget.to!)
+        : today;
+    _future = _fetchVehicleUtilization();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<VehicleUtilizationResponse> _fetchVehicleUtilization() async {
+    return await VehicleUtilizationService.fetchUtilization(
+      from: VehicleUtilizationService.formatApiDate(_fromDate),
+      to: VehicleUtilizationService.formatApiDate(_toDate),
+    );
+  }
+
+  void _retry() {
+    setState(() {
+      _future = _fetchVehicleUtilization();
+    });
+  }
+
+  Future<void> _selectDateRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDateRange: DateTimeRange(start: _fromDate, end: _toDate),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primaryStart,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _fromDate = picked.start;
+        _toDate = picked.end;
+        _future = _fetchVehicleUtilization();
+      });
+    }
+  }
+
+  List<VehicleUtilizationItem> _filterVehicles(List<VehicleUtilizationItem> vehicles) {
+    if (_searchQuery.trim().isEmpty) return vehicles;
+    final query = _searchQuery.toLowerCase();
+    return vehicles
+        .where((v) => v.vehicleNo.toLowerCase().contains(query))
+        .toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
+      appBar: AppBar(
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.white,
+        backgroundColor: const Color(0xFFF5F7FA),
+        title: Text(
+          'Vehicle Utilization',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+          ),
+        ),
+      ),
+      body: FutureBuilder<VehicleUtilizationResponse>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Loading data...',
+                    style: GoogleFonts.poppins(
+                      color: Colors.black54,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Unable to load utilization data',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      snapshot.error.toString(),
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: _retry,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryStart,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          final result = snapshot.data!;
+          final allVehicles = result.data;
+          final filteredVehicles = _filterVehicles(allVehicles);
+          
+          final averageUsage = allVehicles.isEmpty
+              ? 0.0
+              : allVehicles.map((e) => e.usagePercent).reduce((a, b) => a + b) /
+                  allVehicles.length;
+          
+          final statusCount = _buildStatusCount(allVehicles);
+
+          return RefreshIndicator(
+            onRefresh: () async => _retry(),
+            color: Colors.blue,
+            backgroundColor: Colors.white,
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                // Date Range Card
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [AppColors.primaryStart, AppColors.primaryEnd],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primaryStart.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.date_range, color: Colors.white, size: 32),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Selected Period',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white70,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${_formatDisplayDate(_fromDate)} - ${_formatDisplayDate(_toDate)}',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              '${result.period.totalDays} days',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white70,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: _selectDateRange,
+                        icon: const Icon(Icons.edit_calendar, color: Colors.white),
+                        tooltip: 'Change Date',
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Summary Cards
+                Row(
+                  children: [
+                    Expanded(
+                      child: _SummaryCard(
+                        icon: Icons.directions_car,
+                        title: 'Total Vehicles',
+                        value: result.totals.vehicles.toString(),
+                        color: const Color(0xFF003580),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _SummaryCard(
+                        icon: Icons.check_circle,
+                        title: 'Utilized',
+                        value: result.totals.utilizedVehicles.toString(),
+                        color: const Color(0xFF1565C0),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _SummaryCard(
+                        icon: Icons.cancel,
+                        title: 'Not Utilized',
+                        value: result.totals.notUtilizedVehicles.toString(),
+                        color: const Color(0xFFFF9800),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _SummaryCard(
+                        icon: Icons.analytics,
+                        title: 'Avg Usage',
+                        value: '${averageUsage.toStringAsFixed(1)}%',
+                        color: const Color(0xFF4CAF50),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Donut Chart
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Utilized vs Not Utilized',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        height: 220,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: PieChart(
+                                PieChartData(
+                                  centerSpaceRadius: 40,
+                                  sectionsSpace: 3,
+                                  sections: [
+                                    PieChartSectionData(
+                                      value: max(result.totals.utilizedVehicles.toDouble(), 0.1),
+                                      color: const Color(0xFF1565C0),
+                                      title: '${_percentage(result.totals.utilizedVehicles, result.totals.vehicles).toStringAsFixed(1)}%',
+                                      radius: 65,
+                                      titleStyle: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    PieChartSectionData(
+                                      value: max(result.totals.notUtilizedVehicles.toDouble(), 0.1),
+                                      color: const Color(0xFFFF9800),
+                                      title: '${_percentage(result.totals.notUtilizedVehicles, result.totals.vehicles).toStringAsFixed(1)}%',
+                                      radius: 65,
+                                      titleStyle: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              flex: 2,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _LegendItem(
+                                    color: const Color(0xFF1565C0),
+                                    label: 'Utilized',
+                                    count: result.totals.utilizedVehicles,
+                                    percentage: _percentage(result.totals.utilizedVehicles, result.totals.vehicles),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  _LegendItem(
+                                    color: const Color(0xFFFF9800),
+                                    label: 'Not Utilized',
+                                    count: result.totals.notUtilizedVehicles,
+                                    percentage: _percentage(result.totals.notUtilizedVehicles, result.totals.vehicles),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Status Overview
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.pie_chart, color: AppColors.primaryStart),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Utilization Status Overview',
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: statusCount.entries.map((entry) {
+                          return _StatusChip(
+                            title: entry.key,
+                            count: entry.value,
+                            total: allVehicles.length,
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Search Bar
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) {
+                      setState(() => _searchQuery = value);
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Search by vehicle number...',
+                      hintStyle: GoogleFonts.poppins(
+                        color: Colors.black38,
+                        fontSize: 14,
+                      ),
+                      prefixIcon: const Icon(Icons.search, color: AppColors.primaryStart),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, color: Colors.black38),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _searchQuery = '');
+                              },
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Vehicle List Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Vehicle List',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 18,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryStart.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${filteredVehicles.length} vehicles',
+                        style: GoogleFonts.poppins(
+                          color: AppColors.primaryStart,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Vehicle Cards
+                if (filteredVehicles.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 48,
+                          color: Colors.grey.shade400,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No vehicles found',
+                          style: GoogleFonts.poppins(
+                            color: Colors.black54,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  ...filteredVehicles.map((vehicle) {
+                    return _VehicleCard(vehicle: vehicle);
+                  }),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _SummaryCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+  final Color color;
+
+  const _SummaryCard({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 140,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              color: Colors.black54,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  final Color color;
+  final String label;
+  final int count;
+  final double percentage;
+
+  const _LegendItem({
+    required this.color,
+    required this.label,
+    required this.count,
+    required this.percentage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                '$count (${percentage.toStringAsFixed(1)}%)',
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  color: Colors.black54,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  final String title;
+  final int count;
+  final int total;
+
+  const _StatusChip({
+    required this.title,
+    required this.count,
+    required this.total,
+  });
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'excellent':
+        return const Color(0xFF4CAF50);
+      case 'good':
+        return const Color(0xFF8BC34A);
+      case 'fair':
+        return const Color(0xFFFFEB3B);
+      case 'under utilized':
+        return const Color(0xFFFF9800);
+      case 'not utilized':
+        return const Color(0xFFF44336);
+      default:
+        return Colors.grey;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor = _getStatusColor(title);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: statusColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: statusColor.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: statusColor,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '$title: $count',
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: statusColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VehicleCard extends StatelessWidget {
+  final VehicleUtilizationItem vehicle;
+
+  const _VehicleCard({required this.vehicle});
+
+  Color _getStatusColor() {
+    if (vehicle.usagePercent >= 80) return const Color(0xFF4CAF50);
+    if (vehicle.usagePercent >= 50) return const Color(0xFF8BC34A);
+    if (vehicle.usagePercent >= 25) return const Color(0xFFFFEB3B);
+    if (vehicle.usagePercent > 0) return const Color(0xFFFF9800);
+    return const Color(0xFFF44336);
+  }
+
+  IconData _getStatusIcon() {
+    if (vehicle.isUtilized) return Icons.check_circle;
+    return Icons.cancel;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor = _getStatusColor();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    _getStatusIcon(),
+                    color: statusColor,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        vehicle.vehicleNo,
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        vehicle.company,
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${vehicle.usagePercent.toStringAsFixed(1)}%',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w700,
+                      color: statusColor,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F7FA),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  _InfoRow(
+                    icon: Icons.info_outline,
+                    label: 'Status',
+                    value: vehicle.vehicleStatus,
+                  ),
+                  const Divider(height: 16),
+                  _InfoRow(
+                    icon: Icons.assessment,
+                    label: 'Utilization',
+                    value: vehicle.utilizationStatus,
+                  ),
+                  const Divider(height: 16),
+                  _InfoRow(
+                    icon: Icons.calendar_today,
+                    label: 'Used Days',
+                    value: '${vehicle.usedDays}/${vehicle.totalDays} days',
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: Colors.black54),
+        const SizedBox(width: 8),
+        Text(
+          '$label: ',
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            color: Colors.black54,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.right,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+Map<String, int> _buildStatusCount(List<VehicleUtilizationItem> items) {
+  final map = <String, int>{};
+  for (final item in items) {
+    final key = item.utilizationStatus.trim().isEmpty
+        ? 'Unknown'
+        : item.utilizationStatus.trim();
+    map[key] = (map[key] ?? 0) + 1;
+  }
+  final entries = map.entries.toList()
+    ..sort((a, b) => b.value.compareTo(a.value));
+  return {for (final e in entries) e.key: e.value};
+}
+
+double _percentage(int value, int total) {
+  if (total == 0) return 0;
+  return (value / total) * 100;
+}
+
+String _formatDisplayDate(DateTime d) {
+  final months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+  return '${months[d.month - 1]} ${d.day.toString().padLeft(2, '0')}';
+}
