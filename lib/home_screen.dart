@@ -5,7 +5,7 @@ import 'Leaves/top_banner.dart';
 import 'vehicle_home_screen.dart';
 import 'ui/dialogs/logout_dialog.dart';
 import 'ui/dialogs/privacy_notice_dialog.dart';
-import 'VehicleUtilization/vehicle_utilization_screen.dart';
+import 'Reports/reports_screen.dart';
 import '../QRCode/Vehicle_qr_screen.dart';
 import '../users/biometric_enabled_screen.dart';
 import 'Meeting&Events/dashbord_screen.dart';
@@ -33,6 +33,15 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Same pixel size for every service icon (inside a fixed box).
   static const double _kServiceImageSize = 75;
   static const double _kServiceLabelFontSize = 13.5;
+
+  // Same style as Leave dashboard role check
+  bool get isHrManagement {
+    final id = (widget.user["jobTitleId"] ?? widget.user["job_title_id"])
+            ?.toString() ??
+        "";
+    return ["21", "14", "15"]
+        .contains(id);
+  }
 
   @override
   void initState() {
@@ -79,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final services = <_ServiceItem>[
       _ServiceItem(
         image: 'assets/456123.png',
-        label: "Apply Leaves",
+        label: "Leave & Vehicle\nRequests",
         disabled: false,
         onTap: () {
           Navigator.push(
@@ -124,14 +133,14 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       ),
       _ServiceItem(
-        image: 'assets/vehicleUtilization.png',
-        label: "Vehicle Utilization",
-        disabled: false,
+        image: 'assets/report.png',
+        label: "Reports",
+        disabled: !isHrManagement,
         onTap: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => const VehicleUtilizationScreen(),
+              builder: (_) => const ReportsScreen(),
             ),
           );
         },
