@@ -26,6 +26,7 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
   late DateTime _fromDate;
   late DateTime _toDate;
   String _searchQuery = '';
+  int _selectedStatusFilter = 0; // 0 = All, others = status chips order
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -95,6 +96,51 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
     final query = _searchQuery.toLowerCase();
     return vehicles
         .where((v) => v.vehicleNo.toLowerCase().contains(query))
+        .toList();
+  }
+
+  List<String> _statusOrder(List<VehicleUtilizationItem> vehicles) {
+    const preferred = <String>[
+      'Excellent',
+      'Good',
+      'Fair',
+      'Under Utilized',
+      'Not Utilized',
+    ];
+    final present = vehicles
+        .map((v) => v.utilizationStatus.trim().isEmpty ? 'Unknown' : v.utilizationStatus.trim())
+        .toSet();
+    final ordered = <String>[];
+    for (final p in preferred) {
+      if (present.contains(p)) ordered.add(p);
+    }
+    final remaining = present.where((s) => !preferred.contains(s)).toList()..sort();
+    ordered.addAll(remaining);
+    return ordered;
+  }
+
+  Map<String, int> _statusCounts(List<VehicleUtilizationItem> vehicles) {
+    final map = <String, int>{};
+    for (final v in vehicles) {
+      final key = v.utilizationStatus.trim().isEmpty ? 'Unknown' : v.utilizationStatus.trim();
+      map[key] = (map[key] ?? 0) + 1;
+    }
+    return map;
+  }
+
+  List<VehicleUtilizationItem> _applyStatusFilter(
+    List<VehicleUtilizationItem> vehicles,
+    List<String> statusOrder,
+  ) {
+    if (_selectedStatusFilter == 0) return vehicles;
+    final idx = _selectedStatusFilter - 1;
+    if (idx < 0 || idx >= statusOrder.length) return vehicles;
+    final selected = statusOrder[idx];
+    return vehicles
+        .where((v) {
+          final status = v.utilizationStatus.trim().isEmpty ? 'Unknown' : v.utilizationStatus.trim();
+          return status == selected;
+        })
         .toList();
   }
 
@@ -182,7 +228,10 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
 
           final result = snapshot.data!;
           final allVehicles = result.data;
-          final filteredVehicles = _filterVehicles(allVehicles);
+          final searchFilteredVehicles = _filterVehicles(allVehicles);
+          final statusOrder = _statusOrder(searchFilteredVehicles);
+          final statusCounts = _statusCounts(searchFilteredVehicles);
+          final filteredVehicles = _applyStatusFilter(searchFilteredVehicles, statusOrder);
           
           final averageUsage = allVehicles.isEmpty
               ? 0.0
@@ -332,46 +381,76 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      SizedBox(
-                        height: 220,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              flex: 3,
-                              child: PieChart(
-                                PieChartData(
-                                  centerSpaceRadius: 40,
-                                  sectionsSpace: 3,
-                                  sections: [
-                                    PieChartSectionData(
-                                      value: max(result.totals.utilizedVehicles.toDouble(), 0.1),
-                                      color: const Color(0xFF1565C0),
-                                      title: '${_percentage(result.totals.utilizedVehicles, result.totals.vehicles).toStringAsFixed(1)}%',
-                                      radius: 65,
-                                      titleStyle: GoogleFonts.poppins(
-                                        color: Colors.white,
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final compact = constraints.maxWidth < 380 ||
+                              MediaQuery.textScalerOf(context).scale(1) > 1.05;
+
+                          final legendWidth = compact ? 126.0 : 142.0;
+                          final chartSize = max(
+                            138.0,
+                            min(
+                              compact ? 182.0 : 196.0,
+                              constraints.maxWidth - legendWidth - 28,
+                            ),
+                          );
+
+                          Widget chartWidget = SizedBox(
+                            width: chartSize,
+                            height: chartSize,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                PieChart(
+                                  PieChartData(
+                                    centerSpaceRadius: compact ? 34 : 38,
+                                    sectionsSpace: 3,
+                                    sections: [
+                                      PieChartSectionData(
+                                        value: max(result.totals.utilizedVehicles.toDouble(), 0.1),
+                                        color: const Color(0xFF1565C0),
+                                        title: '',
+                                        radius: compact ? 58 : 62,
+                                      ),
+                                      PieChartSectionData(
+                                        value: max(result.totals.notUtilizedVehicles.toDouble(), 0.1),
+                                        color: const Color(0xFFFF9800),
+                                        title: '',
+                                        radius: compact ? 58 : 62,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      result.totals.vehicles.toString(),
+                                      style: GoogleFonts.poppins(
                                         fontWeight: FontWeight.w700,
-                                        fontSize: 14,
+                                        fontSize: 20,
+                                        color: const Color(0xFF1E2A3A),
                                       ),
                                     ),
-                                    PieChartSectionData(
-                                      value: max(result.totals.notUtilizedVehicles.toDouble(), 0.1),
-                                      color: const Color(0xFFFF9800),
-                                      title: '${_percentage(result.totals.notUtilizedVehicles, result.totals.vehicles).toStringAsFixed(1)}%',
-                                      radius: 65,
-                                      titleStyle: GoogleFonts.poppins(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 14,
+                                    Text(
+                                      'Total',
+                                      style: GoogleFonts.poppins(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 11,
+                                        color: Colors.black54,
                                       ),
                                     ),
                                   ],
                                 ),
-                              ),
+
+                              ],
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              flex: 2,
+                          );
+
+                          Widget legendWidget = Align(
+                            alignment: Alignment.centerRight,
+                            child: SizedBox(
+                              width: legendWidth,
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -380,20 +459,41 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
                                     color: const Color(0xFF1565C0),
                                     label: 'Utilized',
                                     count: result.totals.utilizedVehicles,
-                                    percentage: _percentage(result.totals.utilizedVehicles, result.totals.vehicles),
+                                    percentage: _percentage(
+                                      result.totals.utilizedVehicles,
+                                      result.totals.vehicles,
+                                    ),
                                   ),
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: 14),
                                   _LegendItem(
                                     color: const Color(0xFFFF9800),
                                     label: 'Not Utilized',
                                     count: result.totals.notUtilizedVehicles,
-                                    percentage: _percentage(result.totals.notUtilizedVehicles, result.totals.vehicles),
+                                    percentage: _percentage(
+                                      result.totals.notUtilizedVehicles,
+                                      result.totals.vehicles,
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                          ],
-                        ),
+                          );
+
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Expanded(
+                                flex: 5,
+                                child: Center(child: chartWidget),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                flex: 4,
+                                child: legendWidget,
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -495,6 +595,35 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
+
+                // Status filter chips (like leave history)
+                Container(
+                  width: double.infinity,
+                  alignment: Alignment.center,
+                  child: Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _VehicleFilterChip(
+                        label: 'All (${searchFilteredVehicles.length})',
+                        active: _selectedStatusFilter == 0,
+                        onTap: () => setState(() => _selectedStatusFilter = 0),
+                      ),
+                      ...List.generate(statusOrder.length, (i) {
+                        final status = statusOrder[i];
+                        final count = statusCounts[status] ?? 0;
+                        final selected = _selectedStatusFilter == i + 1;
+                        return _VehicleFilterChip(
+                          label: '$status ($count)',
+                          active: selected,
+                          onTap: () => setState(() => _selectedStatusFilter = i + 1),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
 
                 // Vehicle List Header
                 Row(
@@ -915,6 +1044,44 @@ class _InfoRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _VehicleFilterChip extends StatelessWidget {
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  const _VehicleFilterChip({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? AppColors.primaryStart : Colors.white,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: active ? AppColors.primaryStart : const Color(0xFFE1E6EF),
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: active ? Colors.white : const Color(0xFF1E2A3A),
+          ),
+        ),
+      ),
     );
   }
 }
