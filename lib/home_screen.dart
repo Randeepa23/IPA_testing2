@@ -85,7 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final user = widget.user;
 
     // services list (easy to add more)
-    final services = <_ServiceItem>[
+    final rawServices = <_ServiceItem>[
       _ServiceItem(
         image: 'assets/456123.png',
         label: "Leave & Vehicle\nRequests",
@@ -187,6 +187,10 @@ class _HomeScreenState extends State<HomeScreen> {
         disabled: true,
         onTap: () => showBottomMessage("Finance & Accounting is coming soon 🚧"),
       ),
+    ];
+    final services = <_ServiceItem>[
+      ...rawServices.where((s) => !s.disabled),
+      ...rawServices.where((s) => s.disabled),
     ];
 
     return Scaffold(
