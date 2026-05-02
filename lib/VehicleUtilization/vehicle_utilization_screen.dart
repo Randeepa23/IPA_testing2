@@ -32,13 +32,16 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
   @override
   void initState() {
     super.initState();
-    final today = DateTime.now();
-    _fromDate = widget.from?.trim().isNotEmpty == true
-        ? VehicleUtilizationService.parseApiDate(widget.from!)
-        : today;
-    _toDate = widget.to?.trim().isNotEmpty == true
-        ? VehicleUtilizationService.parseApiDate(widget.to!)
-        : today;
+    final today = _dateOnly(DateTime.now());
+    if (widget.from?.trim().isNotEmpty == true) {
+      _fromDate = _dateOnly(VehicleUtilizationService.parseApiDate(widget.from!));
+      _toDate = widget.to?.trim().isNotEmpty == true
+          ? _dateOnly(VehicleUtilizationService.parseApiDate(widget.to!))
+          : _fromDate;
+    } else {
+      _fromDate = today;
+      _toDate = today;
+    }
     _future = _fetchVehicleUtilization();
   }
 
@@ -48,9 +51,22 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
     super.dispose();
   }
 
+  DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  bool _isSameCalendarDay(DateTime a, DateTime b) {
+    final x = _dateOnly(a);
+    final y = _dateOnly(b);
+    return x.year == y.year && x.month == y.month && x.day == y.day;
+  }
+
   Future<VehicleUtilizationResponse> _fetchVehicleUtilization() async {
-    return await VehicleUtilizationService.fetchUtilization(
-      from: VehicleUtilizationService.formatApiDate(_fromDate),
+    final fromStr = VehicleUtilizationService.formatApiDate(_fromDate);
+    // Single day: API expects only `from` (e.g. ?from=2026-04-01).
+    if (_isSameCalendarDay(_fromDate, _toDate)) {
+      return VehicleUtilizationService.fetchUtilization(from: fromStr);
+    }
+    return VehicleUtilizationService.fetchUtilization(
+      from: fromStr,
       to: VehicleUtilizationService.formatApiDate(_toDate),
     );
   }
@@ -66,7 +82,10 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
       context: context,
       firstDate: DateTime(2020),
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      initialDateRange: DateTimeRange(start: _fromDate, end: _toDate),
+      initialDateRange: DateTimeRange(
+        start: _dateOnly(_fromDate),
+        end: _dateOnly(_toDate),
+      ),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -84,11 +103,58 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
 
     if (picked != null) {
       setState(() {
-        _fromDate = picked.start;
-        _toDate = picked.end;
+        _fromDate = _dateOnly(picked.start);
+        _toDate = _dateOnly(picked.end);
         _future = _fetchVehicleUtilization();
       });
     }
+  }
+
+  Future<void> _selectSingleDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _dateOnly(_fromDate),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primaryStart,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      final d = _dateOnly(picked);
+      setState(() {
+        _fromDate = d;
+        _toDate = d;
+        _future = _fetchVehicleUtilization();
+      });
+    }
+  }
+
+  void _resetToToday() {
+    final t = _dateOnly(DateTime.now());
+    setState(() {
+      _fromDate = t;
+      _toDate = t;
+      _future = _fetchVehicleUtilization();
+    });
+  }
+
+  String _periodTitleText() {
+    if (_isSameCalendarDay(_fromDate, _toDate)) {
+      return _formatDisplayDateLong(_fromDate);
+    }
+    return '${_formatDisplayDate(_fromDate)} – ${_formatDisplayDate(_toDate)}';
   }
 
   List<VehicleUtilizationItem> _filterVehicles(List<VehicleUtilizationItem> vehicles) {
@@ -283,7 +349,7 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${_formatDisplayDate(_fromDate)} - ${_formatDisplayDate(_toDate)}',
+                              _periodTitleText(),
                               style: GoogleFonts.poppins(
                                 color: Colors.white,
                                 fontSize: 14,
@@ -291,7 +357,7 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
                               ),
                             ),
                             Text(
-                              '${result.period.totalDays} days',
+                              '${result.period.totalDays} day${result.period.totalDays == 1 ? '' : 's'}',
                               style: GoogleFonts.poppins(
                                 color: Colors.white70,
                                 fontSize: 11,
@@ -300,10 +366,37 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
                           ],
                         ),
                       ),
-                      IconButton(
-                        onPressed: _selectDateRange,
+                      PopupMenuButton<String>(
                         icon: const Icon(Icons.edit_calendar, color: Colors.white),
-                        tooltip: 'Change Date',
+                        tooltip: 'Change period',
+                        color: Colors.white,
+                        onSelected: (value) {
+                          switch (value) {
+                            case 'today':
+                              _resetToToday();
+                              break;
+                            case 'single':
+                              _selectSingleDate();
+                              break;
+                            case 'range':
+                              _selectDateRange();
+                              break;
+                          }
+                        },
+                        itemBuilder: (context) => const [
+                          PopupMenuItem(
+                            value: 'today',
+                            child: Text('Today'),
+                          ),
+                          PopupMenuItem(
+                            value: 'single',
+                            child: Text('One day…'),
+                          ),
+                          PopupMenuItem(
+                            value: 'range',
+                            child: Text('Date range…'),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -1110,4 +1203,12 @@ String _formatDisplayDate(DateTime d) {
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
   return '${months[d.month - 1]} ${d.day.toString().padLeft(2, '0')}';
+}
+
+String _formatDisplayDateLong(DateTime d) {
+  final months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+  return '${months[d.month - 1]} ${d.day.toString().padLeft(2, '0')}, ${d.year}';
 }

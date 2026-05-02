@@ -7,20 +7,19 @@ class VehicleUtilizationService {
   static const String baseUrl = 'srilankaautorentals.com';
   static const String endpoint = '/api/vehicle-utilization';
 
-  /// Fetch vehicle utilization data for a date range
-  /// 
-  /// Parameters:
-  /// - [from]: Start date in yyyy-MM-dd format
-  /// - [to]: End date in yyyy-MM-dd format (optional, defaults to [from])
-  /// 
-  /// Returns: [VehicleUtilizationResponse] with period, totals, and vehicle data
+  /// Fetch vehicle utilization from the API.
+  ///
+  /// **Single day** (matches `?from=2026-04-01`): pass only [from]. Omit [to] or pass null.
+  /// **Date range** (matches `?from=2026-04-01&to=2026-04-30`): pass both [from] and [to].
   static Future<VehicleUtilizationResponse> fetchUtilization({
     required String from,
     String? to,
   }) async {
-    final query = <String, String>{'from': from};
-    if (to != null && to.trim().isNotEmpty) {
-      query['to'] = to.trim();
+    final query = <String, String>{'from': from.trim()};
+    final toTrim = to?.trim() ?? '';
+    // Only add `to` when caller provides a range end (different day handled by caller).
+    if (toTrim.isNotEmpty) {
+      query['to'] = toTrim;
     }
 
     final uri = Uri.https(baseUrl, endpoint, query);
