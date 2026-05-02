@@ -39,7 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final id = (widget.user["jobTitleId"] ?? widget.user["job_title_id"])
             ?.toString() ??
         "";
-    return ["21", "14", "15"]
+    return ["11", "14", "15", "16", "17", "18", "19","21", "20", "48"]
         .contains(id);
   }
 
@@ -88,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final rawServices = <_ServiceItem>[
       _ServiceItem(
         image: 'assets/456123.png',
-        label: "Leave & Vehicle\nRequests",
+        label: "Leave & Personal \nVehicle Request",
         disabled: false,
         onTap: () {
           Navigator.push(
@@ -112,7 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // placeholder services (disabled with message)
       _ServiceItem(
         image: 'assets/qr.png',
-        label: "Fuel QR",
+        label: "Fuel QR Code",
         disabled: false,
         onTap: () {
           Navigator.push(
