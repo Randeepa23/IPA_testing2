@@ -447,7 +447,7 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
                 // Donut Chart
                 Container(
@@ -474,6 +474,8 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
+
+                      // Pie Chart
                       LayoutBuilder(
                         builder: (context, constraints) {
                           final compact = constraints.maxWidth < 380 ||
@@ -591,7 +593,7 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
                 // Status Overview
                 Container(
@@ -689,32 +691,40 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Status filter chips (like leave history)
-                Container(
-                  width: double.infinity,
-                  alignment: Alignment.center,
-                  child: Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _VehicleFilterChip(
-                        label: 'All (${searchFilteredVehicles.length})',
-                        active: _selectedStatusFilter == 0,
-                        onTap: () => setState(() => _selectedStatusFilter = 0),
+                // Status filter chips — centered when they fit; horizontal scroll when overflow
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _VehicleFilterChip(
+                              label: 'All (${searchFilteredVehicles.length})',
+                              active: _selectedStatusFilter == 0,
+                              onTap: () => setState(() => _selectedStatusFilter = 0),
+                            ),
+                            ...List.generate(statusOrder.length, (i) {
+                              final status = statusOrder[i];
+                              final count = statusCounts[status] ?? 0;
+                              final selected = _selectedStatusFilter == i + 1;
+                              return Padding(
+                                padding: const EdgeInsets.only(left: 8),
+                                child: _VehicleFilterChip(
+                                  label: '$status ($count)',
+                                  active: selected,
+                                  onTap: () => setState(() => _selectedStatusFilter = i + 1),
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
                       ),
-                      ...List.generate(statusOrder.length, (i) {
-                        final status = statusOrder[i];
-                        final count = statusCounts[status] ?? 0;
-                        final selected = _selectedStatusFilter == i + 1;
-                        return _VehicleFilterChip(
-                          label: '$status ($count)',
-                          active: selected,
-                          onTap: () => setState(() => _selectedStatusFilter = i + 1),
-                        );
-                      }),
-                    ],
-                  ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
 
@@ -818,12 +828,12 @@ class _SummaryCard extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
               color: color.withOpacity(0.1),
               shape: BoxShape.circle,
@@ -834,7 +844,7 @@ class _SummaryCard extends StatelessWidget {
           Text(
             title,
             style: GoogleFonts.poppins(
-              fontSize: 11,
+              fontSize: 12,
               color: Colors.black54,
               fontWeight: FontWeight.w500,
             ),
@@ -844,7 +854,7 @@ class _SummaryCard extends StatelessWidget {
           Text(
             value,
             style: GoogleFonts.poppins(
-              fontSize: 22,
+              fontSize: 18,
               fontWeight: FontWeight.w700,
               color: color,
             ),
@@ -925,7 +935,7 @@ class _StatusChip extends StatelessWidget {
       case 'good':
         return const Color(0xFF8BC34A);
       case 'fair':
-        return const Color(0xFFFFEB3B);
+        return const Color(0xFF1565C0);
       case 'under utilized':
         return const Color(0xFFFF9800);
       case 'not utilized':
