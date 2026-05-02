@@ -45,6 +45,12 @@ class VehicleUtilizationPeriod {
       totalDays: _asInt(json['total_days']),
     );
   }
+
+  /// True when API returned a single calendar day (`from` and `to` same, e.g. one-day query).
+  bool get isSingleCalendarDay {
+    if (from.isEmpty || to.isEmpty) return true;
+    return from == to;
+  }
 }
 
 class VehicleUtilizationTotals {
