@@ -34,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
   static const double _kServiceImageSize = 75;
   static const double _kServiceLabelFontSize = 13.5;
 
-  // Same style as Leave dashboard role check
+  // Check the user is in the list of HR management
   bool get isHrManagement {
     final id = (widget.user["jobTitleId"] ?? widget.user["job_title_id"])
             ?.toString() ??

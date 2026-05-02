@@ -7,8 +7,8 @@ class ApiService {
 
 
 //Android Emulator → PC localhost
-static const String baseUrl = "http://10.0.2.2/mobile-api/api";
-//static const String baseUrl = "https://exploresuite.lk/mobile-api/api";
+//static const String baseUrl = "http://10.0.2.2/mobile-api/api";
+static const String baseUrl = "https://exploresuite.lk/mobile-api/api";
 
   // File upload API (use this in LeaveFormScreen after applying leave request)
   static Future<void> uploadLeaveDocument({
