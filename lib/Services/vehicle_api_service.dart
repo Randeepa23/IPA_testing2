@@ -6,8 +6,36 @@ import 'package:http/http.dart' as http;
 class VehicleApiService {
 
   //Android Emulator → PC localhost
-  //static const String baseUrl = "http://10.0.2.2/mobile-api/vehicle";
+//static const String baseUrl = "http://10.0.2.2/mobile-api/vehicle";
   static const String baseUrl = "https://exploresuite.lk/mobile-api/vehicle";
+
+  static String? _googlePlacesApiKeyCache;
+
+  /// Loads the Places key from [get_google_places_key.php]; cached for the app session.
+  static Future<String?> getGooglePlacesApiKey({bool forceRefresh = false}) async {
+    if (!forceRefresh &&
+        _googlePlacesApiKeyCache != null &&
+        _googlePlacesApiKeyCache!.isNotEmpty) {
+      return _googlePlacesApiKeyCache;
+    }
+
+    final uri = Uri.parse("$baseUrl/get_google_places_key.php");
+    final res = await http.get(uri, headers: {"Accept": "application/json"});
+
+    final body = res.body.trim();
+    if (body.isEmpty) return null;
+
+    final decoded = jsonDecode(body);
+    if (decoded is! Map) return null;
+
+    if (decoded["success"] != true) return null;
+
+    final key = (decoded["api_key"] ?? "").toString().trim();
+    if (key.isEmpty) return null;
+
+    _googlePlacesApiKeyCache = key;
+    return key;
+  }
 
   // For real device testing, use your PC's local network IP address
   // static const String baseUrl = "http://

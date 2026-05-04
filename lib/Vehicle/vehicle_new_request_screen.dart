@@ -21,9 +21,6 @@ class VehicleRequestFormScreen extends StatefulWidget {
   State<VehicleRequestFormScreen> createState() => _VehicleRequestFormScreenState();
 }
 
-// Google Places API Key  
-const String googlePlacesKey = "AIzaSyAHmbwBrk0OKY0Nhp9FrR_zn8HKLGZ54OU";
-
 class PlaceSuggestion {
   final String description;
   final String placeId;
@@ -42,12 +39,18 @@ Future<List<PlaceSuggestion>> fetchPlaceSuggestions(String input) async {
   input = input.trim();
   if (input.isEmpty) return [];
 
+  final apiKey = await VehicleApiService.getGooglePlacesApiKey();
+  if (apiKey == null || apiKey.isEmpty) {
+    debugPrint("Places: could not load API key from backend");
+    return [];
+  }
+
   final uri = Uri.https(
     "maps.googleapis.com",
     "/maps/api/place/autocomplete/json",
     {
       "input": input,
-      "key": googlePlacesKey,
+      "key": apiKey,
       "components": "country:lk",
     },
   );
