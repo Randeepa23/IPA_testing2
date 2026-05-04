@@ -49,7 +49,6 @@ dependencies:
   local_auth: ^2.1.6
   flutter_secure_storage: ^9.0.0
   shared_preferences: ^2.2.2
-  fl_chart: ^1.2.0
   http: ^1.5.0
 
 
