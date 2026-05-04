@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:test_app/Constants/app_colors.dart';
@@ -22,11 +21,20 @@ class VehicleUtilizationScreen extends StatefulWidget {
 }
 
 class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
+  /// Filter tabs: always show all standard utilization statuses (counts may be 0).
+  static const List<String> _kFilterStatusTabs = [
+    'Excellent',
+    'Not Utilized',
+    'Good',
+    'Fair',
+    'Under Utilized',
+  ];
+
   late Future<VehicleUtilizationResponse> _future;
   late DateTime _fromDate;
   late DateTime _toDate;
   String _searchQuery = '';
-  int _selectedStatusFilter = 0; // 0 = All, others = status chips order
+  int _selectedStatusFilter = 0; // 0 = All, 1..5 = _kFilterStatusTabs index
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -165,26 +173,6 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
         .toList();
   }
 
-  List<String> _statusOrder(List<VehicleUtilizationItem> vehicles) {
-    const preferred = <String>[
-      'Excellent',
-      'Good',
-      'Fair',
-      'Under Utilized',
-      'Not Utilized',
-    ];
-    final present = vehicles
-        .map((v) => v.utilizationStatus.trim().isEmpty ? 'Unknown' : v.utilizationStatus.trim())
-        .toSet();
-    final ordered = <String>[];
-    for (final p in preferred) {
-      if (present.contains(p)) ordered.add(p);
-    }
-    final remaining = present.where((s) => !preferred.contains(s)).toList()..sort();
-    ordered.addAll(remaining);
-    return ordered;
-  }
-
   Map<String, int> _statusCounts(List<VehicleUtilizationItem> vehicles) {
     final map = <String, int>{};
     for (final v in vehicles) {
@@ -196,12 +184,12 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
 
   List<VehicleUtilizationItem> _applyStatusFilter(
     List<VehicleUtilizationItem> vehicles,
-    List<String> statusOrder,
+    List<String> statusTabs,
   ) {
     if (_selectedStatusFilter == 0) return vehicles;
     final idx = _selectedStatusFilter - 1;
-    if (idx < 0 || idx >= statusOrder.length) return vehicles;
-    final selected = statusOrder[idx];
+    if (idx < 0 || idx >= statusTabs.length) return vehicles;
+    final selected = statusTabs[idx];
     return vehicles
         .where((v) {
           final status = v.utilizationStatus.trim().isEmpty ? 'Unknown' : v.utilizationStatus.trim();
@@ -295,9 +283,11 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
           final result = snapshot.data!;
           final allVehicles = result.data;
           final searchFilteredVehicles = _filterVehicles(allVehicles);
-          final statusOrder = _statusOrder(searchFilteredVehicles);
           final statusCounts = _statusCounts(searchFilteredVehicles);
-          final filteredVehicles = _applyStatusFilter(searchFilteredVehicles, statusOrder);
+          final filteredVehicles = _applyStatusFilter(
+            searchFilteredVehicles,
+            _kFilterStatusTabs,
+          );
           
           final averageUsage = allVehicles.isEmpty
               ? 0.0
@@ -490,30 +480,31 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
                             ),
                           );
 
+                          final totalVehicles = max(result.totals.vehicles, 1);
+                          final utilizedFrac =
+                              result.totals.utilizedVehicles / totalVehicles;
+                          final px = chartSize.floorToDouble().clamp(120.0, 240.0);
+
                           Widget chartWidget = SizedBox(
-                            width: chartSize,
-                            height: chartSize,
+                            width: px,
+                            height: px,
                             child: Stack(
                               alignment: Alignment.center,
                               children: [
-                                PieChart(
-                                  PieChartData(
-                                    centerSpaceRadius: compact ? 34 : 38,
-                                    sectionsSpace: 3,
-                                    sections: [
-                                      PieChartSectionData(
-                                        value: max(result.totals.utilizedVehicles.toDouble(), 0.1),
-                                        color: const Color(0xFF1565C0),
-                                        title: '',
-                                        radius: compact ? 58 : 62,
+                                RepaintBoundary(
+                                  child: ColoredBox(
+                                    color: Colors.white,
+                                    child: CustomPaint(
+                                      size: Size(px, px),
+                                      painter: _UtilizationDonutPainter(
+                                        utilizedFraction: utilizedFrac,
+                                        utilizedColor: const Color(0xFF1565C0),
+                                        notUtilizedColor: const Color(0xFFFF9800),
+                                        devicePixelRatio:
+                                            MediaQuery.devicePixelRatioOf(
+                                                context),
                                       ),
-                                      PieChartSectionData(
-                                        value: max(result.totals.notUtilizedVehicles.toDouble(), 0.1),
-                                        color: const Color(0xFFFF9800),
-                                        title: '',
-                                        radius: compact ? 58 : 62,
-                                      ),
-                                    ],
+                                    ),
                                   ),
                                 ),
                                 Column(
@@ -537,7 +528,6 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
                                     ),
                                   ],
                                 ),
-
                               ],
                             ),
                           );
@@ -707,8 +697,8 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
                               active: _selectedStatusFilter == 0,
                               onTap: () => setState(() => _selectedStatusFilter = 0),
                             ),
-                            ...List.generate(statusOrder.length, (i) {
-                              final status = statusOrder[i];
+                            ...List.generate(_kFilterStatusTabs.length, (i) {
+                              final status = _kFilterStatusTabs[i];
                               final count = statusCounts[status] ?? 0;
                               final selected = _selectedStatusFilter == i + 1;
                               return Padding(
@@ -828,7 +818,7 @@ class _SummaryCard extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -850,7 +840,7 @@ class _SummaryCard extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 1),
           Text(
             value,
             style: GoogleFonts.poppins(
@@ -862,6 +852,74 @@ class _SummaryCard extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Crisp donut ring drawn with [Canvas] (avoids third-party pie dithering on some Android GPUs).
+class _UtilizationDonutPainter extends CustomPainter {
+  _UtilizationDonutPainter({
+    required this.utilizedFraction,
+    required this.utilizedColor,
+    required this.notUtilizedColor,
+    required this.devicePixelRatio,
+  });
+
+  final double utilizedFraction;
+  final Color utilizedColor;
+  final Color notUtilizedColor;
+  final double devicePixelRatio;
+
+  static double _snapToDevicePixels(double logical, double dpr) {
+    if (!dpr.isFinite || dpr <= 0) return logical;
+    return (logical * dpr).round() / dpr;
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    if (w <= 0 || h <= 0) return;
+
+    final dpr = devicePixelRatio;
+    final center = Offset(
+      _snapToDevicePixels(w / 2, dpr),
+      _snapToDevicePixels(h / 2, dpr),
+    );
+    final minSide = min(w, h);
+    final stroke = _snapToDevicePixels(minSide * 0.22, dpr).clamp(8.0, minSide * 0.45);
+    final radius = _snapToDevicePixels(
+      (minSide / 2) * 0.92 - stroke / 2,
+      dpr,
+    ).clamp(stroke / 2 + 1, minSide / 2);
+    final rect = Rect.fromCircle(center: center, radius: radius);
+
+    final ring = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..isAntiAlias = true
+      ..strokeCap = StrokeCap.butt;
+
+    canvas.drawArc(rect, 0, 2 * pi, false, ring..color = notUtilizedColor);
+
+    final frac = utilizedFraction.clamp(0.0, 1.0);
+    final sweep = 2 * pi * frac;
+    if (sweep > 1e-4) {
+      canvas.drawArc(
+        rect,
+        -pi / 2,
+        sweep,
+        false,
+        ring..color = utilizedColor,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _UtilizationDonutPainter oldDelegate) {
+    return oldDelegate.utilizedFraction != utilizedFraction ||
+        oldDelegate.utilizedColor != utilizedColor ||
+        oldDelegate.notUtilizedColor != notUtilizedColor ||
+        oldDelegate.devicePixelRatio != devicePixelRatio;
   }
 }
 
