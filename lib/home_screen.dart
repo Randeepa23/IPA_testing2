@@ -148,17 +148,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       // more placeholders can be added here without changing the UI code
       _ServiceItem(
-        image: 'assets/meeting&event.png',
-        label: "Meeting & Events",
-        disabled: true,
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => MeetingDashboardScreen(user: user)),
-          );
-        },
-      ),
-      _ServiceItem(
         icon: Icons.local_parking_rounded,
         label: "Airport Parking",
         disabled: false,
@@ -171,7 +160,17 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
-
+      _ServiceItem(
+        image: 'assets/meeting&event.png',
+        label: "Meeting & Events",
+        disabled: false,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => MeetingDashboardScreen(user: user)),
+          );
+        },
+      ),
 
       // only one real service for now, but placeholders can be added easily
       _ServiceItem(
@@ -181,12 +180,12 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: () => showBottomMessage("IT Support is coming soon 🚧")
       ),
       // more placeholders can be added here without changing the UI code
-      _ServiceItem(
-        image: 'assets/inventory.png',
-        label: "Inventory Management",
-        disabled: true,
-        onTap: () => showBottomMessage("Inventory Management is coming soon 🚧"),
-      ),
+      // _ServiceItem(
+      //   image: 'assets/inventory.png',
+      //   label: "Inventory Management",
+      //   disabled: true,
+      //   onTap: () => showBottomMessage("Inventory Management is coming soon 🚧"),
+      // ),
       // more placeholders can be added here without changing the UI code
       _ServiceItem(
         image: 'assets/project.png',
