@@ -9,6 +9,7 @@ import 'Reports/reports_screen.dart';
 import '../QRCode/Vehicle_qr_screen.dart';
 import '../users/biometric_enabled_screen.dart';
 import 'Meeting&Events/dashbord_screen.dart';
+import 'AirportParking/airport_parking_screen.dart';
 class HomeScreen extends StatefulWidget {
   final String username;
   final Map<String, dynamic> user;
@@ -157,6 +158,19 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
+      _ServiceItem(
+        icon: Icons.local_parking_rounded,
+        label: "Airport Parking",
+        disabled: false,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AirportParkingScreen(user: user),
+            ),
+          );
+        },
+      ),
 
 
       // only one real service for now, but placeholders can be added easily
@@ -298,6 +312,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     final s = services[i];
                     return _serviceCard(
                       imagePath: s.image,
+                      iconData: s.icon,
                       label: s.label,
                       onTap: s.onTap,
                       isDisabled: s.disabled,
@@ -366,6 +381,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _serviceCard({
     String? imagePath,
+    IconData? iconData,
     required String label,
     required VoidCallback onTap,
     bool isDisabled = false,
@@ -405,7 +421,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             height: _kServiceImageSize,
                             fit: BoxFit.contain,
                           )
-                        : const SizedBox.shrink(),
+                        : iconData != null
+                            ? Icon(
+                                iconData,
+                                size: _kServiceImageSize - 8,
+                                color: blue,
+                              )
+                            : const SizedBox.shrink(),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -431,15 +453,18 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 // helper model
 class _ServiceItem {
-  final String image;
+  final String? image;
+  final IconData? icon;
   final String label;
   final bool disabled;
   final VoidCallback onTap;
 
   _ServiceItem({
-    required this.image,
+    this.image,
+    this.icon,
     required this.label,
     required this.disabled,
     required this.onTap,
-  });
+  }) : assert(image != null || icon != null,
+            'Provide either an image asset or an icon for the service.');
 }
