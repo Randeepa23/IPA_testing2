@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:open_file/open_file.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -105,6 +106,34 @@ class _InvoicePdfViewerScreenState extends State<InvoicePdfViewerScreen> {
     }
   }
 
+  Future<void> _shareInvoice() async {
+    if (!await widget.file.exists()) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invoice file is not available.')),
+      );
+      return;
+    }
+
+    final safeRef = widget.reference.trim().isEmpty
+        ? 'invoice'
+        : widget.reference.trim().replaceAll(RegExp(r'[^A-Za-z0-9_\-]'), '_');
+
+    await SharePlus.instance.share(
+      ShareParams(
+        subject: 'Airport Parking Invoice $safeRef',
+        text: 'Airport Parking invoice $safeRef',
+        files: [
+          XFile(
+            widget.file.path,
+            mimeType: 'application/pdf',
+            name: 'airport_invoice_$safeRef.pdf',
+          ),
+        ],
+      ),
+    );
+  }
+
   void _toggleViewerMode() {
     setState(() {
       _useGoogleViewer = !_useGoogleViewer;
@@ -153,6 +182,16 @@ class _InvoicePdfViewerScreenState extends State<InvoicePdfViewerScreen> {
             icon: const Icon(Icons.refresh_rounded, color: _blue2),
             onPressed: _loadCurrentMode,
           ),
+          IconButton(
+            tooltip: 'Share invoice',
+            icon: const Icon(Icons.share_rounded, color: _blue2),
+            onPressed: _shareInvoice,
+          ),
+          IconButton(
+            tooltip: 'Download invoice',
+            icon: const Icon(Icons.download_rounded, color: _blue2),
+            onPressed: _openDownloadedFile,
+          ),
           // IconButton(
           //   tooltip: _useGoogleViewer
           //       ? 'Switch to direct PDF in WebView'
@@ -183,6 +222,7 @@ class _InvoicePdfViewerScreenState extends State<InvoicePdfViewerScreen> {
       ),
       body: Stack(
         children: [
+          SizedBox(height: 100,),
           WebViewWidget(controller: _webController),
           if (_loading)
             const ColoredBox(

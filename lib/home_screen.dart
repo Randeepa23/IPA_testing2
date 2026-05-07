@@ -150,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _ServiceItem(
         image: 'assets/meeting&event.png',
         label: "Meeting & Events",
-        disabled: false,
+        disabled: true,
         onTap: () {
           Navigator.push(
             context,
