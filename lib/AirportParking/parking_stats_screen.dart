@@ -401,7 +401,8 @@ class _DashboardBody extends StatelessWidget {
     final fmt = NumberFormat('#,##0', 'en_US');
 
     return RefreshIndicator(
-      color: const Color(0xFF1565C0),
+      color: Colors.blue,
+      backgroundColor: Colors.white,
       onRefresh: () async {},
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),

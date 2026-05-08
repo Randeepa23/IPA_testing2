@@ -26,7 +26,7 @@ class ReportsScreen extends StatelessWidget {
       _ReportItem(
         title: 'Parking Dashboard',
         subtitle: 'Bookings, active sessions, revenue & handover overview',
-        imagePath: null,
+        imagePath: 'assets/airportparking.png',
         icon: Icons.local_parking_rounded,
         color: const Color(0xFF1565C0),
         onTap: () {
@@ -92,8 +92,8 @@ class _ReportCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                   child: Image.asset(
                     item.imagePath!,
-                    width: 58,
-                    height: 58,
+                    width: 60,
+                    height: 60,
                     fit: BoxFit.cover,
                   ),
                 )

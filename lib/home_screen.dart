@@ -124,7 +124,8 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
             // more placeholders can be added here without changing the UI code
       _ServiceItem(
-        icon: Icons.local_parking_rounded,
+        //icon: Icons.local_parking_rounded,
+        image: 'assets/airportparking.png',
         label: "Airport Parking",
         disabled: false,
         onTap: () {
