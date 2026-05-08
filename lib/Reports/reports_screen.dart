@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:test_app/VehicleUtilization/vehicle_utilization_screen.dart';
+import 'package:test_app/AirportParking/parking_stats_screen.dart';
 
 class ReportsScreen extends StatelessWidget {
   const ReportsScreen({super.key});
@@ -18,6 +19,21 @@ class ReportsScreen extends StatelessWidget {
             context,
             MaterialPageRoute(
               builder: (_) => const VehicleUtilizationScreen(),
+            ),
+          );
+        },
+      ),
+      _ReportItem(
+        title: 'Parking Dashboard',
+        subtitle: 'Bookings, active sessions, revenue & handover overview',
+        imagePath: null,
+        icon: Icons.local_parking_rounded,
+        color: const Color(0xFF1565C0),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const ParkingStatsScreen(),
             ),
           );
         },
