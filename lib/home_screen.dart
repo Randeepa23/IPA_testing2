@@ -122,31 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
       ),
-      _ServiceItem(
-        image: 'assets/setting.png',
-        label: "Settings",
-        disabled: false,
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => SettingsScreen()),
-          );
-        }
-      ),
-      _ServiceItem(
-        image: 'assets/report.png',
-        label: "Reports",
-        disabled: !isHrManagement,
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const ReportsScreen(),
-            ),
-          );
-        },
-      ),
-      // more placeholders can be added here without changing the UI code
+            // more placeholders can be added here without changing the UI code
       _ServiceItem(
         icon: Icons.local_parking_rounded,
         label: "Airport Parking",
@@ -160,6 +136,21 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
+
+      _ServiceItem(
+        image: 'assets/report.png',
+        label: "Reports",
+        disabled: !isHrManagement,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const ReportsScreen(),
+            ),
+          );
+        },
+      ),
+
       _ServiceItem(
         image: 'assets/meeting&event.png',
         label: "Meeting & Events",
@@ -170,6 +161,24 @@ class _HomeScreenState extends State<HomeScreen> {
             MaterialPageRoute(builder: (_) => MeetingDashboardScreen(user: user)),
           );
         },
+      ),
+      // more placeholders can be added here without changing the UI code
+      _ServiceItem(
+        image: 'assets/setting.png',
+        label: "Settings",
+        disabled: false,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => SettingsScreen()),
+          );
+        }
+      ),
+      _ServiceItem(
+        image: 'assets/help.png',
+        label: "Help",
+        disabled: false,
+        onTap: () => showBottomMessage("Help is coming soon 🚧"),
       ),
 
       // only one real service for now, but placeholders can be added easily
