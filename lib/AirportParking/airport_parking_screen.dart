@@ -35,9 +35,9 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
   }
 
   String get _composedReference {
-    final g = gNumberController.text.trim();
-    final ap = apNumberController.text.trim();
-    return "G$g-AP-$ap";
+    final firstPart = gNumberController.text.trim().toUpperCase();
+    final lastPart = apNumberController.text.trim().toUpperCase();
+    return "$firstPart-AP-$lastPart";
   }
 
   Future<void> _fetchInvoice() async {
@@ -169,17 +169,19 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
 
           const SizedBox(height: 16),
 
-          // Reference parts: G[number] - AP - [number]
+          // Reference parts: [letters/numbers] - AP - [letters/numbers]
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
                 child: TextFormField(
                   controller: gNumberController,
-                  keyboardType: TextInputType.number,
+                  keyboardType: TextInputType.text,
+                  textCapitalization: TextCapitalization.characters,
                   inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(4),
+                    FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
+                    LengthLimitingTextInputFormatter(8),
+                    _UpperCaseTextFormatter(),
                   ],
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
@@ -187,14 +189,8 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                     letterSpacing: 1.2,
                   ),
                   decoration: InputDecoration(
-                    labelText: "Group No.",
-                    hintText: "7",
-                    prefixText: "G",
-                    prefixStyle: const TextStyle(
-                      color: _blue2,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 16,
-                    ),
+                    labelText: "First Part",
+                    hintText: "G7",
                     labelStyle:
                         const TextStyle(color: _textMuted, fontSize: 13),
                     filled: true,
@@ -221,17 +217,19 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: _textMuted.withOpacity(0.85),
+                    color: _textDark,
                   ),
                 ),
               ),
               Expanded(
                 child: TextFormField(
                   controller: apNumberController,
-                  keyboardType: TextInputType.number,
+                  keyboardType: TextInputType.text,
+                  textCapitalization: TextCapitalization.characters,
                   inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(4),
+                    FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
+                    LengthLimitingTextInputFormatter(8),
+                    _UpperCaseTextFormatter(),
                   ],
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
@@ -239,7 +237,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                     letterSpacing: 1.2,
                   ),
                   decoration: InputDecoration(
-                    labelText: "Invoice No.",
+                    labelText: "Last Part",
                     hintText: "05",
                     labelStyle:
                         const TextStyle(color: _textMuted, fontSize: 13),
@@ -267,7 +265,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
           Padding(
             padding: const EdgeInsets.only(left: 4),
             child: Text(
-              "Example: G7-AP-05",
+              "Example: G7-AP-05 or ABC1-AP-05",
               style: TextStyle(
                 fontSize: 11.5,
                 color: _textMuted.withOpacity(0.85),
@@ -736,6 +734,19 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return newValue.copyWith(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
     );
   }
 }

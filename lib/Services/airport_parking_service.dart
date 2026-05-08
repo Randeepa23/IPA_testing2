@@ -15,7 +15,7 @@ class AirportInvoiceResult {
 }
 
 class AirportParkingService {
-  static const String _baseUrl = "https://airportparking.lk/get-invoice.php";
+  static const String _baseUrl = "https://exploresuite.lk/mobile-api/airport-parking/get-invoice.php";
 
   /// Same URL [fetchInvoice] uses — safe to load in a [WebView] (no native PDF plugin).
   static Uri invoiceRequestUri(String reference) {
@@ -23,9 +23,9 @@ class AirportParkingService {
     return Uri.parse(_baseUrl).replace(queryParameters: {'reference': ref});
   }
 
-  /// Validate the reference format: G\d+-AP-\d+ (e.g. G7-AP-05)
+  /// Validate the reference format: [letters/numbers]-AP-[letters/numbers].
   static bool isValidReference(String reference) {
-    final regex = RegExp(r'^G\d+-AP-\d+$');
+    final regex = RegExp(r'^[A-Z0-9]+-AP-[A-Z0-9]+$');
     return regex.hasMatch(reference.trim().toUpperCase());
   }
 
@@ -45,7 +45,7 @@ class AirportParkingService {
     if (!isValidReference(ref)) {
       return AirportInvoiceResult(
         status: false,
-        message: "Invalid reference format. Expected format: G7-AP-05",
+        message: "Invalid reference format. Expected format: G7-AP-05 or ABC1-AP-05",
       );
     }
 
