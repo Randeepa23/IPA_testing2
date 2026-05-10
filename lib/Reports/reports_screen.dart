@@ -1,45 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:test_app/VehicleUtilization/vehicle_utilization_screen.dart';
 import 'package:test_app/AirportParking/parking_stats_screen.dart';
+import 'package:test_app/Reports/sr_booking_dashboard_screen.dart';
 
 class ReportsScreen extends StatelessWidget {
   const ReportsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final reports = <_ReportItem>[
-      _ReportItem(
-        title: 'Vehicle Utilization',
-        subtitle: 'View vehicle usage, utilization and status insights',
-        imagePath: 'assets/vehicleUtilization.png',
-        icon: Icons.pie_chart_outline,
-        color: const Color(0xFF0B63CE),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const VehicleUtilizationScreen(),
-            ),
-          );
-        },
-      ),
-      _ReportItem(
-        title: 'Parking Dashboard',
-        subtitle: 'Bookings, active sessions, revenue & handover overview',
-        imagePath: 'assets/airportparking.png',
-        icon: Icons.local_parking_rounded,
-        color: const Color(0xFF1565C0),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const ParkingStatsScreen(),
-            ),
-          );
-        },
-      ),
-    ];
-
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
@@ -47,14 +15,92 @@ class ReportsScreen extends StatelessWidget {
         surfaceTintColor: Colors.white,
         backgroundColor: const Color(0xFFF5F7FA),
       ),
-      body: ListView.separated(
+      body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-        itemCount: reports.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final report = reports[index];
-          return _ReportCard(item: report);
-        },
+        children: [
+          const _ReportSectionTitle('SR Rent A Car'),
+          const SizedBox(height: 8),
+          _ReportCard(
+            item: _ReportItem(
+              title: 'Booking dashboard',
+              subtitle:
+                  'Contact inquiries, WhatsApp, email & active enquiries',
+              imagePath: 'assets/sr.png',
+              icon: Icons.dashboard_outlined,
+              color: const Color(0xFF1565C0),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const SrBookingDashboardScreen(),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 20),
+          const _ReportSectionTitle('Fleet & parking'),
+          const SizedBox(height: 8),
+          _ReportCard(
+            item: _ReportItem(
+              title: 'Vehicle Utilization',
+              subtitle:
+                  'View vehicle usage, utilization and status insights',
+              imagePath: 'assets/vehicleUtilization.png',
+              icon: Icons.pie_chart_outline,
+              color: const Color(0xFF0B63CE),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const VehicleUtilizationScreen(),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+          _ReportCard(
+            item: _ReportItem(
+              title: 'Parking Dashboard',
+              subtitle:
+                  'Bookings, active sessions, revenue & handover overview',
+              imagePath: 'assets/airportparking.png',
+              icon: Icons.local_parking_rounded,
+              color: const Color(0xFF1565C0),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ParkingStatsScreen(),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReportSectionTitle extends StatelessWidget {
+  final String title;
+
+  const _ReportSectionTitle(this.title);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 2),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFF64748B),
+          letterSpacing: 0.2,
+        ),
       ),
     );
   }
