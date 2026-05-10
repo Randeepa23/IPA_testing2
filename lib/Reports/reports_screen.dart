@@ -18,26 +18,6 @@ class ReportsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
         children: [
-          const _ReportSectionTitle('SR Rent A Car'),
-          const SizedBox(height: 8),
-          _ReportCard(
-            item: _ReportItem(
-              title: 'Booking dashboard',
-              subtitle:
-                  'Contact inquiries, WhatsApp, email & active enquiries',
-              imagePath: 'assets/sr.png',
-              icon: Icons.dashboard_outlined,
-              color: const Color(0xFF1565C0),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const SrBookingDashboardScreen(),
-                  ),
-                );
-              },
-            ),
-          ),
           const SizedBox(height: 20),
           const _ReportSectionTitle('Fleet & parking'),
           const SizedBox(height: 8),
@@ -73,6 +53,27 @@ class ReportsScreen extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (_) => const ParkingStatsScreen(),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+          const _ReportSectionTitle('SR Rent A Car'),
+          const SizedBox(height: 8),
+          _ReportCard(
+            item: _ReportItem(
+              title: 'Booking dashboard',
+              subtitle:
+                  'Contact inquiries, WhatsApp, email & active enquiries',
+              imagePath: 'assets/sr.png',
+              icon: Icons.dashboard_outlined,
+              color: const Color(0xFF1565C0),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const SrBookingDashboardScreen(),
                   ),
                 );
               },
