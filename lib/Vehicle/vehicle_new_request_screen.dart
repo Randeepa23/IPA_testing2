@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../ui/dialogs/vehicle_submit_dialog.dart';
 import '../Services/vehicle_api_service.dart';
@@ -409,10 +410,23 @@ void _showVehicleSubmitConfirmation() {
                       controller: _vehicleLettersController,
                       style: const TextStyle(color: Colors.black, fontSize: 15),
                       textCapitalization: TextCapitalization.characters,
+                      inputFormatters: [
+                        TextInputFormatter.withFunction((old, newVal) =>
+                            newVal.copyWith(text: newVal.text.toUpperCase())),
+                        FilteringTextInputFormatter.allow(RegExp(r'[A-Z]')),
+                        LengthLimitingTextInputFormatter(3),
+                      ],
                       decoration: _inputDecoration(
                         "Letters (e.g. ABC)",
                         icon: Icons.directions_car_outlined,
                       ),
+                      validator: (v) {
+                        final val = (v ?? '').trim();
+                        if (val.length < 2 || val.length > 3) {
+                          return '2 or 3 letters required';
+                        }
+                        return null;
+                      },
                     ),
                   ),
                   const Padding(
@@ -428,7 +442,16 @@ void _showVehicleSubmitConfirmation() {
                       controller: _vehicleNumbersController,
                       style: const TextStyle(color: Colors.black, fontSize: 15),
                       keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(4),
+                      ],
                       decoration: _inputDecoration("Numbers (e.g. 1234)"),
+                      validator: (v) {
+                        final val = (v ?? '').trim();
+                        if (val.length != 4) return 'Enter exactly 4 digits';
+                        return null;
+                      },
                     ),
                   ),
                 ],
