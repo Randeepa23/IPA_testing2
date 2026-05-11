@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../Services/airport_parking_service.dart';
+import '../ui/dialogs/update_slot_booking_dialog.dart';
 import 'invoice_pdf_viewer_screen.dart';
 
 class AirportParkingScreen extends StatefulWidget {
@@ -75,15 +76,6 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
       }
     });
 
-    if (result.status && result.file != null && mounted) {
-      // Open the fullscreen viewer right after a successful fetch so the
-      // user can see the invoice immediately, then return to this screen
-      // where the preview tile remains available for re-opening.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _openFullScreen();
-      });
-    }
   }
 
   void _openFullScreen() {
@@ -96,6 +88,13 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
           reference: loadedReference ?? "",
         ),
       ),
+    );
+  }
+
+  void _openUpdateScreen() {
+    showUpdateSlotBookingDialog(
+      context: context,
+      reference: loadedReference ?? '',
     );
   }
 
@@ -653,6 +652,35 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                     fontWeight: FontWeight.w800,
                     fontSize: 15,
                   ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton.icon(
+              onPressed: _openUpdateScreen,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _blue2,
+                side: const BorderSide(color: Color(0xFFBFD7F5), width: 1.4),
+                backgroundColor: const Color(0xFFF0F6FF),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              icon: const Icon(
+                Icons.edit_calendar_rounded,
+                size: 19,
+                color: _blue2,
+              ),
+              label: const Text(
+                "Update Booking End Date",
+                style: TextStyle(
+                  color: _blue2,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
                 ),
               ),
             ),
