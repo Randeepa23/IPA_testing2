@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../ui/dialogs/vehicle_submit_dialog.dart';
 import '../Services/vehicle_api_service.dart';
-import '../Services/transport_service_config.dart';
 import '../Leaves/top_banner.dart';
 import 'dart:convert';
 import '../Services/api_service.dart';
@@ -123,13 +123,9 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
   DateTime? fromDate;
   DateTime? toDate;
 
-  String? vehicleTypeName;
-  int _checkGeneration = 0;
-  final TextEditingController _availableVehicleController = TextEditingController();
-  List<AvailableVehicleOption> _availableVehicles = [];
-  AvailableVehicleOption? _selectedVehicle;
-  bool _isLoadingAvailableVehicles = false;
-  String? _availableVehicleError;
+  // Vehicle number parts
+  final TextEditingController _vehicleLettersController = TextEditingController();
+  final TextEditingController _vehicleNumbersController = TextEditingController();
 
   // Manager
   List<Map<String, String>> managers = [];
@@ -138,8 +134,6 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
   String? managerError;
 
   bool _isSubmitting = false;
-
-  int? vehicleId;
 
   // Photo cache for manager avatars
   final Map<int, Future<Map<String, dynamic>?>> _photoFutureCache = {};
@@ -157,7 +151,8 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
 
   @override
   void dispose() {
-    _availableVehicleController.dispose();
+    _vehicleLettersController.dispose();
+    _vehicleNumbersController.dispose();
     super.dispose();
   }
 
@@ -226,23 +221,7 @@ Future<void> _loadManagers() async {
 Future<void> _submitForm() async {
   if (!_formKey.currentState!.validate()) return;
   if (fromDate == null || toDate == null) return;
-  if (_selectedVehicle == null) {
-    TopBanner.show(
-      context,
-      title: "Vehicle Required",
-      message: "Please select an available vehicle for the selected date range.",
-      icon: Icons.error_outline,
-      isSuccess: false,
-    );
-    return;
-  }
 
-  if (_isLoadingAvailableVehicles) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Please wait for vehicle availability check to complete.")),
-    );
-    return;
-  }
   setState(() => _isSubmitting = true);
 
   try {
@@ -256,14 +235,12 @@ Future<void> _submitForm() async {
     final employeeName = nameController.text.trim();
     final employeePhone = contactController.text.trim();
 
-    final vehicleNo = _selectedVehicle!.regNo;
+    final letters = _vehicleLettersController.text.trim().toUpperCase();
+    final numbers = _vehicleNumbersController.text.trim();
+    final vehicleNo = "$letters-$numbers";
 
     final fromDateTxt = DateFormat("yyyy-MM-dd").format(fromDate!);
     final toDateTxt = DateFormat("yyyy-MM-dd").format(toDate!);
-
-    final vehicleType = _selectedVehicle!.vehicleTypeName.isEmpty
-        ? (vehicleTypeName ?? "-")
-        : _selectedVehicle!.vehicleTypeName;
 
     final res = await VehicleApiService.createOfficeVehicleRequest(
       employeeId: empId,
@@ -275,12 +252,9 @@ Future<void> _submitForm() async {
       contactNo: employeePhone,
       employeeName: employeeName,
       reason: "Office Service",
-      vehicleType: vehicleType,   // ← new optional param
-      vehicleId: _selectedVehicle!.id, // <-- pass the ID here
-
-      
+      vehicleType: "-",
+      vehicleId: 0,
     );
-    print("Vehicle Type Name: $vehicleType");
 
     if (res["success"] == true) {
           if (!mounted) return;
@@ -318,7 +292,11 @@ Future<void> _submitForm() async {
   }
 }
 void _showVehicleSubmitConfirmation() {
-  final vehicleNoTxt = _selectedVehicle?.regNo ?? "-";
+  final letters = _vehicleLettersController.text.trim().toUpperCase();
+  final numbers = _vehicleNumbersController.text.trim();
+  final vehicleNoTxt = (letters.isNotEmpty || numbers.isNotEmpty)
+      ? "$letters-$numbers"
+      : "-";
 
   final fromTxt = fromDate == null ? "-" : DateFormat('MM/dd/yyyy').format(fromDate!);
   final toTxt = toDate == null ? "-" : DateFormat('MM/dd/yyyy').format(toDate!);
@@ -338,92 +316,8 @@ void _showVehicleSubmitConfirmation() {
   );
 }
 
-  Future<void> _fetchAvailableVehicles() async {
-    if (fromDate == null || toDate == null) {
-      setState(() {
-        _availableVehicles = [];
-        _selectedVehicle = null;
-        _availableVehicleController.clear();
-        _availableVehicleError = null;
-        vehicleTypeName = null;
-        vehicleId = null;
-        _isLoadingAvailableVehicles = false;
-      });
-      return;
-    }
-    final gen = ++_checkGeneration;
 
-    setState(() {
-      _isLoadingAvailableVehicles = true;
-      _availableVehicleError = null;
-      _availableVehicles = [];
-      _selectedVehicle = null;
-      _availableVehicleController.clear();
-      vehicleTypeName = null;
-      vehicleId = null;
-    });
 
-    try {
-      final start = DateFormat("yyyy-MM-dd").format(fromDate!);
-      final end = DateFormat("yyyy-MM-dd").format(toDate!);
-      final uri = Uri.parse(TransportServiceConfig.availableVehiclesUrl).replace(
-        queryParameters: {
-          "start_date": start,
-          "end_date": end,
-        },
-      );
-
-      final response = await http.get(
-        uri,
-        headers: const {
-          "Accept": "application/json",
-        },
-      );
-
-      if (gen != _checkGeneration) return;
-
-      final body = response.body.trim();
-      if (body.isEmpty) {
-        setState(() {
-          _availableVehicleError = "No response from server.";
-          _isLoadingAvailableVehicles = false;
-        });
-        return;
-      }
-
-      final decoded = jsonDecode(body);
-      final payload = Map<String, dynamic>.from(decoded as Map);
-      final isSuccess = payload["success"] == true;
-      final data = (payload["data"] as List? ?? [])
-          .whereType<Map>()
-          .map((e) => AvailableVehicleOption.fromJson(Map<String, dynamic>.from(e)))
-          .where((v) => v.id > 0 && v.regNo.isNotEmpty)
-          .toList();
-
-      if (!isSuccess) {
-        setState(() {
-          _availableVehicleError = (payload["message"] ?? "Could not load available vehicles.").toString();
-          _isLoadingAvailableVehicles = false;
-        });
-        return;
-      }
-
-      setState(() {
-        _availableVehicles = data;
-        _availableVehicleError = data.isEmpty ? "No available vehicles for this date range." : null;
-        _isLoadingAvailableVehicles = false;
-      });
-    } catch (e) {
-      if (gen != _checkGeneration) return;
-      setState(() {
-        _availableVehicleError = "Could not load available vehicles. Please try again.";
-        _isLoadingAvailableVehicles = false;
-      });
-    }
-  }
-  
-
-  
 
   @override
   Widget build(BuildContext context) {
@@ -482,8 +376,6 @@ void _showVehicleSubmitConfirmation() {
                               toDate = null;
                             }
                           });
-
-                          _fetchAvailableVehicles();
                         }),
                       ],
                     ),
@@ -497,7 +389,6 @@ void _showVehicleSubmitConfirmation() {
                         const SizedBox(height: 8),
                         _buildDatePicker("To date", toDate, (d) {
                           setState(() => toDate = d);
-                          _fetchAvailableVehicles();
                         }, minDate: fromDate),
                       ],
                     ),
@@ -507,151 +398,64 @@ void _showVehicleSubmitConfirmation() {
 
               const SizedBox(height: 16),
 
-              // Available vehicles
-              const FormSectionTitle("Available Vehicle *"),
+              // Vehicle number entry
+              const FormSectionTitle("Vehicle Number"),
               const SizedBox(height: 8),
-              TypeAheadField<AvailableVehicleOption>(
-                controller: _availableVehicleController,
-                hideOnEmpty: true,
-                hideOnError: false,
-                hideOnUnfocus: false,
-                hideWithKeyboard: false,
-                decorationBuilder: (context, child) => Material(
-                  color: Colors.white,
-                  elevation: 4,
-                  borderRadius: BorderRadius.circular(12),
-                  child: child,
-                ),
-                suggestionsCallback: (pattern) {
-                  final q = pattern.trim().toLowerCase();
-                  if (q.isEmpty) return _availableVehicles;
-                  return _availableVehicles.where((vehicle) {
-                    final full = "${vehicle.regNo} ${vehicle.make} ${vehicle.model} ${vehicle.vehicleTypeName}".toLowerCase();
-                    return full.contains(q);
-                  }).toList();
-                },
-                itemBuilder: (context, suggestion) => ListTile(
-                  dense: true,
-                  tileColor: Colors.white,
-                  title: Text(
-                    suggestion.displayLabel,
-                    style: const TextStyle(fontSize: 13.5, color: Colors.black87),
-                  ),
-                  subtitle: Text(
-                    suggestion.vehicleTypeName,
-                    style: const TextStyle(fontSize: 12, color: Colors.black54),
-                  ),
-                ),
-                onSelected: (suggestion) {
-                  setState(() {
-                    _selectedVehicle = suggestion;
-                    _availableVehicleController.text = suggestion.displayLabel;
-                    vehicleId = suggestion.id;
-                    vehicleTypeName = suggestion.vehicleTypeName;
-                  });
-                },
-                builder: (context, controller, focusNode) {
-                  return TextFormField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    style: const TextStyle(color: Colors.black, fontSize: 15),
-                    decoration: _inputDecoration(
-                      "Search vehicle by number or model",
-                      icon: Icons.directions_car_outlined,
-                    ),
-                    validator: (_) {
-                      if (fromDate == null || toDate == null) {
-                        return "Select date range first";
-                      }
-                      if (_selectedVehicle == null) return "Please select an available vehicle";
-                      return null;
-                    },
-                  );
-                },
-                loadingBuilder: (context) => const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: Colors.blue,
-                      backgroundColor: Colors.white,
-                      strokeWidth: 2,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 4,
+                    child: TextFormField(
+                      controller: _vehicleLettersController,
+                      style: const TextStyle(color: Colors.black, fontSize: 15),
+                      textCapitalization: TextCapitalization.characters,
+                      inputFormatters: [
+                        TextInputFormatter.withFunction((old, newVal) =>
+                            newVal.copyWith(text: newVal.text.toUpperCase())),
+                        FilteringTextInputFormatter.allow(RegExp(r'[A-Z]')),
+                        LengthLimitingTextInputFormatter(3),
+                      ],
+                      decoration: _inputDecoration(
+                        "Letters (e.g. ABC)",
+                        icon: Icons.directions_car_outlined,
+                      ),
+                      validator: (v) {
+                        final val = (v ?? '').trim();
+                        if (val.length < 2 || val.length > 3) {
+                          return '2 or 3 letters required';
+                        }
+                        return null;
+                      },
                     ),
                   ),
-                ),
-                emptyBuilder: (context) => const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: ColoredBox(
-                    color: Colors.white,
-                    child: Text("No matching vehicles found."),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+                    child: Text(
+                      "-",
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.black54),
+                    ),
                   ),
-                ),
+                  Expanded(
+                    flex: 5,
+                    child: TextFormField(
+                      controller: _vehicleNumbersController,
+                      style: const TextStyle(color: Colors.black, fontSize: 15),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(4),
+                      ],
+                      decoration: _inputDecoration("Numbers (e.g. 1234)"),
+                      validator: (v) {
+                        final val = (v ?? '').trim();
+                        if (val.length != 4) return 'Enter exactly 4 digits';
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
               ),
-              if (_isLoadingAvailableVehicles)
-                const Padding(
-                  padding: EdgeInsets.only(top: 10),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Color(0xFF1565C0),
-                        ),
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        "Loading available vehicles...",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF1565C0),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              if (!_isLoadingAvailableVehicles && _availableVehicleError != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.error_outline,
-                          color: Colors.red, size: 15),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          _availableVehicleError!,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.red,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              if (!_isLoadingAvailableVehicles && _selectedVehicle != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.check_circle_outline,
-                          color: Colors.green, size: 15),
-                      const SizedBox(width: 6),
-                      Text(
-                        "Selected: ${_selectedVehicle!.regNo} · Type: ${_selectedVehicle!.vehicleTypeName}",
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.green,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               const SizedBox(height: 10),
 
               const SizedBox(height: 10),
@@ -818,9 +622,7 @@ void _showVehicleSubmitConfirmation() {
             GradientSubmitButton(
               label: 'SUBMIT',
               isLoading: _isSubmitting,
-              onPressed: (_isLoadingAvailableVehicles || _selectedVehicle == null)
-                  ? null
-                  : _showVehicleSubmitConfirmation,
+              onPressed: _isSubmitting ? null : _showVehicleSubmitConfirmation,
             ),
             ],
           ),

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
@@ -14,8 +15,19 @@ class AirportInvoiceResult {
   });
 }
 
+class UpdateSlotResult {
+  final bool status;
+  final String message;
+
+  const UpdateSlotResult({required this.status, required this.message});
+}
+
 class AirportParkingService {
-  static const String _baseUrl = "https://airportparking.lk/get-invoice.php";
+  static const String _baseUrl =
+      "https://exploresuite.lk/mobile-api/airport-parking/get-invoice.php";
+
+  static const String _updateSlotUrl =
+      "https://airportparking.lk/api/update_reserved_slot.php";
 
   /// Same URL [fetchInvoice] uses — safe to load in a [WebView] (no native PDF plugin).
   static Uri invoiceRequestUri(String reference) {
@@ -23,9 +35,9 @@ class AirportParkingService {
     return Uri.parse(_baseUrl).replace(queryParameters: {'reference': ref});
   }
 
-  /// Validate the reference format: G\d+-AP-\d+ (e.g. G7-AP-05)
+  /// Validate the reference format: [letters/numbers]-AP-[letters/numbers].
   static bool isValidReference(String reference) {
-    final regex = RegExp(r'^G\d+-AP-\d+$');
+    final regex = RegExp(r'^[A-Z0-9]+-AP-[A-Z0-9]+$');
     return regex.hasMatch(reference.trim().toUpperCase());
   }
 
@@ -45,7 +57,7 @@ class AirportParkingService {
     if (!isValidReference(ref)) {
       return AirportInvoiceResult(
         status: false,
-        message: "Invalid reference format. Expected format: G7-AP-05",
+        message: "Invalid reference format. Expected format: G7-AP-05 or ABC1-AP-05",
       );
     }
 
@@ -118,5 +130,77 @@ class AirportParkingService {
         bytes[1] == 0x50 &&
         bytes[2] == 0x44 &&
         bytes[3] == 0x46;
+  }
+
+  /// Update the [end_date] of an existing reserved slot.
+  /// [reference] should be in the format "G7-AP-05".
+  /// [endDate] should be formatted as "YYYY-MM-DD".
+  static Future<UpdateSlotResult> updateReservedSlot({
+    required String reference,
+    required String endDate,
+  }) async {
+    final ref = reference.trim().toUpperCase();
+
+    if (ref.isEmpty) {
+      return const UpdateSlotResult(
+        status: false,
+        message: "Please enter a reference number.",
+      );
+    }
+
+    if (!isValidReference(ref)) {
+      return const UpdateSlotResult(
+        status: false,
+        message: "Invalid reference format. Expected format: G7-AP-05",
+      );
+    }
+
+    if (endDate.isEmpty) {
+      return const UpdateSlotResult(
+        status: false,
+        message: "Please select a new end date.",
+      );
+    }
+
+    try {
+      final response = await http
+          .post(
+            Uri.parse(_updateSlotUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'reference_number': ref,
+              'end_date': endDate,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (response.statusCode != 200) {
+        return UpdateSlotResult(
+          status: false,
+          message: "Server error (${response.statusCode}). Please try again.",
+        );
+      }
+
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final ok = json['status'] == true;
+      final msg = (json['message'] as String?) ?? (ok ? 'Updated successfully' : 'Update failed');
+
+      return UpdateSlotResult(status: ok, message: msg);
+    } on SocketException {
+      return const UpdateSlotResult(
+        status: false,
+        message: "No internet connection. Please check your network.",
+      );
+    } on HttpException {
+      return const UpdateSlotResult(
+        status: false,
+        message: "Could not reach the server.",
+      );
+    } catch (e) {
+      return UpdateSlotResult(
+        status: false,
+        message: "Something went wrong: $e",
+      );
+    }
   }
 }
