@@ -444,37 +444,37 @@ class _UpdateSlotDialogState extends State<_UpdateSlotDialog> {
                     const SizedBox(height: 12),
 
                     // ── yellow notice ──────────────────────────────────────
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF7E6),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                            color: const Color(0xFFFFC107).withOpacity(0.45)),
-                      ),
-                      child: const Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(Icons.info_outline_rounded,
-                              color: Color(0xFF8A2C00), size: 17),
-                          SizedBox(width: 7),
-                          Expanded(
-                            child: Text(
-                              "Only the booking record will be updated. "
-                              "Your existing PDF invoice will not change.",
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                height: 1.4,
-                                color: Color(0xFF8A2C00),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    // Container(
+                    //   width: double.infinity,
+                    //   padding: const EdgeInsets.symmetric(
+                    //       horizontal: 10, vertical: 8),
+                    //   decoration: BoxDecoration(
+                    //     color: const Color(0xFFFFF7E6),
+                    //     borderRadius: BorderRadius.circular(10),
+                    //     border: Border.all(
+                    //         color: const Color(0xFFFFC107).withOpacity(0.45)),
+                    //   ),
+                    //   child: const Row(
+                    //     crossAxisAlignment: CrossAxisAlignment.start,
+                    //     children: [
+                    //       Icon(Icons.info_outline_rounded,
+                    //           color: Color(0xFF8A2C00), size: 17),
+                    //       SizedBox(width: 7),
+                    //       Expanded(
+                    //         child: Text(
+                    //           "Only the booking record will be updated. "
+                    //           "Your existing PDF invoice will not change.",
+                    //           style: TextStyle(
+                    //             fontSize: 11.5,
+                    //             height: 1.4,
+                    //             color: Color(0xFF8A2C00),
+                    //             fontWeight: FontWeight.w600,
+                    //           ),
+                    //         ),
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ),
 
                     // ── result feedback (error or success) ─────────────────
                     if (_resultMessage.isNotEmpty) ...[
