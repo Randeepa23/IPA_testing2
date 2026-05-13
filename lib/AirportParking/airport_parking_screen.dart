@@ -1110,189 +1110,187 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
               indent: 16, endIndent: 16),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-            child: (isPending || isConfirmed)
-                ? Row(
-                    children: [
-                      // ── LEFT: Update End Date ──
-                      Expanded(
-                        child: SizedBox(
-                          height: 48,
-                          child: OutlinedButton.icon(
-                            onPressed: _openUpdateScreen,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: _blue2,
-                              side: const BorderSide(
-                                  color: Color(0xFFBFD7F5), width: 1.4),
-                              backgroundColor: const Color(0xFFF0F6FF),
-                              padding: EdgeInsets.zero,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
+            child: isPending
+                // ── Pending: Confirm button only (full width) ──────────────
+                ? SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [_blue1, _blue2],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _blue2.withOpacity(0.28),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton.icon(
+                        onPressed:
+                            isUpdatingStatus ? null : _confirmBooking,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        icon: isUpdatingStatus
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.check_circle_rounded,
+                                color: Colors.white,
+                                size: 19,
+                              ),
+                        label: Text(
+                          isUpdatingStatus ? "Confirming..." : "Confirm Booking",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                // ── Confirmed: Update Date + Create PDF ────────────────────
+                : isConfirmed
+                    ? Row(
+                        children: [
+                          Expanded(
+                            child: SizedBox(
+                              height: 48,
+                              child: OutlinedButton.icon(
+                                onPressed: _openUpdateScreen,
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: _blue2,
+                                  side: const BorderSide(
+                                      color: Color(0xFFBFD7F5), width: 1.4),
+                                  backgroundColor: const Color(0xFFF0F6FF),
+                                  padding: EdgeInsets.zero,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.edit_calendar_rounded,
+                                    size: 17, color: _blue2),
+                                label: const Text(
+                                  "Update Date",
+                                  style: TextStyle(
+                                    color: _blue2,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                  ),
+                                ),
                               ),
                             ),
-                            icon: const Icon(Icons.edit_calendar_rounded,
-                                size: 17, color: _blue2),
-                            label: const Text(
-                              "Update Date",
-                              style: TextStyle(
-                                color: _blue2,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: SizedBox(
+                              height: 48,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFF16A34A),
+                                      Color(0xFF166534),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(14),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF166534)
+                                          .withOpacity(0.28),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: ElevatedButton.icon(
+                                  onPressed: isGeneratingPdf
+                                      ? null
+                                      : _generateAndOpenReceipt,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    elevation: 0,
+                                    padding: EdgeInsets.zero,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                  ),
+                                  icon: isGeneratingPdf
+                                      ? const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : const Icon(
+                                          Icons.picture_as_pdf_rounded,
+                                          color: Colors.white,
+                                          size: 17,
+                                        ),
+                                  label: Text(
+                                    isGeneratingPdf
+                                        ? "Generating..."
+                                        : "Create PDF",
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
                               ),
+                            ),
+                          ),
+                        ],
+                      )
+                    // ── Cancelled / other: Update End Date only ────────────
+                    : SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: OutlinedButton.icon(
+                          onPressed: _openUpdateScreen,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: _blue2,
+                            side: const BorderSide(
+                                color: Color(0xFFBFD7F5), width: 1.4),
+                            backgroundColor: const Color(0xFFF0F6FF),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          icon: const Icon(Icons.edit_calendar_rounded,
+                              size: 19, color: _blue2),
+                          label: const Text(
+                            "Update Booking End Date",
+                            style: TextStyle(
+                              color: _blue2,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      // ── RIGHT: Confirm (pending) or Create PDF (confirmed) ──
-                      Expanded(
-                        child: SizedBox(
-                          height: 48,
-                          child: isPending
-                              ? DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [_blue1, _blue2],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(14),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: _blue2.withOpacity(0.28),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: ElevatedButton.icon(
-                                    onPressed: isUpdatingStatus
-                                        ? null
-                                        : _confirmBooking,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.transparent,
-                                      shadowColor: Colors.transparent,
-                                      elevation: 0,
-                                      padding: EdgeInsets.zero,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(14),
-                                      ),
-                                    ),
-                                    icon: isUpdatingStatus
-                                        ? const SizedBox(
-                                            width: 16,
-                                            height: 16,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: Colors.white,
-                                            ),
-                                          )
-                                        : const Icon(
-                                            Icons.check_circle_rounded,
-                                            color: Colors.white,
-                                            size: 17,
-                                          ),
-                                    label: Text(
-                                      isUpdatingStatus
-                                          ? "Confirming..."
-                                          : "Confirm",
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w800,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              : DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Color(0xFF16A34A),
-                                        Color(0xFF166534),
-                                      ],
-                                    ),
-                                    borderRadius: BorderRadius.circular(14),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFF166534)
-                                            .withOpacity(0.28),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: ElevatedButton.icon(
-                                    onPressed: isGeneratingPdf
-                                        ? null
-                                        : _generateAndOpenReceipt,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.transparent,
-                                      shadowColor: Colors.transparent,
-                                      elevation: 0,
-                                      padding: EdgeInsets.zero,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(14),
-                                      ),
-                                    ),
-                                    icon: isGeneratingPdf
-                                        ? const SizedBox(
-                                            width: 16,
-                                            height: 16,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: Colors.white,
-                                            ),
-                                          )
-                                        : const Icon(
-                                            Icons.picture_as_pdf_rounded,
-                                            color: Colors.white,
-                                            size: 17,
-                                          ),
-                                    label: Text(
-                                      isGeneratingPdf
-                                          ? "Generating..."
-                                          : "Create PDF",
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w800,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ],
-                  )
-                // Cancelled / other statuses – single Update button
-                : SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: OutlinedButton.icon(
-                      onPressed: _openUpdateScreen,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: _blue2,
-                        side: const BorderSide(
-                            color: Color(0xFFBFD7F5), width: 1.4),
-                        backgroundColor: const Color(0xFFF0F6FF),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      icon: const Icon(Icons.edit_calendar_rounded,
-                          size: 19, color: _blue2),
-                      label: const Text(
-                        "Update Booking End Date",
-                        style: TextStyle(
-                          color: _blue2,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ),
           ),
         ],
       ),

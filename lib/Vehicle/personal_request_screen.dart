@@ -705,7 +705,11 @@ class _VehicleRequestCard extends StatelessWidget {
             ],
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
+
+          _attemptBanner(),
+
+          const SizedBox(height: 10),
 
           // details box
           Container(
@@ -791,6 +795,73 @@ class _VehicleRequestCard extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _attemptBanner() {
+    final attempt = int.tryParse(
+            (data['current_attempt'] ?? data['usage_count'] ?? '1').toString()) ??
+        1;
+    final label =
+        (data['attempt_label'] ?? (attempt == 1 ? 'First Attempt' : '$attempt Attempt'))
+            .toString()
+            .trim();
+
+    final isFirst = attempt <= 1;
+
+    final Color bg      = isFirst ? const Color(0xFFECFDF5) : const Color(0xFFFFFBEB);
+    final Color border  = isFirst ? const Color(0xFFBBF7D0) : const Color(0xFFFDE68A);
+    final Color iconCol = isFirst ? const Color(0xFF15803D) : const Color(0xFFB45309);
+    final Color textCol = isFirst ? const Color(0xFF14532D) : const Color(0xFF78350F);
+    final IconData icon = isFirst ? Icons.verified_outlined : Icons.repeat_rounded;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: iconCol),
+          const SizedBox(width: 8),
+          Text(
+            "Attempt:",
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: textCol,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w900,
+              color: textCol,
+            ),
+          ),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: iconCol.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              "#$attempt",
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                color: iconCol,
+              ),
+            ),
           ),
         ],
       ),
