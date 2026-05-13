@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
@@ -10,18 +11,18 @@ import 'package:pdf/widgets.dart' as pw;
 /// dashed footer. Pure-Dart pdf package — no platform channel required.
 class AirportParkingReceiptBuilder {
   // ── Palette ──────────────────────────────────────────────────────────────────
-  static const _navyBg = PdfColor(0.059, 0.090, 0.165); // #0F172A  dark header
-  static const _white = PdfColors.white;
-  static const _subText = PdfColor(0.75, 0.80, 0.88);  // header sub-text
-  static const _dark = PdfColor(0.067, 0.094, 0.153);  // #111827
-  static const _grey = PdfColor(0.216, 0.255, 0.318);  // #374151
-  static const _border = PdfColor(0.820, 0.831, 0.859);// #d1d5db
+  static const _headerBg = PdfColor(0.910, 0.906, 0.890); // #e8e7e3  light header
+  static const _primary  = PdfColor(0.047, 0.012, 0.180); // #0c032e  main brand dark
+  static const _subText  = PdfColor(0.216, 0.255, 0.318); // #374151  header sub-text
+  static const _dark     = PdfColor(0.047, 0.012, 0.180); // #0c032e  body text
+  static const _grey     = PdfColor(0.216, 0.255, 0.318); // #374151
+  static const _border   = PdfColor(0.820, 0.831, 0.859); // #d1d5db
   static const _tableBorder = PdfColor(0.898, 0.906, 0.922); // #e5e7eb
-  static const _sectionBg = PdfColor(0.953, 0.957, 0.965); // #f3f4f6
-  static const _rowAlt = PdfColor(0.980, 0.980, 0.980);     // #fafafa
-  static const _amountBg = PdfColor(0.976, 0.980, 0.984);   // #f9fafb
-  static const _green = PdfColor(0.086, 0.396, 0.204);      // #166534
-  static const _greenBg = PdfColor(0.863, 0.988, 0.910);    // #dcfce7
+  static const _sectionBg   = PdfColor(0.953, 0.957, 0.965); // #f3f4f6
+  static const _rowAlt      = PdfColor(0.980, 0.980, 0.980); // #fafafa
+  static const _amountBg    = PdfColor(0.976, 0.980, 0.984); // #f9fafb
+  static const _green       = PdfColor(0.086, 0.396, 0.204); // #166534
+  static const _greenBg     = PdfColor(0.863, 0.988, 0.910); // #dcfce7
 
   // ──────────────────────────────────────────────────────────────────────────
   //  PUBLIC ENTRY POINT
@@ -58,6 +59,10 @@ class AirportParkingReceiptBuilder {
           '${DateFormat('yyyy-MM-dd hh:mm a').format(s)} to\n${DateFormat('yyyy-MM-dd hh:mm a').format(e)}';
     } catch (_) {}
 
+    // ── Load logo ─────────────────────────────────────────────────────────────
+    final logoData = await rootBundle.load('assets/airportparking.png');
+    final logoImage = pw.MemoryImage(logoData.buffer.asUint8List());
+
     // ── Build document ────────────────────────────────────────────────────────
     final doc = pw.Document();
     doc.addPage(
@@ -67,7 +72,7 @@ class AirportParkingReceiptBuilder {
         build: (ctx) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.stretch,
           children: [
-            _header(reference, receiptNo, generatedAt),
+            _header(reference, receiptNo, generatedAt, logoImage),
             pw.SizedBox(height: 10),
             _metaRow(receiptNo, reference, generatedAt),
             pw.SizedBox(height: 10),
@@ -102,32 +107,28 @@ class AirportParkingReceiptBuilder {
   //  HEADER  — white bg, thick dark bottom border
   // ──────────────────────────────────────────────────────────────────────────
 
-  // ── dark navy header — no borderRadius (avoids color+radius artefact) ──────
+  // ── light beige header (#e8e7e3 bg) with logo image ─────────────────────────
   static pw.Widget _header(
-      String reference, String receiptNo, String generatedAt) {
+      String reference,
+      String receiptNo,
+      String generatedAt,
+      pw.ImageProvider logoImage) {
     return pw.Container(
       padding:
-          const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: const pw.BoxDecoration(
-        color: _navyBg, // safe: color without borderRadius
+        color: _headerBg, // #e8e7e3 — safe: color without borderRadius
       ),
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         crossAxisAlignment: pw.CrossAxisAlignment.center,
         children: [
-          // Left: company info
+          // Left: logo + address
           pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text(
-                'Airport Parking',
-                style: pw.TextStyle(
-                  fontSize: 22,
-                  fontWeight: pw.FontWeight.bold,
-                  color: _white,
-                ),
-              ),
-              pw.SizedBox(height: 4),
+              pw.Image(logoImage, height: 48, fit: pw.BoxFit.contain),
+              pw.SizedBox(height: 6),
               pw.Text(
                 'No. 371/5, Negombo Road, Seeduwa, Sri Lanka',
                 style: pw.TextStyle(fontSize: 9, color: _subText),
@@ -148,7 +149,7 @@ class AirportParkingReceiptBuilder {
                 style: pw.TextStyle(
                   fontSize: 22,
                   fontWeight: pw.FontWeight.bold,
-                  color: _white,
+                  color: _primary, // #0c032e
                 ),
               ),
               pw.SizedBox(height: 4),
@@ -241,7 +242,7 @@ class AirportParkingReceiptBuilder {
                   style: pw.TextStyle(
                     fontSize: 11,
                     fontWeight: pw.FontWeight.bold,
-                    color: _navyBg,
+                    color: _primary, // #0c032e
                   ),
                 ),
                 pw.SizedBox(height: 3),
