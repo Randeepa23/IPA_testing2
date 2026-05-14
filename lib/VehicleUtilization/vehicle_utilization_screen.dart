@@ -606,11 +606,29 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
                         children: [
                           const Icon(Icons.pie_chart, color: AppColors.primaryStart),
                           const SizedBox(width: 8),
-                          Text(
-                            'Utilization Status Overview',
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
+                          Expanded(
+                            child: Text(
+                              'Utilization Status Overview',
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () => _showUtilizationRangeGuide(context),
+                            borderRadius: BorderRadius.circular(20),
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryStart.withValues(alpha: 0.08),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.info_outline_rounded,
+                                color: AppColors.primaryStart,
+                                size: 20,
+                              ),
                             ),
                           ),
                         ],
@@ -785,6 +803,209 @@ class _VehicleUtilizationScreenState extends State<VehicleUtilizationScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  void _showUtilizationRangeGuide(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const Icon(Icons.speed_rounded, color: AppColors.primaryStart),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Utilization Range Guide',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 17,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'How vehicle utilization status is determined',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: Colors.black54,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+
+              // Gradient bar
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: SizedBox(
+                  height: 28,
+                  child: Row(
+                    children: [
+                      _BarSegment(flex: 1,  color: const Color(0xFFF44336), label: '0%'),
+                      _BarSegment(flex: 49, color: const Color(0xFFFF9800), label: '1–49%'),
+                      _BarSegment(flex: 15, color: const Color(0xFF1565C0), label: '50–64%'),
+                      _BarSegment(flex: 11, color: const Color(0xFF8BC34A), label: '65–75%'),
+                      _BarSegment(flex: 25, color: const Color(0xFF4CAF50), label: '>75%'),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Status rows
+              const _RangeRow(
+                color: Color(0xFFF44336),
+                status: 'Not Utilized',
+                range: '0%',
+                icon: Icons.cancel_rounded,
+              ),
+              const _RangeRow(
+                color: Color(0xFFFF9800),
+                status: 'Under Utilized',
+                range: '1% – 49%',
+                icon: Icons.trending_down_rounded,
+              ),
+              const _RangeRow(
+                color: Color(0xFF1565C0),
+                status: 'Fair',
+                range: '50% – 64%',
+                icon: Icons.horizontal_rule_rounded,
+              ),
+              const _RangeRow(
+                color: Color(0xFF8BC34A),
+                status: 'Good',
+                range: '65% – 75%',
+                icon: Icons.trending_up_rounded,
+              ),
+              const _RangeRow(
+                color: Color(0xFF4CAF50),
+                status: 'Excellent',
+                range: 'Above 75%',
+                icon: Icons.check_circle_rounded,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _BarSegment extends StatelessWidget {
+  final int flex;
+  final Color color;
+  final String label;
+
+  const _BarSegment({
+    required this.flex,
+    required this.color,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      flex: flex,
+      child: Container(
+        color: color,
+        alignment: Alignment.center,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 9,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RangeRow extends StatelessWidget {
+  final Color color;
+  final String status;
+  final String range;
+  final IconData icon;
+
+  const _RangeRow({
+    required this.color,
+    required this.status,
+    required this.range,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              status,
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: const Color(0xFF1E2A3A),
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Text(
+              range,
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+                color: color,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

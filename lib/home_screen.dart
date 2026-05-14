@@ -44,6 +44,19 @@ class _HomeScreenState extends State<HomeScreen> {
         .contains(id);
   }
 
+  // ── Airport Parking access ────────────────────────────────────────────────
+  // Add or remove employee IDs here to control who can open the module.
+  static const _airportParkingAllowedIds = ["26","11","14","19","24","29","52","61","80"];
+
+  bool get isAirportParkingAllowed {
+    final id =
+        (widget.user["employeeId"] ?? widget.user["employee_id"] ?? widget.user["id"])
+            ?.toString()
+            .trim() ??
+        "";
+    return _airportParkingAllowedIds.contains(id);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -124,10 +137,9 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
             // more placeholders can be added here without changing the UI code
       _ServiceItem(
-        //icon: Icons.local_parking_rounded,
         image: 'assets/airportparking.png',
         label: "Airport Parking",
-        disabled: false,
+        disabled: !isAirportParkingAllowed,
         onTap: () {
           Navigator.push(
             context,

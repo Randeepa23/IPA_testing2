@@ -1,8 +1,12 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:open_file/open_file.dart';
+import '../Leaves/top_banner.dart';
 import '../Services/airport_parking_service.dart';
 import '../ui/dialogs/update_slot_booking_dialog.dart';
+import 'airport_parking_receipt_builder.dart';
 import 'invoice_pdf_viewer_screen.dart';
 
 class AirportParkingScreen extends StatefulWidget {
@@ -19,9 +23,12 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
   final TextEditingController apNumberController = TextEditingController();
 
   bool isLoading = false;
+  bool isUpdatingStatus = false;
+  bool isGeneratingPdf = false;
   String? errorMessage;
   File? invoiceFile;
   String? loadedReference;
+  Map<String, dynamic>? bookingData;
 
   static const _blue1 = Color(0xFF1565C0);
   static const _blue2 = Color(0xFF003580);
@@ -41,7 +48,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
     return "$firstPart-AP-$lastPart";
   }
 
-  Future<void> _fetchInvoice() async {
+  Future<void> _search() async {
     final g = gNumberController.text.trim();
     final ap = apNumberController.text.trim();
 
@@ -50,6 +57,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
         errorMessage = "Please fill in both reference parts.";
         invoiceFile = null;
         loadedReference = null;
+        bookingData = null;
       });
       return;
     }
@@ -59,23 +67,307 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
       errorMessage = null;
       invoiceFile = null;
       loadedReference = null;
+      bookingData = null;
     });
 
     final reference = _composedReference;
-    final result = await AirportParkingService.fetchInvoice(reference);
+
+    // Fire both requests in parallel
+    final bookingFuture = AirportParkingService.fetchBooking(reference);
+    final invoiceFuture = AirportParkingService.fetchInvoice(reference);
+
+    final bookingResult = await bookingFuture;
+    final invoiceResult = await invoiceFuture;
 
     if (!mounted) return;
 
     setState(() {
       isLoading = false;
-      if (result.status && result.file != null) {
-        invoiceFile = result.file;
+
+      if (bookingResult.status && bookingResult.data != null) {
+        bookingData = bookingResult.data;
         loadedReference = reference;
+        errorMessage = null;
       } else {
-        errorMessage = result.message;
+        errorMessage = bookingResult.message;
+      }
+
+      if (invoiceResult.status && invoiceResult.file != null) {
+        invoiceFile = invoiceResult.file;
+        loadedReference = reference;
+      }
+    });
+  }
+
+  Future<void> _confirmBooking() async {
+    if (loadedReference == null) return;
+
+    final ref =
+        bookingData?['reference_number'] as String? ?? loadedReference ?? '—';
+    final name = bookingData?['name'] as String? ?? '—';
+    final whatsapp = bookingData?['whatsapp_number'] as String? ?? '';
+
+    // ── Confirmation dialog ───────────────────────────────────────────────────
+    final agreed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withOpacity(0.15),
+      builder: (ctx) {
+        final dialogW =
+            (MediaQuery.of(ctx).size.width * 0.90).clamp(300.0, 420.0);
+        return Stack(
+          children: [
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+              child: Container(color: Colors.transparent),
+            ),
+            Center(
+              child: Dialog(
+                insetPadding: const EdgeInsets.all(16),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+                child: SizedBox(
+                  width: dialogW,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header row
+                        Row(
+                          children: [
+                            const Icon(Icons.check_circle_outline,
+                                color: _blue2),
+                            const SizedBox(width: 10),
+                            const Expanded(
+                              child: Text(
+                                "Confirm Booking",
+                                style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800),
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              icon: const Icon(Icons.close),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                          ],
+                        ),
+                        const Text(
+                          "Please verify the details before confirming.",
+                          style: TextStyle(
+                              color: Colors.grey,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12.5),
+                        ),
+                        const SizedBox(height: 14),
+                        // Details box
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border:
+                                Border.all(color: const Color(0xFFE8EDF5)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _detailRow(Icons.confirmation_number_rounded,
+                                  "Reference", ref),
+                              const SizedBox(height: 8),
+                              _detailRow(Icons.person_rounded,
+                                  "Customer", name),
+                              const SizedBox(height: 8),
+                              _detailRow(
+                                  Icons.phone_rounded,
+                                  "WhatsApp",
+                                  whatsapp.isNotEmpty
+                                      ? '+$whatsapp'
+                                      : '—'),
+                              const SizedBox(height: 8),
+                              _detailRow(
+                                Icons.sync_alt_rounded,
+                                "Status",
+                                "Pending  →  Confirmed",
+                                valueColor: const Color(0xFF166534),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        // Buttons
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: const Color(0xFF0060A6),
+                                  side: const BorderSide(
+                                      color: Color(0xFFC4C4C4),
+                                      width: 1.2),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 12),
+                                ),
+                                child: const Text("Cancel"),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: SizedBox(
+                                height: 48,
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [_blue1, _blue2],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius:
+                                        BorderRadius.circular(12),
+                                  ),
+                                  child: ElevatedButton(
+                                    onPressed: () =>
+                                        Navigator.pop(ctx, true),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.transparent,
+                                      shadowColor: Colors.transparent,
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12)),
+                                    ),
+                                    child: const Text(
+                                      "Yes, Confirm",
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w700),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted) return;
+
+    // ── User cancelled ────────────────────────────────────────────────────────
+    if (agreed != true) {
+      TopBanner.show(
+        context,
+        title: 'Cancelled',
+        message: 'Booking confirmation was cancelled. No changes were made.',
+        icon: Icons.cancel_outlined,
+        isError: true,
+      );
+      return;
+    }
+
+    // ── Call API ──────────────────────────────────────────────────────────────
+    setState(() => isUpdatingStatus = true);
+
+    final result = await AirportParkingService.updateBookingStatus(
+      reference: loadedReference!,
+      status: 'confirmed',
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      isUpdatingStatus = false;
+      if (result.status && bookingData != null) {
+        bookingData = Map<String, dynamic>.from(bookingData!)
+          ..['booking_status'] = result.bookingStatus ?? 'confirmed';
       }
     });
 
+    // ── Result banner ─────────────────────────────────────────────────────────
+    TopBanner.show(
+      context,
+      title: result.status ? 'Booking Confirmed' : 'Update Failed',
+      message: result.message,
+      icon: result.status
+          ? Icons.check_circle_rounded
+          : Icons.error_outline_rounded,
+      isSuccess: result.status,
+      isError: !result.status,
+    );
+  }
+
+  // Helper for detail rows inside the confirmation dialog
+  static Widget _detailRow(
+    IconData icon,
+    String label,
+    String value, {
+    Color? valueColor,
+  }) {
+    const muted = Color(0xFF64748B);
+    const dark = Color(0xFF0F172A);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 15, color: muted),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 72,
+          child: Text(label,
+              style: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: muted)),
+        ),
+        Expanded(
+          child: Text(value,
+              style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: valueColor ?? dark)),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _generateAndOpenReceipt() async {
+    if (bookingData == null) return;
+    setState(() => isGeneratingPdf = true);
+
+    try {
+      final file = await AirportParkingReceiptBuilder.generate(bookingData!);
+      if (!mounted) return;
+      await OpenFile.open(file.path);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Could not generate receipt: $e"),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => isGeneratingPdf = false);
+    }
   }
 
   void _openFullScreen() {
@@ -95,6 +387,119 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
     showUpdateSlotBookingDialog(
       context: context,
       reference: loadedReference ?? '',
+    );
+  }
+
+  // ──────────────────────────────────────────────
+  //  HELPERS
+  // ──────────────────────────────────────────────
+
+  String _formatDateTime(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return '—';
+    try {
+      final dt = DateTime.parse(raw.trim().replaceFirst(' ', 'T'));
+      const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      ];
+      final month = months[dt.month - 1];
+      final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+      final minute = dt.minute.toString().padLeft(2, '0');
+      final ampm = dt.hour >= 12 ? 'PM' : 'AM';
+      return '$month ${dt.day}, ${dt.year}  $hour:$minute $ampm';
+    } catch (_) {
+      return raw;
+    }
+  }
+
+  Widget _buildStatusBadge(String status) {
+    Color bg;
+    Color fg;
+    IconData icon;
+    String label;
+
+    switch (status.toLowerCase()) {
+      case 'confirmed':
+        bg = const Color(0xFFDCFCE7);
+        fg = const Color(0xFF166534);
+        icon = Icons.check_circle_rounded;
+        label = 'Confirmed';
+        break;
+      case 'pending':
+        bg = const Color(0xFFFEF3C7);
+        fg = const Color(0xFF92400E);
+        icon = Icons.hourglass_empty_rounded;
+        label = 'Pending';
+        break;
+      case 'cancelled':
+        bg = const Color(0xFFFEE2E2);
+        fg = const Color(0xFF991B1B);
+        icon = Icons.cancel_rounded;
+        label = 'Cancelled';
+        break;
+      default:
+        bg = const Color(0xFFF1F5F9);
+        fg = _textMuted;
+        icon = Icons.info_outline_rounded;
+        label = status;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: fg),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: fg,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 11),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 17, color: _textMuted),
+          const SizedBox(width: 9),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12.5,
+              color: _textMuted,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 13,
+                color: _textDark,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -132,7 +537,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Airport Parking Invoice",
+                      "Airport Parking",
                       style: TextStyle(
                         color: _textDark,
                         fontSize: 15,
@@ -141,7 +546,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                     ),
                     SizedBox(height: 3),
                     Text(
-                      "Search by reference number to view invoice",
+                      "Enter a reference number to view booking & invoice",
                       style: TextStyle(
                         color: _textMuted,
                         fontSize: 12.5,
@@ -168,7 +573,6 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
 
           const SizedBox(height: 16),
 
-          // Reference parts: [letters/numbers] - AP - [letters/numbers]
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -189,7 +593,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                   ),
                   decoration: InputDecoration(
                     labelText: "First Part",
-                    hintText: "G7",
+                    hintText: "B4",
                     labelStyle:
                         const TextStyle(color: _textMuted, fontSize: 13),
                     filled: true,
@@ -237,7 +641,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                   ),
                   decoration: InputDecoration(
                     labelText: "Last Part",
-                    hintText: "05",
+                    hintText: "01",
                     labelStyle:
                         const TextStyle(color: _textMuted, fontSize: 13),
                     filled: true,
@@ -264,7 +668,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
           Padding(
             padding: const EdgeInsets.only(left: 4),
             child: Text(
-              "Example: G7-AP-05 or ABC1-AP-05",
+              "Example: B4-AP-01 or G7-AP-05",
               style: TextStyle(
                 fontSize: 11.5,
                 color: _textMuted.withOpacity(0.85),
@@ -275,7 +679,6 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
 
           const SizedBox(height: 16),
 
-          // Search button
           Container(
             width: double.infinity,
             height: 50,
@@ -291,7 +694,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: ElevatedButton(
-              onPressed: isLoading ? null : _fetchInvoice,
+              onPressed: isLoading ? null : _search,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
@@ -312,11 +715,11 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                   : const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.picture_as_pdf_rounded,
+                        Icon(Icons.search_rounded,
                             color: Colors.white, size: 20),
                         SizedBox(width: 8),
                         Text(
-                          "View Invoice",
+                          "Search Booking",
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
@@ -390,14 +793,14 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
               borderRadius: BorderRadius.circular(18),
             ),
             child: const Icon(
-              Icons.picture_as_pdf_rounded,
+              Icons.local_parking_rounded,
               size: 34,
               color: _blue2,
             ),
           ),
           const SizedBox(height: 14),
           const Text(
-            "No Invoice Yet",
+            "No Booking Yet",
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
@@ -406,7 +809,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
           ),
           const SizedBox(height: 6),
           const Text(
-            "Enter a reference number above and\ntap View Invoice to load your PDF.",
+            "Enter a reference number above and\ntap Search Booking to view details.",
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
@@ -435,7 +838,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    "Notice: Reference numbers must be in the format G{n}-AP-{n}, for example G7-AP-05.",
+                    "Reference numbers must be in the format X-AP-Y, for example B4-AP-01 or G7-AP-05.",
                     style: TextStyle(
                       fontSize: 12.5,
                       height: 1.45,
@@ -453,9 +856,451 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
   }
 
   // ──────────────────────────────────────────────
-  //  RESULT CARD (with tappable PDF tile)
+  //  BOOKING DETAILS CARD
   // ──────────────────────────────────────────────
-  Widget _buildResultCard() {
+  Widget _buildBookingCard() {
+    final d = bookingData!;
+    final status = (d['booking_status'] as String? ?? '').toLowerCase();
+    final name = d['name'] as String? ?? '—';
+    final email = d['email'] as String? ?? '—';
+    final whatsapp = d['whatsapp_number'] as String? ?? '—';
+    final vehicle = d['vehicle_number'] as String? ?? '';
+    final startDate = _formatDateTime(d['start_date'] as String?);
+    final endDate = _formatDateTime(d['end_date'] as String?);
+    final price = d['total_price'] as String? ?? '—';
+    final reference = d['reference_number'] as String? ?? loadedReference ?? '—';
+    final isPending = status == 'pending';
+    final isConfirmed = status == 'confirmed';
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Booking Details",
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          color: _textDark,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        reference,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: _textMuted,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _buildStatusBadge(d['booking_status'] as String? ?? status),
+              ],
+            ),
+          ),
+
+          const Divider(height: 1, color: Color(0xFFE2E8F0)),
+
+          // ── Customer Info ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Customer",
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: _textMuted,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _buildInfoRow(Icons.person_rounded, "Name", name),
+                if (vehicle.isNotEmpty)
+                  _buildInfoRow(
+                      Icons.directions_car_rounded, "Vehicle", vehicle),
+                _buildInfoRow(Icons.email_rounded, "Email", email),
+                _buildInfoRow(Icons.phone_rounded, "WhatsApp", whatsapp),
+              ],
+            ),
+          ),
+
+          const Divider(height: 1, color: Color(0xFFE2E8F0),
+              indent: 16, endIndent: 16),
+
+          // ── Dates ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Duration",
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: _textMuted,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border:
+                              Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Check-in",
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: _textMuted,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              startDate,
+                              style: const TextStyle(
+                                fontSize: 12.5,
+                                color: _textDark,
+                                fontWeight: FontWeight.w800,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEFF6FF),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 16,
+                          color: _blue2,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border:
+                              Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Check-out",
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: _textMuted,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              endDate,
+                              style: const TextStyle(
+                                fontSize: 12.5,
+                                color: _textDark,
+                                fontWeight: FontWeight.w800,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          const Divider(height: 1, color: Color(0xFFE2E8F0),
+              indent: 16, endIndent: 16),
+
+          // ── Price ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.payments_rounded,
+                    size: 20,
+                    color: Color(0xFF166534),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  "Total Price",
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    color: _textMuted,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  "LKR $price",
+                  style: const TextStyle(
+                    fontSize: 17,
+                    color: _textDark,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Action Buttons ──
+          const Divider(height: 1, color: Color(0xFFE2E8F0),
+              indent: 16, endIndent: 16),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+            child: isPending
+                // ── Pending: Confirm button only (full width) ──────────────
+                ? SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [_blue1, _blue2],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _blue2.withOpacity(0.28),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton.icon(
+                        onPressed:
+                            isUpdatingStatus ? null : _confirmBooking,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        icon: isUpdatingStatus
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.check_circle_rounded,
+                                color: Colors.white,
+                                size: 19,
+                              ),
+                        label: Text(
+                          isUpdatingStatus ? "Confirming..." : "Confirm Booking",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                // ── Confirmed: Update Date + Create PDF ────────────────────
+                : isConfirmed
+                    ? Row(
+                        children: [
+                          Expanded(
+                            child: SizedBox(
+                              height: 48,
+                              child: OutlinedButton.icon(
+                                onPressed: _openUpdateScreen,
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: _blue2,
+                                  side: const BorderSide(
+                                      color: Color(0xFFBFD7F5), width: 1.4),
+                                  backgroundColor: const Color(0xFFF0F6FF),
+                                  padding: EdgeInsets.zero,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.edit_calendar_rounded,
+                                    size: 17, color: _blue2),
+                                label: const Text(
+                                  "Update Date",
+                                  style: TextStyle(
+                                    color: _blue2,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: SizedBox(
+                              height: 48,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFF16A34A),
+                                      Color(0xFF166534),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(14),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF166534)
+                                          .withOpacity(0.28),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: ElevatedButton.icon(
+                                  onPressed: isGeneratingPdf
+                                      ? null
+                                      : _generateAndOpenReceipt,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    elevation: 0,
+                                    padding: EdgeInsets.zero,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                  ),
+                                  icon: isGeneratingPdf
+                                      ? const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : const Icon(
+                                          Icons.picture_as_pdf_rounded,
+                                          color: Colors.white,
+                                          size: 17,
+                                        ),
+                                  label: Text(
+                                    isGeneratingPdf
+                                        ? "Generating..."
+                                        : "Create PDF",
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    // ── Cancelled / other: Update End Date only ────────────
+                    : SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: OutlinedButton.icon(
+                          onPressed: _openUpdateScreen,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: _blue2,
+                            side: const BorderSide(
+                                color: Color(0xFFBFD7F5), width: 1.4),
+                            backgroundColor: const Color(0xFFF0F6FF),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          icon: const Icon(Icons.edit_calendar_rounded,
+                              size: 19, color: _blue2),
+                          label: const Text(
+                            "Update Booking End Date",
+                            style: TextStyle(
+                              color: _blue2,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ──────────────────────────────────────────────
+  //  INVOICE PDF CARD
+  // ──────────────────────────────────────────────
+  Widget _buildInvoiceCard() {
     final fileSize = _formatFileSize(_safeFileSize(invoiceFile));
     final reference = loadedReference ?? "Invoice";
 
@@ -480,44 +1325,44 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
           Row(
             children: [
               Container(
-                height: 48,
-                width: 48,
+                height: 46,
+                width: 46,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(colors: [_blue1, _blue2]),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
-                      color: _blue2.withOpacity(0.25),
-                      blurRadius: 12,
-                      offset: const Offset(0, 5),
+                      color: _blue2.withOpacity(0.22),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
                 child: const Icon(
-                  Icons.check_circle_rounded,
+                  Icons.picture_as_pdf_rounded,
                   color: Colors.white,
-                  size: 26,
+                  size: 24,
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(
+              const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "Invoice is ready",
+                    Text(
+                      "Invoice Ready",
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.w900,
                         color: _textDark,
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    SizedBox(height: 2),
                     Text(
-                      "Open it to view, share or download.",
+                      "Tap below to open, share or download.",
                       style: TextStyle(
                         fontSize: 12.5,
-                        color: _textMuted.withOpacity(0.95),
+                        color: _textMuted,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -525,13 +1370,14 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: const Color(0xFFE8F4FD),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: const Text(
-                  "Ready",
+                  "PDF",
                   style: TextStyle(
                     color: _blue2,
                     fontSize: 11,
@@ -541,30 +1387,30 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           InkWell(
             onTap: _openFullScreen,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Row(
                 children: [
                   Container(
-                    height: 44,
-                    width: 44,
+                    height: 42,
+                    width: 42,
                     decoration: BoxDecoration(
                       color: const Color(0xFFEFF6FF),
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
                       Icons.picture_as_pdf_rounded,
                       color: _blue2,
-                      size: 24,
+                      size: 22,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -577,50 +1423,48 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontSize: 14,
+                            fontSize: 13.5,
                             fontWeight: FontWeight.w900,
                             color: _textDark,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 3),
                         Text(
                           "PDF Document · $fileSize",
                           style: const TextStyle(
                             fontSize: 12,
                             color: _textMuted,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
                     ),
                   ),
                   Container(
-                    height: 34,
-                    width: 34,
+                    height: 32,
+                    width: 32,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: const Icon(
                       Icons.arrow_forward_ios_rounded,
                       color: _blue2,
-                      size: 15,
+                      size: 14,
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             height: 50,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [_blue1, _blue2],
-                ),
+                gradient: const LinearGradient(colors: [_blue1, _blue2]),
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
@@ -656,35 +1500,6 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: OutlinedButton.icon(
-              onPressed: _openUpdateScreen,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: _blue2,
-                side: const BorderSide(color: Color(0xFFBFD7F5), width: 1.4),
-                backgroundColor: const Color(0xFFF0F6FF),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              icon: const Icon(
-                Icons.edit_calendar_rounded,
-                size: 19,
-                color: _blue2,
-              ),
-              label: const Text(
-                "Update Booking End Date",
-                style: TextStyle(
-                  color: _blue2,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -712,6 +1527,9 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
   // ──────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    final showEmpty =
+        !isLoading && errorMessage == null && bookingData == null;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -743,12 +1561,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
           children: [
             _buildInputCard(),
             const SizedBox(height: 16),
-            if (!isLoading) ...[
-              if (errorMessage != null) _buildErrorCard(),
-              if (errorMessage == null && invoiceFile == null)
-                _buildEmptyState(),
-              if (invoiceFile != null) _buildResultCard(),
-            ],
+
             if (isLoading)
               const Center(
                 child: Padding(
@@ -758,13 +1571,23 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                     strokeWidth: 2.5,
                   ),
                 ),
-              ),
+              )
+            else ...[
+              if (errorMessage != null) _buildErrorCard(),
+              if (showEmpty) _buildEmptyState(),
+              if (bookingData != null) _buildBookingCard(),
+              if (invoiceFile != null) ...[
+                const SizedBox(height: 14),
+                _buildInvoiceCard(),
+              ],
+            ],
           ],
         ),
       ),
     );
   }
 }
+
 
 class _UpperCaseTextFormatter extends TextInputFormatter {
   @override
