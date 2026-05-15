@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:open_file/open_file.dart';
+import '../Constants/app_colors.dart';
 import '../Leaves/top_banner.dart';
 import '../Services/airport_parking_service.dart';
 import '../ui/dialogs/update_slot_booking_dialog.dart';
@@ -25,6 +26,10 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
   bool isLoading = false;
   bool isUpdatingStatus = false;
   bool isGeneratingPdf = false;
+  bool isCheckingIn = false;
+  bool isCheckingOut = false;
+  bool isCheckedIn = false;
+  bool isCheckedOut = false;
   String? errorMessage;
   File? invoiceFile;
   String? loadedReference;
@@ -58,6 +63,8 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
         invoiceFile = null;
         loadedReference = null;
         bookingData = null;
+        isCheckedIn = false;
+        isCheckedOut = false;
       });
       return;
     }
@@ -68,6 +75,8 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
       invoiceFile = null;
       loadedReference = null;
       bookingData = null;
+      isCheckedIn = false;
+      isCheckedOut = false;
     });
 
     final reference = _composedReference;
@@ -79,6 +88,12 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
     final bookingResult = await bookingFuture;
     final invoiceResult = await invoiceFuture;
 
+    CustomerStatusResult? customerStatus;
+    if (bookingResult.status && bookingResult.data != null) {
+      customerStatus =
+          await AirportParkingService.getCustomerStatus(reference);
+    }
+
     if (!mounted) return;
 
     setState(() {
@@ -88,6 +103,9 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
         bookingData = bookingResult.data;
         loadedReference = reference;
         errorMessage = null;
+        if (customerStatus?.ok == true && customerStatus!.data != null) {
+          _applyCustomerStatusFromMap(customerStatus.data!);
+        }
       } else {
         errorMessage = bookingResult.message;
       }
@@ -299,6 +317,10 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
       }
     });
 
+    if (result.status) {
+      await _refreshCustomerStatus();
+    }
+
     // ── Result banner ─────────────────────────────────────────────────────────
     TopBanner.show(
       context,
@@ -350,7 +372,10 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
     setState(() => isGeneratingPdf = true);
 
     try {
-      final file = await AirportParkingReceiptBuilder.generate(bookingData!);
+      final file = await AirportParkingReceiptBuilder.generate(
+        bookingData!,
+        user: widget.user,
+      );
       if (!mounted) return;
       await OpenFile.open(file.path);
     } catch (e) {
@@ -387,6 +412,307 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
     showUpdateSlotBookingDialog(
       context: context,
       reference: loadedReference ?? '',
+    );
+  }
+
+  String get _loggedInUserName {
+    final u = widget.user;
+    final name = (u['preferred_name'] ??
+            u['name'] ??
+            u['full_name'] ??
+            u['username'] ??
+            '')
+        .toString()
+        .trim();
+    return name.isEmpty ? 'Staff' : name;
+  }
+
+  void _applyCustomerStatusFromMap(Map<String, dynamic> data) {
+    final outStr = (data['check_out_datetime']?.toString() ?? '').trim();
+    final hasCheckout =
+        outStr.isNotEmpty && outStr.toLowerCase() != 'null';
+
+    final raw = (data['customer_status'] ?? data['status'] ?? '')
+        .toString()
+        .toLowerCase()
+        .trim();
+    final isIn =
+        raw == 'check_in' || raw == 'checked_in' || raw == 'checked in';
+
+    isCheckedOut = hasCheckout;
+    isCheckedIn = hasCheckout || isIn;
+  }
+
+  Future<void> _refreshCustomerStatus() async {
+    final ref =
+        (loadedReference ?? bookingData?['reference_number'] as String?)
+            ?.trim();
+    if (ref == null || ref.isEmpty) return;
+
+    final res = await AirportParkingService.getCustomerStatus(ref);
+    if (!mounted) return;
+    if (res.ok && res.data != null) {
+      setState(() => _applyCustomerStatusFromMap(res.data!));
+    }
+  }
+
+  Future<bool> _showActionConfirm({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required List<Widget> details,
+    required String confirmLabel,
+    required List<Color> gradientColors,
+  }) async {
+    final theme = Theme.of(context);
+    final dialogW =
+        (MediaQuery.of(context).size.width * 0.90).clamp(300.0, 420.0);
+
+    final agreed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withOpacity(0.15),
+      builder: (ctx) => Stack(
+        children: [
+          BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+            child: Container(color: Colors.transparent),
+          ),
+          Center(
+            child: Dialog(
+              insetPadding: const EdgeInsets.all(16),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
+              child: SizedBox(
+                width: dialogW,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(icon, color: iconColor),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: theme.textTheme.titleLarge?.color,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            icon: Icon(Icons.close,
+                                color: theme.iconTheme.color),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12.5),
+                      ),
+                      const SizedBox(height: 14),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border:
+                              Border.all(color: const Color(0xFFE8EDF5)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: details,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xFF0060A6),
+                                side: const BorderSide(
+                                    color: Color(0xFFC4C4C4), width: 1.2),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              child: const Text("Cancel"),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: SizedBox(
+                              height: 48,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: gradientColors,
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: ElevatedButton(
+                                  onPressed: () =>
+                                      Navigator.pop(ctx, true),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
+                                  ),
+                                  child: Text(
+                                    confirmLabel,
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    return agreed == true;
+  }
+
+  Future<void> _checkIn() async {
+    if (loadedReference == null || isCheckedOut) return;
+
+    final ref = loadedReference!;
+    final name = _loggedInUserName;
+
+    final confirmed = await _showActionConfirm(
+      icon: Icons.how_to_reg_rounded,
+      iconColor: const Color(0xFF0891B2),
+      title: 'Confirm Check-In',
+      subtitle: 'Please verify before checking in.',
+      details: [
+        _detailRow(Icons.confirmation_number_rounded, 'Reference', ref),
+        const SizedBox(height: 8),
+        _detailRow(Icons.person_rounded, 'Check-in by', name),
+      ],
+      confirmLabel: 'Check In',
+      gradientColors: const [Color(0xFF0891B2), Color(0xFF0E7490)],
+    );
+
+    if (!mounted || !confirmed) return;
+
+    setState(() => isCheckingIn = true);
+
+    final result = await AirportParkingService.checkIn(
+      reference: ref,
+      checkInByName: name,
+    );
+
+    if (!mounted) return;
+    setState(() => isCheckingIn = false);
+
+    if (result.status) {
+      await _refreshCustomerStatus();
+    }
+
+    if (!mounted) return;
+    TopBanner.show(
+      context,
+      title: result.status ? 'Check-In Successful' : 'Check-In Failed',
+      message: result.message,
+      icon: result.status
+          ? Icons.how_to_reg_rounded
+          : Icons.error_outline_rounded,
+      isSuccess: result.status,
+      isError: !result.status,
+    );
+  }
+
+  Future<void> _checkOut() async {
+    if (loadedReference == null || !isCheckedIn || isCheckedOut) return;
+
+    final ref = loadedReference!;
+    final now = DateTime.now();
+    final checkOutTime =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} '
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+
+    final hour = now.hour % 12 == 0 ? 12 : now.hour % 12;
+    final minute = now.minute.toString().padLeft(2, '0');
+    final ampm = now.hour >= 12 ? 'PM' : 'AM';
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    final displayTime =
+        '${months[now.month - 1]} ${now.day}, ${now.year}  $hour:$minute $ampm';
+
+    final confirmed = await _showActionConfirm(
+      icon: Icons.logout_rounded,
+      iconColor: AppColors.cancelButtonStart,
+      title: 'Confirm Check-Out',
+      subtitle: 'System time will be recorded as check-out time.',
+      details: [
+        _detailRow(Icons.confirmation_number_rounded, 'Reference', ref),
+        const SizedBox(height: 8),
+        _detailRow(Icons.access_time_rounded, 'Check-out time', displayTime),
+      ],
+      confirmLabel: 'Check Out',
+      gradientColors: const [
+        AppColors.cancelButtonStart,
+        AppColors.cancelButtonEnd,
+      ],
+    );
+
+    if (!mounted || !confirmed) return;
+
+    setState(() => isCheckingOut = true);
+
+    final result = await AirportParkingService.checkOut(
+      reference: ref,
+      checkOutTime: checkOutTime,
+    );
+
+    if (!mounted) return;
+    setState(() => isCheckingOut = false);
+
+    if (result.status) {
+      await _refreshCustomerStatus();
+    }
+
+    if (!mounted) return;
+    TopBanner.show(
+      context,
+      title: result.status ? 'Check-Out Successful' : 'Check-Out Failed',
+      message: result.message,
+      icon: result.status
+          ? Icons.check_circle_rounded
+          : Icons.error_outline_rounded,
+      isSuccess: result.status,
+      isError: !result.status,
     );
   }
 
@@ -526,10 +852,11 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.local_parking_rounded,
-                color: Colors.black,
-                size: 44,
+              Image.asset(
+                'assets/airportparking.png',
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.contain,
               ),
               const SizedBox(width: 12),
               const Expanded(
@@ -785,17 +1112,13 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
       ),
       child: Column(
         children: [
-          Container(
-            height: 64,
-            width: 64,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: const Icon(
-              Icons.local_parking_rounded,
-              size: 34,
-              color: _blue2,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: Image.asset(
+              'assets/airportparking.png',
+              height: 64,
+              width: 64,
+              fit: BoxFit.contain,
             ),
           ),
           const SizedBox(height: 14),
@@ -851,6 +1174,62 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Green "Create PDF" on the confirmed booking card (height 48; width from parent).
+  Widget _buildConfirmedCreatePdfButton() {
+    return SizedBox(
+      height: 48,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF16A34A), Color(0xFF166534)],
+          ),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF166534).withOpacity(0.28),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ElevatedButton.icon(
+          onPressed: isGeneratingPdf ? null : _generateAndOpenReceipt,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+            elevation: 0,
+            padding: EdgeInsets.zero,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          icon: isGeneratingPdf
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Icon(
+                  Icons.picture_as_pdf_rounded,
+                  color: Colors.white,
+                  size: 17,
+                ),
+          label: Text(
+            isGeneratingPdf ? "Generating..." : "Create PDF",
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1167,101 +1546,164 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                       ),
                     ),
                   )
-                // ── Confirmed: Update Date + Create PDF ────────────────────
+                // ── Confirmed: status → Check In *or* Check Out (one) | Create PDF
                 : isConfirmed
                     ? Row(
                         children: [
                           Expanded(
                             child: SizedBox(
                               height: 48,
-                              child: OutlinedButton.icon(
-                                onPressed: _openUpdateScreen,
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: _blue2,
-                                  side: const BorderSide(
-                                      color: Color(0xFFBFD7F5), width: 1.4),
-                                  backgroundColor: const Color(0xFFF0F6FF),
-                                  padding: EdgeInsets.zero,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                ),
-                                icon: const Icon(Icons.edit_calendar_rounded,
-                                    size: 17, color: _blue2),
-                                label: const Text(
-                                  "Update Date",
-                                  style: TextStyle(
-                                    color: _blue2,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
+                              child: !isCheckedIn
+                                  ? DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: (isCheckingIn ||
+                                                  isCheckedOut)
+                                              ? [
+                                                  const Color(0xFF0891B2)
+                                                      .withOpacity(0.45),
+                                                  const Color(0xFF0E7490)
+                                                      .withOpacity(0.45),
+                                                ]
+                                              : const [
+                                                  Color(0xFF0891B2),
+                                                  Color(0xFF0E7490),
+                                                ],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                        borderRadius: BorderRadius.circular(14),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFF0E7490)
+                                                .withOpacity(0.28),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: ElevatedButton.icon(
+                                        onPressed: (isCheckingIn ||
+                                                isCheckedOut)
+                                            ? null
+                                            : _checkIn,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.transparent,
+                                          shadowColor: Colors.transparent,
+                                          elevation: 0,
+                                          padding: EdgeInsets.zero,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(14),
+                                          ),
+                                        ),
+                                        icon: isCheckingIn
+                                            ? const SizedBox(
+                                                width: 16,
+                                                height: 16,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  color: Colors.white,
+                                                ),
+                                              )
+                                            : const Icon(
+                                                Icons.how_to_reg_rounded,
+                                                color: Colors.white,
+                                                size: 17,
+                                              ),
+                                        label: Text(
+                                          isCheckingIn
+                                              ? "Checking In..."
+                                              : "Check In",
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  : DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: (isCheckedOut ||
+                                                  isCheckingOut)
+                                              ? [
+                                                  AppColors.cancelButtonStart
+                                                      .withValues(alpha: 0.45),
+                                                  AppColors.cancelButtonEnd
+                                                      .withValues(alpha: 0.45),
+                                                ]
+                                              : const [
+                                                  AppColors.cancelButtonStart,
+                                                  AppColors.cancelButtonEnd,
+                                                ],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                        borderRadius: BorderRadius.circular(14),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: AppColors.cancelButtonEnd
+                                                .withValues(alpha: 0.35),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: ElevatedButton.icon(
+                                        onPressed: (isCheckedOut ||
+                                                isCheckingOut)
+                                            ? null
+                                            : _checkOut,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.transparent,
+                                          shadowColor: Colors.transparent,
+                                          disabledForegroundColor: Colors.white
+                                              .withValues(alpha: 0.92),
+                                          elevation: 0,
+                                          padding: EdgeInsets.zero,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(14),
+                                          ),
+                                        ),
+                                        icon: isCheckingOut
+                                            ? const SizedBox(
+                                                width: 16,
+                                                height: 16,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  color: Colors.white,
+                                                ),
+                                              )
+                                            : Icon(
+                                                isCheckedOut
+                                                    ? Icons.check_rounded
+                                                    : Icons.logout_rounded,
+                                                color: Colors.white,
+                                                size: 17,
+                                              ),
+                                        label: Text(
+                                          isCheckingOut
+                                              ? "Checking Out..."
+                                              : isCheckedOut
+                                                  ? "Checked Out"
+                                                  : "Check Out",
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                             ),
                           ),
                           const SizedBox(width: 10),
-                          Expanded(
-                            child: SizedBox(
-                              height: 48,
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color(0xFF16A34A),
-                                      Color(0xFF166534),
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(14),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFF166534)
-                                          .withOpacity(0.28),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: ElevatedButton.icon(
-                                  onPressed: isGeneratingPdf
-                                      ? null
-                                      : _generateAndOpenReceipt,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.transparent,
-                                    shadowColor: Colors.transparent,
-                                    elevation: 0,
-                                    padding: EdgeInsets.zero,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                  ),
-                                  icon: isGeneratingPdf
-                                      ? const SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white,
-                                          ),
-                                        )
-                                      : const Icon(
-                                          Icons.picture_as_pdf_rounded,
-                                          color: Colors.white,
-                                          size: 17,
-                                        ),
-                                  label: Text(
-                                    isGeneratingPdf
-                                        ? "Generating..."
-                                        : "Create PDF",
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                          Expanded(child: _buildConfirmedCreatePdfButton()),
                         ],
                       )
                     // ── Cancelled / other: Update End Date only ────────────
