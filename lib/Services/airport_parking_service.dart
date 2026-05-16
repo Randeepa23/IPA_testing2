@@ -472,6 +472,69 @@ class AirportParkingService {
     }
   }
 
+  /// Late check-out: sends the updated end date + late fee breakdown to
+  /// [_updateSlotUrl] (`update_reserved_slot.php`).
+  /// Call this before [checkOut] to persist the fee data, then call [checkOut]
+  /// to flip the customer status.
+  static Future<UpdateSlotResult> lateCheckoutUpdate({
+    required String reference,
+    required String checkOutByName,
+    required double totalPriceFinal,
+    required String endDateEdited, // system time as 'YYYY-MM-DD HH:MM:SS'
+    required double lateFeeAmount,
+  }) async {
+    final ref = reference.trim().toUpperCase();
+    if (ref.isEmpty) {
+      return const UpdateSlotResult(
+        status: false,
+        message: 'Reference number is required.',
+      );
+    }
+    try {
+      final response = await http
+          .post(
+            Uri.parse(_updateSlotUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'reference_number': ref,
+              'check_out_by_name': checkOutByName.trim(),
+              'total_price_final': totalPriceFinal,
+              'end_date_edited': endDateEdited,
+              'late_fee_amount': lateFeeAmount,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (response.statusCode != 200) {
+        return UpdateSlotResult(
+          status: false,
+          message: 'Server error (${response.statusCode}). Please try again.',
+        );
+      }
+
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final ok = json['status'] == true;
+      final msg = (json['message'] as String?) ??
+          (ok ? 'Slot updated successfully.' : 'Slot update failed.');
+      return UpdateSlotResult(status: ok, message: msg);
+    } on SocketException {
+      return const UpdateSlotResult(
+        status: false,
+        message: 'No internet connection. Please check your network.',
+      );
+    } on HttpException {
+      return const UpdateSlotResult(
+        status: false,
+        message: 'Could not reach the server.',
+      );
+    } catch (e) {
+      return UpdateSlotResult(
+        status: false,
+        message: 'Something went wrong: $e',
+      );
+    }
+  }
+
   /// Update the [end_date] of an existing reserved slot.
   /// [reference] should be in the format "G7-AP-05".
   /// [endDate] should be formatted as "YYYY-MM-DD".

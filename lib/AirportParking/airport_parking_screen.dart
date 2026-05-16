@@ -654,31 +654,136 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
   Future<void> _checkOut() async {
     if (loadedReference == null || !isCheckedIn || isCheckedOut) return;
 
+    debugPrint('Initiating check-out for reference: $loadedReference');
+
     final ref = loadedReference!;
     final now = DateTime.now();
+
+    // If the booking already has a recorded checkout time (end_date_edited),
+    // use that for late-fee calculation instead of the current device time.
+    final existingCheckOutRaw =
+        (bookingData?['end_date_edited']?.toString() ?? '').trim();
+    DateTime effectiveNow = now;
+    try {
+      if (existingCheckOutRaw.isNotEmpty &&
+          existingCheckOutRaw.toLowerCase() != 'null') {
+        effectiveNow = DateTime.parse(
+            existingCheckOutRaw.replaceFirst(' ', 'T'));
+      }
+    } catch (_) {}
+
+    // System time string sent to the API (always current device time)
     final checkOutTime =
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} '
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
 
-    final hour = now.hour % 12 == 0 ? 12 : now.hour % 12;
-    final minute = now.minute.toString().padLeft(2, '0');
-    final ampm = now.hour >= 12 ? 'PM' : 'AM';
+    // ── Parse booking end date ────────────────────────────────────────────────
+    final endDateRaw = (bookingData?['end_date'] as String? ?? '').trim();
+    DateTime? originalEndDate;
+    try {
+      if (endDateRaw.isNotEmpty) {
+        originalEndDate = DateTime.parse(endDateRaw.replaceFirst(' ', 'T'));
+      }
+    } catch (_) {}
+
+    // ── Parse original price ──────────────────────────────────────────────────
+    final originalPrice =
+        double.tryParse((bookingData?['total_price'] as String? ?? '0').trim()) ??
+            0.0;
+
+    // ── Late-fee calculation ──────────────────────────────────────────────────
+    double lateHours = 0;
+    double lateFeeAmount = 0;
+    double totalPriceFinal = originalPrice;
+    String lateLabel = 'Waived Off';
+    bool isLate = false;
+
+    if (originalEndDate != null) {
+      final diff = effectiveNow.difference(originalEndDate);
+      if (diff.inMinutes > 0) {
+        isLate = true;
+        lateHours = diff.inMinutes / 60.0;
+        if (lateHours <= 2) {
+          lateLabel = 'Waived Off  (≤ 2 hrs)';
+          lateFeeAmount = 0;
+        } else if (lateHours <= 8) {
+          lateLabel = '50% Surcharge  (2 – 8 hrs)';
+          lateFeeAmount = originalPrice * 0.5;
+        } else {
+          lateLabel = '100% Full Day Charge  (> 8 hrs)';
+          lateFeeAmount = originalPrice;
+        }
+        totalPriceFinal = originalPrice + lateFeeAmount;
+      }
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    String fmtLKR(double v) {
+      final parts = v.toStringAsFixed(2).split('.');
+      final intPart = parts[0].replaceAllMapped(
+        RegExp(r'(\d)(?=(\d{3})+$)'),
+        (m) => '${m[1]},',
+      );
+      return 'LKR $intPart.${parts[1]}';
+    }
+
+    String fmtHours(double h) {
+      final hh = h.floor();
+      final mm = ((h - hh) * 60).round();
+      if (hh == 0) return '$mm min';
+      if (mm == 0) return '${hh}h';
+      return '${hh}h ${mm}m';
+    }
+
+    // ── Display time (use recorded checkout time if available) ───────────────
     const months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
+    final displayDt = effectiveNow;
+    final hour = displayDt.hour % 12 == 0 ? 12 : displayDt.hour % 12;
+    final minute = displayDt.minute.toString().padLeft(2, '0');
+    final ampm = displayDt.hour >= 12 ? 'PM' : 'AM';
     final displayTime =
-        '${months[now.month - 1]} ${now.day}, ${now.year}  $hour:$minute $ampm';
+        '${months[displayDt.month - 1]} ${displayDt.day}, ${displayDt.year}  $hour:$minute $ampm';
 
+    // ── Confirmation dialog ───────────────────────────────────────────────────
     final confirmed = await _showActionConfirm(
       icon: Icons.logout_rounded,
       iconColor: AppColors.cancelButtonStart,
       title: 'Confirm Check-Out',
-      subtitle: 'System time will be recorded as check-out time.',
+      subtitle: isLate
+          ? 'Late check-out detected — surcharge applies.'
+          : 'System time will be recorded as check-out time.',
       details: [
         _detailRow(Icons.confirmation_number_rounded, 'Reference', ref),
         const SizedBox(height: 8),
-        _detailRow(Icons.access_time_rounded, 'Check-out time', displayTime),
+        _detailRow(Icons.access_time_rounded, 'Check-out', displayTime),
+        if (originalEndDate != null) ...[
+          const SizedBox(height: 8),
+          _detailRow(
+              Icons.event_rounded, 'Original End', _formatDateTime(endDateRaw)),
+        ],
+        if (isLate) ...[
+          const SizedBox(height: 8),
+          _detailRow(Icons.timer_outlined, 'Late By', fmtHours(lateHours)),
+          const SizedBox(height: 8),
+          _detailRow(Icons.percent_rounded, 'Surcharge', lateLabel),
+          const SizedBox(height: 8),
+          _detailRow(
+            Icons.add_circle_outline_rounded,
+            'Late Fee',
+            fmtLKR(lateFeeAmount),
+            valueColor: const Color(0xFF991B1B),
+          ),
+        ],
+        const SizedBox(height: 8),
+        _detailRow(
+          Icons.payments_rounded,
+          'Total Price',
+          fmtLKR(totalPriceFinal),
+          valueColor: isLate ? const Color(0xFF991B1B) : null,
+        ),
       ],
       confirmLabel: 'Check Out',
       gradientColors: const [
@@ -691,15 +796,25 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
 
     setState(() => isCheckingOut = true);
 
-    final result = await AirportParkingService.checkOut(
+    final result = await AirportParkingService.lateCheckoutUpdate(
       reference: ref,
-      checkOutTime: checkOutTime,
+      checkOutByName: _loggedInUserName,
+      totalPriceFinal: totalPriceFinal,
+      endDateEdited: checkOutTime,
+      lateFeeAmount: lateFeeAmount,
     );
 
     if (!mounted) return;
     setState(() => isCheckingOut = false);
 
     if (result.status) {
+      if (bookingData != null) {
+        setState(() {
+          bookingData = Map<String, dynamic>.from(bookingData!)
+            ..['total_price_final'] = totalPriceFinal.toStringAsFixed(2)
+            ..['late_fee_amount'] = lateFeeAmount.toStringAsFixed(2);
+        });
+      }
       await _refreshCustomerStatus();
     }
 
@@ -1251,6 +1366,24 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
     final isPending = status == 'pending';
     final isConfirmed = status == 'confirmed';
 
+    // Late-fee breakdown — works for both API-loaded data and post-checkout state
+    final origPrice =
+        double.tryParse((d['total_price'] as String? ?? '0').trim()) ?? 0.0;
+    final finalPriceRaw = (d['total_price_final'] as String?)?.trim();
+    final finalPrice = finalPriceRaw != null
+        ? (double.tryParse(finalPriceRaw) ?? origPrice)
+        : origPrice;
+    final cardLateFee = (finalPrice - origPrice).clamp(0.0, double.infinity);
+    final hasFee = cardLateFee > 0.01;
+    String fmtCardLKR(double v) {
+      final parts = v.toStringAsFixed(2).split('.');
+      final intPart = parts[0].replaceAllMapped(
+        RegExp(r'(\d)(?=(\d{3})+$)'),
+        (m) => '${m[1]},',
+      );
+      return 'LKR $intPart.${parts[1]}';
+    }
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -1447,41 +1580,147 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
           // ── Price ──
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0FDF4),
-                    borderRadius: BorderRadius.circular(10),
+            child: hasFee
+                // ── Late-fee breakdown ─────────────────────────────────────
+                ? Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF5F5),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFFFCDD2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(7),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFEBEE),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.receipt_long_rounded,
+                                  size: 18, color: Color(0xFFC62828)),
+                            ),
+                            const SizedBox(width: 10),
+                            const Text(
+                              "Price Breakdown",
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  color: _textDark),
+                            ),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFCDD2),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: const Text(
+                                "Late Fee",
+                                style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFFC62828)),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        const Divider(color: Color(0xFFFFCDD2), height: 1),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            const Text("Original Price",
+                                style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: _textMuted,
+                                    fontWeight: FontWeight.w500)),
+                            const Spacer(),
+                            Text(fmtCardLKR(origPrice),
+                                style: const TextStyle(
+                                    fontSize: 12.5,
+                                    color: _textDark,
+                                    fontWeight: FontWeight.w700)),
+                          ],
+                        ),
+                        const SizedBox(height: 7),
+                        Row(
+                          children: [
+                            const Text("Late Fee Added",
+                                style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: Color(0xFFC62828),
+                                    fontWeight: FontWeight.w600)),
+                            const Spacer(),
+                            Text("+ ${fmtCardLKR(cardLateFee)}",
+                                style: const TextStyle(
+                                    fontSize: 12.5,
+                                    color: Color(0xFFC62828),
+                                    fontWeight: FontWeight.w700)),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Divider(color: Color(0xFFFFCDD2), height: 1),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Text("Total Price",
+                                style: TextStyle(
+                                    fontSize: 13.5,
+                                    color: _textDark,
+                                    fontWeight: FontWeight.w800)),
+                            const Spacer(),
+                            Text(fmtCardLKR(finalPrice),
+                                style: const TextStyle(
+                                    fontSize: 17,
+                                    color: Color(0xFFC62828),
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.3)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  )
+                // ── Simple price row ───────────────────────────────────────
+                : Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0FDF4),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.payments_rounded,
+                          size: 20,
+                          color: Color(0xFF166534),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      const Text(
+                        "Total Price",
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          color: _textMuted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        "LKR $price",
+                        style: const TextStyle(
+                          fontSize: 17,
+                          color: _textDark,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
                   ),
-                  child: const Icon(
-                    Icons.payments_rounded,
-                    size: 20,
-                    color: Color(0xFF166534),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                const Text(
-                  "Total Price",
-                  style: TextStyle(
-                    fontSize: 13.5,
-                    color: _textMuted,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  "LKR $price",
-                  style: const TextStyle(
-                    fontSize: 17,
-                    color: _textDark,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ],
-            ),
           ),
 
           // ── Action Buttons ──

@@ -47,7 +47,9 @@ class AirportParkingReceiptBuilder {
     final vehicleRaw =
         (bookingData['vehicle_number'] as String? ?? '').trim();
     final vehicle = vehicleRaw.isNotEmpty ? vehicleRaw : 'N/A';
-    final totalPrice = bookingData['total_price'] as String? ?? '0.00';
+    final totalPriceRaw = bookingData['total_price'] as String? ?? '0.00';
+    final totalPriceFinalRaw =
+        (bookingData['total_price_final'] as String?)?.trim();
     final startRaw = bookingData['start_date'] as String? ?? '';
     final endRaw = bookingData['end_date'] as String? ?? '';
 
@@ -55,8 +57,18 @@ class AirportParkingReceiptBuilder {
     final receiptNo =
         'RCPT-${DateFormat('yyyyMMddHHmmss').format(now)}-${now.millisecond.toString().padLeft(3, '0')}';
     final generatedAt = DateFormat('dd MMM yyyy, hh:mm a').format(now);
-    final priceFormatted =
-        NumberFormat('#,##0.00').format(double.tryParse(totalPrice) ?? 0.0);
+
+    final origAmount = double.tryParse(totalPriceRaw) ?? 0.0;
+    final finalAmount = totalPriceFinalRaw != null
+        ? (double.tryParse(totalPriceFinalRaw) ?? origAmount)
+        : origAmount;
+    final receiptLateFee =
+        (finalAmount - origAmount).clamp(0.0, double.infinity);
+    final receiptHasLateFee = receiptLateFee > 0.01;
+
+    final priceFormatted = NumberFormat('#,##0.00').format(finalAmount);
+    final origFormatted = NumberFormat('#,##0.00').format(origAmount);
+    final lateFeeFormatted = NumberFormat('#,##0.00').format(receiptLateFee);
 
     // Parking duration as date range string
     String parkingDuration = '—';
@@ -100,7 +112,12 @@ class AirportParkingReceiptBuilder {
             pw.SizedBox(height: 10),
             _metaRow(receiptNo, reference, generatedAt, generatedBy),
             pw.SizedBox(height: 10),
-            _amountBar(priceFormatted),
+            _amountBar(
+              priceFormatted,
+              hasLateFee: receiptHasLateFee,
+              origFormatted: receiptHasLateFee ? origFormatted : null,
+              lateFeeFormatted: receiptHasLateFee ? lateFeeFormatted : null,
+            ),
             pw.SizedBox(height: 12),
             _grid(
               name: name,
@@ -251,7 +268,12 @@ class AirportParkingReceiptBuilder {
   //  AMOUNT BAR
   // ──────────────────────────────────────────────────────────────────────────
 
-  static pw.Widget _amountBar(String priceFormatted) {
+  static pw.Widget _amountBar(
+    String priceFormatted, {
+    bool hasLateFee = false,
+    String? origFormatted,
+    String? lateFeeFormatted,
+  }) {
     return pw.Container(
       padding: const pw.EdgeInsets.all(12),
       decoration: pw.BoxDecoration(
@@ -263,7 +285,7 @@ class AirportParkingReceiptBuilder {
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         crossAxisAlignment: pw.CrossAxisAlignment.center,
         children: [
-          // Left: title, description + badge
+          // Left: title, description + badge + optional late-fee breakdown
           pw.Expanded(
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -273,7 +295,7 @@ class AirportParkingReceiptBuilder {
                   style: pw.TextStyle(
                     fontSize: 11,
                     fontWeight: pw.FontWeight.bold,
-                    color: _primary, // #0c032e
+                    color: _primary,
                   ),
                 ),
                 pw.SizedBox(height: 3),
@@ -298,11 +320,65 @@ class AirportParkingReceiptBuilder {
                     ),
                   ),
                 ),
+                if (hasLateFee &&
+                    origFormatted != null &&
+                    lateFeeFormatted != null) ...[
+                  pw.SizedBox(height: 8),
+                  pw.Container(
+                    padding: const pw.EdgeInsets.all(8),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border.all(color: _border),
+                      // no borderRadius — safe without color+radius
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          'LATE FEE BREAKDOWN',
+                          style: pw.TextStyle(
+                            fontSize: 7,
+                            fontWeight: pw.FontWeight.bold,
+                            color: _grey,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        pw.SizedBox(height: 5),
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Text('Original Price',
+                                style:
+                                    pw.TextStyle(fontSize: 8.5, color: _grey)),
+                            pw.Text('LKR $origFormatted',
+                                style:
+                                    pw.TextStyle(fontSize: 8.5, color: _dark)),
+                          ],
+                        ),
+                        pw.SizedBox(height: 3),
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Text('Late Fee Added',
+                                style: pw.TextStyle(
+                                    fontSize: 8.5,
+                                    fontWeight: pw.FontWeight.bold,
+                                    color: _grey)),
+                            pw.Text('+ LKR $lateFeeFormatted',
+                                style: pw.TextStyle(
+                                    fontSize: 8.5,
+                                    fontWeight: pw.FontWeight.bold,
+                                    color: _dark)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
           pw.SizedBox(width: 16),
-          // Right: amount
+          // Right: final amount
           pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.end,
             children: [

@@ -16,7 +16,7 @@ class ReceiptSignatureConfig {
 
   /// Map **one or more** identifiers per person (e.g. `'26'` and `'EMP026'`).
   static const Map<String, String> employeeIdToSignatureAsset = {
-    '2': signature1,
+    '26': signature1,
     '81': signature2,
   };
 
