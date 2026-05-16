@@ -30,6 +30,32 @@ class UpdateSlotResult {
   const UpdateSlotResult({required this.status, required this.message});
 }
 
+class CheckInResult {
+  final bool status;
+  final String message;
+
+  const CheckInResult({required this.status, required this.message});
+}
+
+class CheckOutResult {
+  final bool status;
+  final String message;
+
+  const CheckOutResult({required this.status, required this.message});
+}
+
+class CustomerStatusResult {
+  final bool ok;
+  final String message;
+  final Map<String, dynamic>? data;
+
+  const CustomerStatusResult({
+    required this.ok,
+    required this.message,
+    this.data,
+  });
+}
+
 class UpdateStatusResult {
   final bool status;
   final String message;
@@ -54,6 +80,9 @@ class AirportParkingService {
 
   static const String _updateStatusUrl =
       "https://airportparking.lk/api/update-booking-status.php";
+
+  static const String _customerStatusUrl =
+      "https://airportparking.lk/api/get_customer_status.php";
 
   /// Same URL [fetchInvoice] uses — safe to load in a [WebView] (no native PDF plugin).
   static Uri invoiceRequestUri(String reference) {
@@ -260,6 +289,250 @@ class AirportParkingService {
         bytes[1] == 0x50 &&
         bytes[2] == 0x44 &&
         bytes[3] == 0x46;
+  }
+
+  /// Check-in a customer by reference number and the staff member's name.
+  static Future<CheckInResult> checkIn({
+    required String reference,
+    required String checkInByName,
+  }) async {
+    final ref = reference.trim().toUpperCase();
+
+    if (ref.isEmpty) {
+      return const CheckInResult(
+        status: false,
+        message: 'Reference number is required.',
+      );
+    }
+
+    if (checkInByName.trim().isEmpty) {
+      return const CheckInResult(
+        status: false,
+        message: 'Check-in staff name is required.',
+      );
+    }
+
+    try {
+      final response = await http
+          .post(
+            Uri.parse('https://airportparking.lk/api/customer_checkin.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'reference_number': ref,
+              'check_in_by_name': checkInByName.trim(),
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (response.statusCode != 200) {
+        return CheckInResult(
+          status: false,
+          message: 'Server error (${response.statusCode}). Please try again.',
+        );
+      }
+
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final ok = json['status'] == true || json['success'] == true;
+      final msg = (json['message'] as String?) ??
+          (ok ? 'Check-in successful.' : 'Check-in failed.');
+
+      return CheckInResult(status: ok, message: msg);
+    } on SocketException {
+      return const CheckInResult(
+        status: false,
+        message: 'No internet connection. Please check your network.',
+      );
+    } on HttpException {
+      return const CheckInResult(
+        status: false,
+        message: 'Could not reach the server.',
+      );
+    } catch (e) {
+      return CheckInResult(status: false, message: 'Something went wrong: $e');
+    }
+  }
+
+  /// GET [reference] on-site check-in / check-out state from airportparking.lk.
+  /// Response shape: `{ "status": true, "data": { "status": "check_in", ... } }`.
+  static Future<CustomerStatusResult> getCustomerStatus(
+      String reference) async {
+    final ref = reference.trim().toUpperCase();
+
+    if (ref.isEmpty) {
+      return const CustomerStatusResult(
+        ok: false,
+        message: 'Reference number is required.',
+      );
+    }
+
+    try {
+      final uri = Uri.parse(_customerStatusUrl)
+          .replace(queryParameters: {'reference_number': ref});
+      final response =
+          await http.get(uri).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode != 200) {
+        return CustomerStatusResult(
+          ok: false,
+          message: 'Server error (${response.statusCode}). Please try again.',
+        );
+      }
+
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final topOk = json['status'] == true || json['success'] == true;
+      if (!topOk) {
+        final msg = (json['message'] as String?) ??
+            (json['error'] as String?) ??
+            'Could not load customer status.';
+        return CustomerStatusResult(ok: false, message: msg);
+      }
+
+      final raw = json['data'];
+      if (raw is! Map) {
+        return const CustomerStatusResult(
+          ok: false,
+          message: 'Invalid customer status response.',
+        );
+      }
+
+      return CustomerStatusResult(
+        ok: true,
+        message: 'OK',
+        data: Map<String, dynamic>.from(raw),
+      );
+    } on SocketException {
+      return const CustomerStatusResult(
+        ok: false,
+        message: 'No internet connection. Please check your network.',
+      );
+    } on HttpException {
+      return const CustomerStatusResult(
+        ok: false,
+        message: 'Could not reach the server.',
+      );
+    } catch (e) {
+      return CustomerStatusResult(
+        ok: false,
+        message: 'Something went wrong: $e',
+      );
+    }
+  }
+
+  /// Check-out: [checkOutTime] as `YYYY-MM-DD HH:MM:SS` (device local time).
+  static Future<CheckOutResult> checkOut({
+    required String reference,
+    required String checkOutTime,
+  }) async {
+    final ref = reference.trim().toUpperCase();
+
+    if (ref.isEmpty) {
+      return const CheckOutResult(
+        status: false,
+        message: 'Reference number is required.',
+      );
+    }
+
+    try {
+      final response = await http
+          .post(
+            Uri.parse('https://airportparking.lk/api/customer_checkout.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'reference_number': ref,
+              'check_out_time': checkOutTime,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (response.statusCode != 200) {
+        return CheckOutResult(
+          status: false,
+          message: 'Server error (${response.statusCode}). Please try again.',
+        );
+      }
+
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final ok = json['status'] == true || json['success'] == true;
+      final msg = (json['message'] as String?) ??
+          (ok ? 'Check-out successful.' : 'Check-out failed.');
+
+      return CheckOutResult(status: ok, message: msg);
+    } on SocketException {
+      return const CheckOutResult(
+        status: false,
+        message: 'No internet connection. Please check your network.',
+      );
+    } on HttpException {
+      return const CheckOutResult(
+        status: false,
+        message: 'Could not reach the server.',
+      );
+    } catch (e) {
+      return CheckOutResult(status: false, message: 'Something went wrong: $e');
+    }
+  }
+
+  /// Late check-out: sends the updated end date + late fee breakdown to
+  /// [_updateSlotUrl] (`update_reserved_slot.php`).
+  /// Call this before [checkOut] to persist the fee data, then call [checkOut]
+  /// to flip the customer status.
+  static Future<UpdateSlotResult> lateCheckoutUpdate({
+    required String reference,
+    required String checkOutByName,
+    required double totalPriceFinal,
+    required String endDateEdited, // system time as 'YYYY-MM-DD HH:MM:SS'
+    required double lateFeeAmount,
+  }) async {
+    final ref = reference.trim().toUpperCase();
+    if (ref.isEmpty) {
+      return const UpdateSlotResult(
+        status: false,
+        message: 'Reference number is required.',
+      );
+    }
+    try {
+      final response = await http
+          .post(
+            Uri.parse(_updateSlotUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'reference_number': ref,
+              'check_out_by_name': checkOutByName.trim(),
+              'total_price_final': totalPriceFinal,
+              'end_date_edited': endDateEdited,
+              'late_fee_amount': lateFeeAmount,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (response.statusCode != 200) {
+        return UpdateSlotResult(
+          status: false,
+          message: 'Server error (${response.statusCode}). Please try again.',
+        );
+      }
+
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final ok = json['status'] == true;
+      final msg = (json['message'] as String?) ??
+          (ok ? 'Slot updated successfully.' : 'Slot update failed.');
+      return UpdateSlotResult(status: ok, message: msg);
+    } on SocketException {
+      return const UpdateSlotResult(
+        status: false,
+        message: 'No internet connection. Please check your network.',
+      );
+    } on HttpException {
+      return const UpdateSlotResult(
+        status: false,
+        message: 'Could not reach the server.',
+      );
+    } catch (e) {
+      return UpdateSlotResult(
+        status: false,
+        message: 'Something went wrong: $e',
+      );
+    }
   }
 
   /// Update the [end_date] of an existing reserved slot.
