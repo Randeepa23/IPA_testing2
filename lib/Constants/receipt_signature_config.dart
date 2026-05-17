@@ -11,13 +11,16 @@ class ReceiptSignatureConfig {
 
   static const String signature1 = 'assets/signatures/signature1.png';
   static const String signature2 = 'assets/signatures/signature2.png';
-  static const String signature3 = 'assets/signatures/signature3.png';
+  static const String srimalSir = 'assets/signatures/Srimal_test.png';
+  static const String gayanSignature = 'assets/signatures/Gayan.png';
+  static const String tharinduSignature = 'assets/signatures/Tharindu.png';
 
 
   /// Map **one or more** identifiers per person (e.g. `'26'` and `'EMP026'`).
   static const Map<String, String> employeeIdToSignatureAsset = {
-    '26': signature1,
-    '81': signature2,
+    '19': srimalSir,
+    '80': gayanSignature,
+    '52': tharinduSignature,
   };
 
   static String? _trimmed(dynamic v) {

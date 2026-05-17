@@ -68,6 +68,32 @@ class UpdateStatusResult {
   });
 }
 
+class ReceiptCheckResult {
+  final bool exists;
+  final String? pdfUrl;
+  final String message;
+
+  const ReceiptCheckResult({
+    required this.exists,
+    required this.message,
+    this.pdfUrl,
+  });
+}
+
+class ReceiptSaveResult {
+  final bool status;
+  final String message;
+  final String? receiptNo;
+  final String? receiptPath;
+
+  const ReceiptSaveResult({
+    required this.status,
+    required this.message,
+    this.receiptNo,
+    this.receiptPath,
+  });
+}
+
 class AirportParkingService {
   static const String _baseUrl =
       "https://exploresuite.lk/mobile-api/airport-parking/get-invoice.php";
@@ -83,6 +109,12 @@ class AirportParkingService {
 
   static const String _customerStatusUrl =
       "https://airportparking.lk/api/get_customer_status.php";
+      
+  static const String _checkReceiptUrl =
+      "https://airportparking.lk/api/check_payment_receipt.php";
+
+  static const String _saveReceiptUrl =
+      "https://airportparking.lk/api/save_payment_receipt.php";
 
   /// Same URL [fetchInvoice] uses — safe to load in a [WebView] (no native PDF plugin).
   static Uri invoiceRequestUri(String reference) {
@@ -603,6 +635,126 @@ class AirportParkingService {
       return UpdateSlotResult(
         status: false,
         message: "Something went wrong: $e",
+      );
+    }
+  }
+
+  /// Download an existing receipt PDF from [pdfUrl] and save it locally.
+  /// Returns the saved [File] so it can be opened with OpenFile.
+  static Future<AirportInvoiceResult> downloadReceiptPdf({
+    required String pdfUrl,
+    required String reference,
+  }) async {
+    try {
+      final response = await http
+          .get(Uri.parse(pdfUrl))
+          .timeout(const Duration(seconds: 30));
+
+      if (response.statusCode != 200) {
+        return AirportInvoiceResult(
+          status: false,
+          message: 'Server returned ${response.statusCode}.',
+        );
+      }
+
+      final isPdf = (response.headers['content-type'] ?? '')
+              .toLowerCase()
+              .contains('application/pdf') ||
+          _hasPdfMagic(response.bodyBytes);
+
+      if (!isPdf) {
+        return AirportInvoiceResult(
+          status: false,
+          message: 'Downloaded file is not a valid PDF.',
+        );
+      }
+
+      final dir = await getApplicationSupportDirectory();
+      final safeName =
+          reference.trim().replaceAll(RegExp(r'[^A-Za-z0-9_\-]'), '_');
+      final file =
+          File('${dir.path}/receipt_$safeName.pdf');
+      await file.writeAsBytes(response.bodyBytes, flush: true);
+
+      return AirportInvoiceResult(
+        status: true,
+        message: 'Receipt loaded.',
+        file: file,
+      );
+    } on SocketException {
+      return AirportInvoiceResult(
+        status: false,
+        message: 'No internet connection.',
+      );
+    } catch (e) {
+      return AirportInvoiceResult(
+        status: false,
+        message: 'Could not download receipt: $e',
+      );
+    }
+  }
+
+  /// Check if a PDF receipt already exists on the server for [reference].
+  /// Returns [ReceiptCheckResult.exists] == true and [pdfUrl] when found.
+  static Future<ReceiptCheckResult> checkPaymentReceipt(
+      String reference) async {
+    try {
+      final uri = Uri.parse(_checkReceiptUrl)
+          .replace(queryParameters: {'reference': reference.trim()});
+      final response =
+          await http.get(uri).timeout(const Duration(seconds: 15));
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      final exists = body['exists'] == true;
+      return ReceiptCheckResult(
+        exists: exists,
+        pdfUrl: exists ? body['pdf_url'] as String? : null,
+        message: body['message']?.toString() ?? '',
+      );
+    } catch (e) {
+      return ReceiptCheckResult(
+        exists: false,
+        message: 'Could not check receipt: $e',
+      );
+    }
+  }
+
+  /// Upload [pdfBytes] to the server and save a record in payment_receipts.
+  ///
+  /// [reference]   — booking reference number (e.g. "G10-AP-06")
+  /// [generatedBy] — full name of the logged-in employee
+  /// [pdfBytes]    — raw bytes of the generated PDF
+  static Future<ReceiptSaveResult> savePaymentReceipt({
+    required String reference,
+    required String generatedBy,
+    required List<int> pdfBytes,
+  }) async {
+    try {
+      final uri = Uri.parse(_saveReceiptUrl);
+      final request = http.MultipartRequest('POST', uri)
+        ..fields['reference'] = reference.trim()
+        ..fields['generated_by'] = generatedBy.trim()
+        ..files.add(http.MultipartFile.fromBytes(
+          'pdf',
+          pdfBytes,
+          filename: 'receipt-${reference.trim()}.pdf',
+        ));
+
+      final streamed =
+          await request.send().timeout(const Duration(seconds: 30));
+      final body =
+          jsonDecode(await streamed.stream.bytesToString()) as Map<String, dynamic>;
+
+      final ok = body['status']?.toString().toLowerCase() == 'success';
+      return ReceiptSaveResult(
+        status: ok,
+        message: body['message']?.toString() ?? '',
+        receiptNo: body['receipt_no']?.toString(),
+        receiptPath: body['receipt_path']?.toString(),
+      );
+    } catch (e) {
+      return ReceiptSaveResult(
+        status: false,
+        message: 'Could not save receipt: $e',
       );
     }
   }
