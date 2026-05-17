@@ -6,6 +6,7 @@ import 'package:open_file/open_file.dart';
 import '../Constants/app_colors.dart';
 import '../Leaves/top_banner.dart';
 import '../Services/airport_parking_service.dart';
+import '../ui/dialogs/receipt_exists_dialog.dart';
 import '../ui/dialogs/update_slot_booking_dialog.dart';
 import 'airport_parking_receipt_builder.dart';
 import 'invoice_pdf_viewer_screen.dart';
@@ -368,15 +369,86 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
   }
 
   Future<void> _generateAndOpenReceipt() async {
-    if (bookingData == null) return;
+    if (bookingData == null || loadedReference == null) return;
     setState(() => isGeneratingPdf = true);
 
     try {
+      // ── 1. Check if a receipt already exists on the server ──────────────────
+      final check = await AirportParkingService.checkPaymentReceipt(
+          loadedReference!);
+
+      if (!mounted) return;
+
+      if (check.exists && check.pdfUrl != null) {
+        final action = await showReceiptExistsDialog(
+          context: context,
+          reference: loadedReference!,
+          pdfUrl: check.pdfUrl!,
+        );
+        if (!mounted) return;
+
+        if (action == ReceiptExistsAction.open) {
+          final dl = await AirportParkingService.downloadReceiptPdf(
+            pdfUrl: check.pdfUrl!,
+            reference: loadedReference!,
+          );
+          if (!mounted) return;
+          if (dl.status && dl.file != null) {
+            await OpenFile.open(dl.file!.path);
+          } else {
+            TopBanner.show(
+              context,
+              title: 'Could Not Open Receipt',
+              message: dl.message,
+              icon: Icons.error_outline_rounded,
+              isError: true,
+            );
+          }
+          return;
+        }
+
+        // User dismissed or tapped Re-generate — only regenerate proceeds,
+        // no extra confirm dialog shown
+        if (action != ReceiptExistsAction.regenerate) return;
+      } else {
+        // ── No existing receipt — confirm before generating ─────────────────
+        final confirmed = await showReceiptGenerateConfirmDialog(
+          context: context,
+          reference: loadedReference!,
+        );
+        if (!mounted || !confirmed) return;
+      }
+
       final file = await AirportParkingReceiptBuilder.generate(
         bookingData!,
         user: widget.user,
       );
+
       if (!mounted) return;
+
+      // ── 3. Upload the PDF to the server ────────────────────────────────────
+      final pdfBytes = await file.readAsBytes();
+      final saveResult = await AirportParkingService.savePaymentReceipt(
+        reference: loadedReference!,
+        generatedBy: _loggedInUserName,
+        pdfBytes: pdfBytes,
+      );
+
+      if (!mounted) return;
+
+      if (!saveResult.status) {
+        TopBanner.show(
+          context,
+          title: 'Receipt Not Saved',
+          message: saveResult.message.isNotEmpty
+              ? saveResult.message
+              : 'PDF generated locally but could not be saved to the server.',
+          icon: Icons.cloud_off_rounded,
+          isError: true,
+        );
+      }
+
+      // ── 4. Open the locally generated file ─────────────────────────────────
       await OpenFile.open(file.path);
     } catch (e) {
       if (!mounted) return;
