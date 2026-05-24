@@ -159,6 +159,21 @@ Future<void> _submitForm() async {
 
   if (fromDate == null || toDate == null || selectedLeaveType == null) return;
 
+  // Enforce minimum days per leave type
+  final totalDays = toDate!.difference(fromDate!).inDays + 1;
+  final minDays = _minimumDays();
+  if (totalDays < minDays) {
+    TopBanner.show(
+      context,
+      title: 'Minimum Days Required',
+      message: '$selectedLeaveType requires at least $minDays days. Please adjust your dates.',
+      icon: Icons.warning_amber_rounded,
+      rightButtonText: 'OK',
+      onRightTap: () {},
+    );
+    return;
+  }
+
   // map leave type name -> leave_policy_id
   final leavePolicyId = _leaveTypeToId(selectedLeaveType!);
 
@@ -504,14 +519,18 @@ void _showSubmitConfirmation() {
                           (date) {
                             setState(() {
                               fromDate = date;
-
-                              // If half day: end date same as start date
                               if (isHalfDay) {
                                 toDate = date;
+                              } else {
+                                // reset toDate if it no longer meets the minimum
+                                final min = _minToDate();
+                                if (toDate != null &&
+                                    min != null &&
+                                    toDate!.isBefore(min)) {
+                                  toDate = null;
+                                }
                               }
                             });
-
-                            // load relievers only when we have required dates
                             _loadRelievers();
                           },
                         ),
@@ -550,7 +569,7 @@ void _showSubmitConfirmation() {
                               setState(() => toDate = date);
                               _loadRelievers();
                             },
-                            notBefore: fromDate,
+                            notBefore: _minToDate(),
                           ),
                       ],
                     ),
@@ -562,26 +581,73 @@ void _showSubmitConfirmation() {
 
                 const SizedBox(height: 10),
                 if (fromDate != null && toDate != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEAF1FF),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Builder(builder: (context) {
+                    final days = toDate!.difference(fromDate!).inDays + 1;
+                    final minDays = _minimumDays();
+                    final belowMin = days < minDays;
+                    return Column(
                       children: [
-                        const Text(
-                          'Total Days',
-                          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Colors.black87),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: belowMin
+                                ? const Color(0xFFFFEBEE)
+                                : const Color(0xFFEAF1FF),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Total Days',
+                                style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.black87),
+                              ),
+                              Text(
+                                '$days days',
+                                style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w900,
+                                    color: belowMin
+                                        ? const Color(0xFFD32F2F)
+                                        : Colors.black87),
+                              ),
+                            ],
+                          ),
                         ),
-                        Text(
-                          '${toDate!.difference(fromDate!).inDays + 1} days',
-                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900, color: Colors.black87),
-                        ),
+                        if (minDays > 1) ...[
+                          const SizedBox(height: 5),
+                          Row(
+                            children: [
+                              Icon(
+                                belowMin
+                                    ? Icons.error_outline
+                                    : Icons.info_outline,
+                                size: 13,
+                                color: belowMin
+                                    ? const Color(0xFFD32F2F)
+                                    : const Color(0xFF1565C0),
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                '$selectedLeaveType requires a minimum of $minDays days.',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: belowMin
+                                      ? const Color(0xFFD32F2F)
+                                      : const Color(0xFF1E2A3A),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
-                    ),
-                  ),
+                    );
+                  }),
               ],
 
               const SizedBox(height: 16),
@@ -1059,10 +1125,38 @@ void _showSubmitConfirmation() {
 
   // ---------------- UI HELPERS (UI ONLY) ----------------
 
-  /// Earliest day selectable in leave calendars: same calendar day, two months ago.
+  /// Earliest selectable date — depends on leave type:
+  /// Annual Leave → today (no past).
+  /// Sick Leave   → today (no past; apply promptly after illness).
+  /// Others       → 3 days in the past (retroactive casual/half-day).
   DateTime _leavePickerFirstDate() {
     final today = DateUtils.dateOnly(DateTime.now());
-    return DateTime(today.year, today.month - 2, today.day);
+    if (selectedLeaveType == 'Annual Leave' ||
+        selectedLeaveType == 'Sick Leave') {
+      return today;
+    }
+    return today.subtract(const Duration(days: 3));
+  }
+
+  /// Minimum allowed "To date" given [fromDate] and the current leave type.
+  /// Annual Leave → fromDate + 2 days (≥ 3 days total).
+  /// Sick Leave   → fromDate + 1 day  (≥ 2 days total).
+  /// Others       → fromDate itself (no minimum beyond 1 day).
+  DateTime? _minToDate() {
+    if (fromDate == null) return null;
+    if (selectedLeaveType == 'Annual Leave') {
+      return fromDate!.add(const Duration(days: 2));
+    }
+    if (selectedLeaveType == 'Sick Leave') {
+      return fromDate!.add(const Duration(days: 1));
+    }
+    return fromDate;
+  }
+
+  int _minimumDays() {
+    if (selectedLeaveType == 'Annual Leave') return 3;
+    if (selectedLeaveType == 'Sick Leave') return 2;
+    return 1;
   }
 
   Widget _buildDatePicker(
