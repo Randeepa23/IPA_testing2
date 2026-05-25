@@ -10,6 +10,7 @@ import '../QRCode/Vehicle_qr_screen.dart';
 import '../users/biometric_enabled_screen.dart';
 import 'Meeting&Events/dashbord_screen.dart';
 import 'AirportParking/airport_parking_screen.dart';
+import 'users/gate_pass_screen.dart';
 class HomeScreen extends StatefulWidget {
   final String username;
   final Map<String, dynamic> user;
@@ -175,6 +176,18 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
+      // placeholder services (disabled with message)
+      _ServiceItem(
+        image: 'assets/gatepass.png',
+        label: "Gate Pass",
+        disabled: false,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => GatePassScreen(user: user)),
+          );
+        },
+      ),
       // more placeholders can be added here without changing the UI code
       _ServiceItem(
         image: 'assets/setting.png',
@@ -193,7 +206,6 @@ class _HomeScreenState extends State<HomeScreen> {
         disabled: false,
         onTap: () => showBottomMessage("Help is coming soon 🚧"),
       ),
-
       // only one real service for now, but placeholders can be added easily
       _ServiceItem(
         image: 'assets/itSupport.png',
