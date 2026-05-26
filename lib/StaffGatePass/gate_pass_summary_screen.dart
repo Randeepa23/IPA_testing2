@@ -33,10 +33,12 @@ class _GatePassSummaryScreenState extends State<GatePassSummaryScreen> {
           managerId: _managerId);
       if (res['success'] != true) throw Exception(res['message'] ?? 'Failed');
       final raw = List.from(res['records'] ?? []);
+      final list = raw
+          .map((e) => GatePassSummaryRecord.fromJson(e as Map<String, dynamic>))
+          .toList();
+      list.sort((a, b) => b.id.compareTo(a.id));
       setState(() {
-        _records = raw
-            .map((e) => GatePassSummaryRecord.fromJson(e as Map<String, dynamic>))
-            .toList();
+        _records = list;
         _loading = false;
       });
     } catch (e) {
