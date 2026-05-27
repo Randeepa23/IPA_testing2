@@ -479,6 +479,35 @@ static Future<Map<String, dynamic>> cancelTrip({required String id}) async {
   return Map<String, dynamic>.from(jsonDecode(body));
 }
 
+  // ── Remove companion from vehicle request ─────────────────────────────────
+  static Future<Map<String, dynamic>> removeVehicleCompanion({
+    required int transportServiceId,
+    required int companionId,
+    required int managerId,
+  }) async {
+    final url = Uri.parse("$baseUrl/remove_vehicle_companion.php");
+ 
+    final res = await http
+        .post(
+          url,
+          headers: {
+            "Content-Type": "application/json",
+            "Accept"       : "application/json",
+          },
+          body: jsonEncode({
+            "transport_service_id": transportServiceId,
+            "companion_id"        : companionId,
+            "manager_id"          : managerId,
+          }),
+        )
+        .timeout(const Duration(seconds: 15));
+ 
+    if (res.body.trim().isEmpty) throw Exception("Empty response from server");
+    final decoded = jsonDecode(res.body);
+    if (decoded is! Map<String, dynamic>) throw Exception("Unexpected response format");
+    return decoded;
+  }
+
 static Future<List<Map<String, dynamic>>> fetchManagerVehicleRequests({
   required String managerId,
 }) async {
