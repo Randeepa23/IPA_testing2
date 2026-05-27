@@ -1,3 +1,4 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import '../Services/vehicle_api_service.dart';
 import '../Leaves/top_banner.dart';
@@ -592,42 +593,150 @@ class _VehicleCompanionsSheetState extends State<_VehicleCompanionsSheet> {
   Future<void> _remove(_VCompanion c) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Remove Member',
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-        content: RichText(
-          text: TextSpan(
-            style: const TextStyle(fontSize: 13, color: Colors.black54),
-            children: [
-              const TextSpan(text: 'Remove '),
-              TextSpan(text: c.name,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w800, color: Colors.black87)),
-              const TextSpan(text: ' from this vehicle request?'),
-            ],
-          ),
-        ),
-        actionsAlignment: MainAxisAlignment.spaceEvenly,
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel',
-                style: TextStyle(color: Colors.black54)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+      barrierDismissible: false,
+      barrierColor: Colors.transparent,
+      builder: (ctx) {
+        final dialogW =
+            (MediaQuery.of(ctx).size.width * 0.90).clamp(280.0, 420.0);
+        return Stack(
+          children: [
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+              child: Container(
+                  color: Colors.black.withValues(alpha: 0.15)),
             ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Remove',
-                style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+            Center(
+              child: Dialog(
+                insetPadding: const EdgeInsets.all(16),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+                child: SizedBox(
+                  width: dialogW,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.person_remove_outlined,
+                                color: Colors.redAccent),
+                            const SizedBox(width: 10),
+                            const Expanded(
+                              child: Text('Remove Member',
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800)),
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              icon: const Icon(Icons.close),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'This action cannot be undone.',
+                          style: TextStyle(
+                              color: Colors.grey,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12.5),
+                        ),
+                        const SizedBox(height: 14),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFF),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                                color: const Color(0xFFE1E6EF)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.person_outline,
+                                  size: 16, color: Color(0xFF6B7A90)),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(c.name,
+                                    style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF1E2A3A))),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () =>
+                                    Navigator.pop(ctx, false),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.black54,
+                                  side: const BorderSide(
+                                      color: Color(0xFFC4C4C4),
+                                      width: 1.2),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 12),
+                                ),
+                                child: const Text('Cancel'),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFFD10A0A),
+                                      Color(0xFF5B0000),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius:
+                                      BorderRadius.circular(12),
+                                ),
+                                child: ElevatedButton(
+                                  onPressed: () =>
+                                      Navigator.pop(ctx, true),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 12),
+                                    elevation: 0,
+                                  ),
+                                  child: const Text('Remove',
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight:
+                                              FontWeight.w800)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
 
     if (ok != true) return;

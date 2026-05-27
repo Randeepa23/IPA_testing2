@@ -145,6 +145,7 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
   bool                      loadingManagers = true;
   String?                   managerError;
   final Map<int, Future<Map<String, dynamic>?>> _photoFutureCache = {};
+  final Map<int, Future<Map<String, dynamic>?>> _staffPhotoFutureCache = {};
 
   // ── Staff (Going With) ────────────────────────────────────────────────────
   List<_StaffMember> _allStaff         = [];
@@ -175,9 +176,13 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
     super.dispose();
   }
 
-  // ── Photo helper ──────────────────────────────────────────────────────────
+  // ── Photo helpers ─────────────────────────────────────────────────────────
   Future<Map<String, dynamic>?> _getPhotoFuture(int employeeId) =>
       _photoFutureCache.putIfAbsent(
+          employeeId, () => ApiService.getProfilePhoto(employeeId: employeeId));
+
+  Future<Map<String, dynamic>?> _getStaffPhotoFuture(int employeeId) =>
+      _staffPhotoFutureCache.putIfAbsent(
           employeeId, () => ApiService.getProfilePhoto(employeeId: employeeId));
 
   // ── Load managers ─────────────────────────────────────────────────────────
@@ -715,6 +720,19 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
             children: _allStaff
                 .where((s) => _selectedStaffIds.contains(s.id))
                 .map((s) => Chip(
+                      avatar: FutureBuilder<Map<String, dynamic>?>(
+                        future: _getStaffPhotoFuture(s.id),
+                        builder: (_, snap) {
+                          final url = (snap.data?['fileUrl'] ?? '').toString().trim();
+                          if (url.isNotEmpty) {
+                            return CircleAvatar(backgroundImage: NetworkImage(url));
+                          }
+                          return const CircleAvatar(
+                            backgroundColor: Color(0xFF1565C0),
+                            child: Icon(Icons.person, size: 12, color: Colors.white),
+                          );
+                        },
+                      ),
                       label: Text(s.name,
                           style: const TextStyle(
                               fontSize: 12, fontWeight: FontWeight.w700)),
@@ -764,11 +782,34 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
                             horizontal: 14, vertical: 12),
                         child: Row(
                           children: [
-                            const CircleAvatar(
-                              radius: 18,
-                              backgroundColor: Color(0xFFEAF1FF),
-                              child: Icon(Icons.person,
-                                  size: 18, color: Colors.black45),
+                            FutureBuilder<Map<String, dynamic>?>(
+                              future: _getStaffPhotoFuture(staff.id),
+                              builder: (_, snap) {
+                                final url = (snap.data?['fileUrl'] ?? '').toString().trim();
+                                if (snap.connectionState == ConnectionState.waiting) {
+                                  return const CircleAvatar(
+                                    radius: 18,
+                                    backgroundColor: Color(0xFFEAF1FF),
+                                    child: SizedBox(
+                                      width: 12, height: 12,
+                                      child: CircularProgressIndicator(
+                                          color: Color(0xFF1565C0), strokeWidth: 1.5),
+                                    ),
+                                  );
+                                }
+                                if (url.isNotEmpty) {
+                                  return CircleAvatar(
+                                    radius: 18,
+                                    backgroundColor: const Color(0xFFEAF1FF),
+                                    backgroundImage: NetworkImage(url),
+                                  );
+                                }
+                                return const CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor: Color(0xFFEAF1FF),
+                                  child: Icon(Icons.person, size: 18, color: Colors.black45),
+                                );
+                              },
                             ),
                             const SizedBox(width: 12),
                             Expanded(

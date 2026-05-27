@@ -87,11 +87,13 @@ class _GatePassScreenState extends State<GatePassScreen> {
       body: Column(
         children: [
           // ── Tab bar ──────────────────────────────────────────────────────
-          Padding(
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
             child: Row(
               children: [
-                Expanded(
+                SizedBox(
+                  width: 110,
                   child: _tabButton(
                     label: "New\nRequest",
                     icon: Icons.add_circle_outline,
@@ -101,7 +103,8 @@ class _GatePassScreenState extends State<GatePassScreen> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                Expanded(
+                SizedBox(
+                  width: 110,
                   child: _tabButton(
                     label: "My Gate\nPasses",
                     icon: Icons.badge_outlined,
@@ -111,7 +114,8 @@ class _GatePassScreenState extends State<GatePassScreen> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                Expanded(
+                SizedBox(
+                  width: 110,
                   child: _tabButton(
                     label: "Requests",
                     icon: Icons.assignment_outlined,
@@ -128,7 +132,8 @@ class _GatePassScreenState extends State<GatePassScreen> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                Expanded(
+                SizedBox(
+                  width: 110,
                   child: _tabButton(
                     label: "Summary",
                     icon: Icons.bar_chart_outlined,
