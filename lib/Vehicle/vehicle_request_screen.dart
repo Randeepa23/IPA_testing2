@@ -381,7 +381,7 @@ class _VehicleRequestCard extends StatelessWidget {
                               i++)
                             Positioned(
                               left: i * 24.0,
-                              child: _avatarCircle(companions[i].name, i),
+                              child: _avatarCircle(companions[i].name, i, companions[i].id),
                             ),
                           if (companions.length > 3)
                             Positioned(
@@ -466,7 +466,7 @@ class _VehicleRequestCard extends StatelessWidget {
   // ── Helpers ───────────────────────────────────────────────────────────────
   double _avatarStackWidth(int count) => (count.clamp(0, 4) * 24.0) + 12;
 
-  Widget _avatarCircle(String name, int index) {
+  Widget _avatarCircle(String name, int index, int id) {
     const colors = [
       Color(0xFF1565C0), Color(0xFF2E7D32),
       Color(0xFF6A1B9A), Color(0xFFE65100),
@@ -475,18 +475,34 @@ class _VehicleRequestCard extends StatelessWidget {
     final initials = parts.length >= 2
         ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
         : (parts.isNotEmpty ? parts[0][0].toUpperCase() : '?');
-    return Container(
-      width: 36, height: 36,
-      decoration: BoxDecoration(
-        color: colors[index % colors.length],
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2.5),
-      ),
-      child: Center(
-        child: Text(initials,
-            style: const TextStyle(
-                fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white)),
-      ),
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: id > 0 ? getPhoto(id) : Future.value(null),
+      builder: (_, snap) {
+        final url = (snap.data?['fileUrl'] ?? '').toString().trim();
+        if (url.isNotEmpty) {
+          return Container(
+            width: 36, height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2.5),
+              image: DecorationImage(image: NetworkImage(url), fit: BoxFit.cover),
+            ),
+          );
+        }
+        return Container(
+          width: 36, height: 36,
+          decoration: BoxDecoration(
+            color: colors[index % colors.length],
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2.5),
+          ),
+          child: Center(
+            child: Text(initials,
+                style: const TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white)),
+          ),
+        );
+      },
     );
   }
 
