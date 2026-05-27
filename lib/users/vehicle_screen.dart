@@ -3,6 +3,7 @@ import '../Vehicle/vehicle_new_request_screen.dart';
 import '../Vehicle/my_trip_screen.dart';
 import '../Vehicle/vehicle_request_screen.dart';
 import '../Services/vehicle_api_service.dart';
+import '../Vehicle/office_vehicle_summary_screen.dart';
 class VehicleScreen extends StatefulWidget {
   final Map<String, dynamic> user;
   final int initialTab;
@@ -101,6 +102,8 @@ void initState() {
         return "My Trips";
       case 2:
         return "Requests";
+      case 3:
+        return "Summary";
       default:
         return "Vehicle";
     }
@@ -173,6 +176,16 @@ void initState() {
                     badgeCount: hideManagerBadge ? 0 : managerPendingCount,
                   ),
                 ),
+                const SizedBox(width: 10),                
+                Expanded(
+                  child: _tabButton(
+                    label: "Summary",
+                    icon: Icons.bar_chart_outlined,
+                    isActive: selectedTab == 3,
+                    onTap: () => setState(() => selectedTab = 3),
+                    activeColor: blue,
+                  ),
+                ),
               ],
             ),
           ),
@@ -187,6 +200,12 @@ void initState() {
                   managerId: widget.user["employeeId"]?.toString() ??
                       widget.user["employee_id"]?.toString() ??
                       "",
+                ),
+                OfficeVehicleSummaryScreen(
+                  managerId: int.tryParse(
+                        widget.user["employeeId"]?.toString() ??
+                        widget.user["employee_id"]?.toString() ?? "0",
+                      ) ?? 0,
                 ),
               ],
             ),

@@ -625,4 +625,61 @@ static Future<int> getPersonalUsageCount(String employeeId) async {
   return json["data"]["count"] ?? 0;
 }
 
+
+  // ── Get manager approved OFFICE transport summary ──────────────────────────
+  static Future<Map<String, dynamic>> getManagerOfficeTransportSummary({
+    required int managerId,
+  }) async {
+    final url = Uri.parse(
+      "$baseUrl/get_office_vehicle_summary.php?manager_id=$managerId",
+    );
+
+    final res = await http
+        .get(
+          url,
+          headers: {"Accept": "application/json"},
+        )
+        .timeout(const Duration(seconds: 15));
+
+    if (res.body.trim().isEmpty) {
+      throw Exception("Empty response from server");
+    }
+
+    final decoded = jsonDecode(res.body);
+
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception("Unexpected response format");
+    }
+
+    return decoded;
+  }
+
+  // ── Get manager approved PERSONAL transport summary ───────────────────────
+  static Future<Map<String, dynamic>> getManagerPersonalTransportSummary({
+    required int managerId,
+  }) async {
+    final url = Uri.parse(
+      "$baseUrl/get_personal_vehicle_summary.php?manager_id=$managerId",
+    );
+
+    final res = await http
+        .get(
+          url,
+          headers: {"Accept": "application/json"},
+        )
+        .timeout(const Duration(seconds: 15));
+
+    if (res.body.trim().isEmpty) {
+      throw Exception("Empty response from server");
+    }
+
+    final decoded = jsonDecode(res.body);
+
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception("Unexpected response format");
+    }
+
+    return decoded;
+  }
+
 }
