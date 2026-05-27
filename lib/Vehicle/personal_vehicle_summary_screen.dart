@@ -4,8 +4,13 @@ import '../Models/vehicle_summary_record.dart';
 import '../Services/vehicle_api_service.dart';
 
 class PersonalVehicleSummaryScreen extends StatefulWidget {
-  final int managerId;
-  const PersonalVehicleSummaryScreen({super.key, required this.managerId});
+  final int  managerId;
+  final bool isGeneralManager;
+  const PersonalVehicleSummaryScreen({
+    super.key,
+    required this.managerId,
+    this.isGeneralManager = false,
+  });
 
   @override
   State<PersonalVehicleSummaryScreen> createState() =>
@@ -27,8 +32,10 @@ class _PersonalVehicleSummaryScreenState
   Future<void> _load() async {
     try {
       setState(() { _loading = true; _error = null; });
-      final res = await VehicleApiService.getManagerPersonalTransportSummary(
-          managerId: widget.managerId);
+      final res = widget.isGeneralManager
+          ? await VehicleApiService.getGeneralManagerPersonalTransportSummary()
+          : await VehicleApiService.getManagerPersonalTransportSummary(
+              managerId: widget.managerId);
       if (res['success'] != true) throw Exception(res['message'] ?? 'Failed');
       final list = List.from(res['records'] ?? [])
           .map((e) => VehicleSummaryRecord.fromJson(e as Map<String, dynamic>))
@@ -149,8 +156,11 @@ class _PersonalVehicleSummaryScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Personal Approved Trips',
-                    style: TextStyle(
+                Text(
+                    widget.isGeneralManager
+                        ? 'All Approved Personal Trips'
+                        : 'Personal Approved Trips',
+                    style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: Colors.black54)),
