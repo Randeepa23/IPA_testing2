@@ -131,11 +131,13 @@ void initState() {
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
             child: Row(
               children: [
-                Expanded(
+                SizedBox(
+                  width: 100,
                   child: _tabButton(
                     label: "New\nRequest",
                     icon: Icons.add_circle_outline,
@@ -145,8 +147,9 @@ void initState() {
                   ),
                 ),
                 const SizedBox(width: 10),
-                Expanded(
-                  child:_tabButton(
+                SizedBox(
+                  width: 100,
+                  child: _tabButton(
                     label: "My Trips",
                     icon: Icons.directions_car_outlined,
                     isActive: selectedTab == 1,
@@ -161,7 +164,8 @@ void initState() {
                   ),
                 ),
                 const SizedBox(width: 10),
-                Expanded(
+                SizedBox(
+                  width: 100,
                   child: _tabButton(
                     label: "Requests",
                     icon: Icons.assignment_outlined,
@@ -176,8 +180,9 @@ void initState() {
                     badgeCount: hideManagerBadge ? 0 : managerPendingCount,
                   ),
                 ),
-                const SizedBox(width: 10),                
-                Expanded(
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 100,
                   child: _tabButton(
                     label: "Summary",
                     icon: Icons.bar_chart_outlined,

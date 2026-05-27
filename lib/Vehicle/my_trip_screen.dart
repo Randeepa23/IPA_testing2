@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../ui/dialogs/start_trip_dialog.dart';
 import '../ui/dialogs/stop_trip_dialog.dart';
 import '../Services/vehicle_api_service.dart';
+import '../Services/api_service.dart';
 import '../Leaves/top_banner.dart';
 import '../ui/dialogs/cancel_trip_dialog.dart';
 
@@ -318,6 +319,83 @@ class _SegmentTabs extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Companion photo avatar — loads once, falls back to colour + initials
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CompanionPhoto extends StatefulWidget {
+  final int    id;
+  final String name;
+  final int    colorIndex;
+  final double radius;
+  final bool   withBorder;
+
+  const _CompanionPhoto({
+    required this.id,
+    required this.name,
+    required this.colorIndex,
+    this.radius    = 18,
+    this.withBorder = true,
+  });
+
+  @override
+  State<_CompanionPhoto> createState() => _CompanionPhotoState();
+}
+
+class _CompanionPhotoState extends State<_CompanionPhoto> {
+  late final Future<Map<String, dynamic>?> _photoFuture;
+
+  static const _colors = [
+    Color(0xFF1565C0), Color(0xFF2E7D32),
+    Color(0xFF6A1B9A), Color(0xFFE65100),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _photoFuture = ApiService.getProfilePhoto(employeeId: widget.id);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final parts    = widget.name.trim().split(' ').where((p) => p.isNotEmpty).toList();
+    final initials = parts.length >= 2
+        ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
+        : (parts.isNotEmpty ? parts[0][0].toUpperCase() : '?');
+    final bgColor  = _colors[widget.colorIndex % _colors.length];
+    final size     = widget.radius * 2;
+
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: _photoFuture,
+      builder: (_, snap) {
+        final url = (snap.data?['fileUrl'] ?? '').toString().trim();
+        return Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: url.isNotEmpty ? null : bgColor,
+            shape: BoxShape.circle,
+            border: widget.withBorder
+                ? Border.all(color: Colors.white, width: 2.5)
+                : null,
+            image: url.isNotEmpty
+                ? DecorationImage(image: NetworkImage(url), fit: BoxFit.cover)
+                : null,
+          ),
+          child: url.isEmpty
+              ? Center(
+                  child: Text(initials,
+                      style: TextStyle(
+                          fontSize: widget.radius * 0.65,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white)))
+              : null,
+        );
+      },
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Trip Card
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -560,7 +638,11 @@ class TripCard extends StatelessWidget {
                   for (int i = 0; i < list.length.clamp(0, 3); i++)
                     Positioned(
                       left: i * 24.0,
-                      child: _avatarCircle(list[i].name, i),
+                      child: _CompanionPhoto(
+                        id:         list[i].id,
+                        name:       list[i].name,
+                        colorIndex: i,
+                      ),
                     ),
                   if (list.length > 3)
                     Positioned(
@@ -645,25 +727,18 @@ class TripCard extends StatelessWidget {
             separatorBuilder: (_, __) =>
                 const Divider(height: 1, indent: 72, endIndent: 20),
             itemBuilder: (_, i) {
-              final c        = list[i];
-              final parts    = c.name.trim().split(' ')
-                  .where((p) => p.isNotEmpty).toList();
-              final initials = parts.length >= 2
-                  ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
-                  : (parts.isNotEmpty ? parts[0][0].toUpperCase() : '?');
+              final c = list[i];
               return Padding(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 20, vertical: 10),
                 child: Row(
                   children: [
-                    CircleAvatar(
-                      radius: 22,
-                      backgroundColor: const Color(0xFF1565C0),
-                      child: Text(initials,
-                          style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white)),
+                    _CompanionPhoto(
+                      id:         c.id,
+                      name:       c.name,
+                      colorIndex: i,
+                      radius:     22,
+                      withBorder: false,
                     ),
                     const SizedBox(width: 14),
                     Text(c.name,
@@ -684,30 +759,6 @@ class TripCard extends StatelessWidget {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   double _avatarStackWidth(int count) => (count.clamp(0, 4) * 24.0) + 12;
-
-  Widget _avatarCircle(String name, int index) {
-    const colors = [
-      Color(0xFF1565C0), Color(0xFF2E7D32),
-      Color(0xFF6A1B9A), Color(0xFFE65100),
-    ];
-    final parts    = name.trim().split(' ').where((p) => p.isNotEmpty).toList();
-    final initials = parts.length >= 2
-        ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
-        : (parts.isNotEmpty ? parts[0][0].toUpperCase() : '?');
-    return Container(
-      width: 36, height: 36,
-      decoration: BoxDecoration(
-        color: colors[index % colors.length],
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2.5),
-      ),
-      child: Center(
-        child: Text(initials,
-            style: const TextStyle(
-                fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white)),
-      ),
-    );
-  }
 
   Widget _gradientButton({
     required String text,
