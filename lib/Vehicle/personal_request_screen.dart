@@ -5,6 +5,7 @@ import '../Services/api_service.dart';
 import '../ui/dialogs/vehicle_reject_dialog.dart';
 import '../ui/dialogs/vehicle_approve_dialog.dart';
 import '../ui/dialogs/manager_vehicle_change_dialog.dart';
+import 'personal_vehicle_summary_screen.dart';
 
 class PersonalRequestScreen extends StatefulWidget {
   final String managerId;
@@ -24,6 +25,7 @@ class _PersonalRequestScreenState extends State<PersonalRequestScreen> {
   List<Map<String, dynamic>> requests = [];
   bool loading = true;
   String? errorText;
+  int _selectedTab = 0;
 
   bool get _isGeneralManager {
     final u = widget.user;
@@ -325,68 +327,135 @@ class _PersonalRequestScreenState extends State<PersonalRequestScreen> {
         foregroundColor: Colors.black,
         elevation: 0.6,
       ),
-      body: RefreshIndicator(
-        onRefresh: _loadManagerVehicleRequests,
-        color: Colors.blue,
-        backgroundColor: Colors.white,
-        strokeWidth: 2,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: EdgeInsets.all(pad),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _tabBtn('Requests', Icons.assignment_outlined, 0),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _tabBtn('Summary', Icons.bar_chart_outlined, 1),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: IndexedStack(
+              index: _selectedTab,
+              children: [
+                RefreshIndicator(
+                  onRefresh: _loadManagerVehicleRequests,
+                  color: Colors.blue,
+                  backgroundColor: Colors.white,
+                  strokeWidth: 2,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: EdgeInsets.all(pad),
+                    children: [
+                      if (loading)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 40),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                                color: Colors.blue,
+                                backgroundColor: Colors.white),
+                          ),
+                        )
+                      else if (errorText != null)
+                        Column(
+                          children: [
+                            Text(errorText!,
+                                style: const TextStyle(color: Colors.red)),
+                            const SizedBox(height: 10),
+                            ElevatedButton(
+                              onPressed: _loadManagerVehicleRequests,
+                              child: const Text("Retry"),
+                            ),
+                          ],
+                        )
+                      else if (requests.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 40),
+                          child: Center(
+                            child: Text(
+                              _isGeneralManager
+                                  ? "No HOD-approved personal requests"
+                                  : "No vehicle requests",
+                              style: const TextStyle(color: Colors.grey),
+                            ),
+                          ),
+                        )
+                      else
+                        ...requests.map((r) {
+                          final st = _requestStatus(r);
+                          final gm = _isGeneralManager;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 14),
+                            child: _VehicleRequestCard(
+                              data: r,
+                              status: st,
+                              hodComment: _hodComment(r),
+                              generalManagerView: gm,
+                              onReject: () => _showRejectDialog(context, r),
+                              onPrimary: gm
+                                  ? () => _showGmApproveDialog(context, r)
+                                  : () => _showApproveDialog(context, r),
+                              primaryLabel:
+                                  gm ? "Approve" : "Accept & Forward",
+                              getPhoto: _getPhotoFuture,
+                              onChangeVehicle: () =>
+                                  _showManagerChangeVehicleDialog(r),
+                            ),
+                          );
+                        }),
+                    ],
+                  ),
+                ),
+                PersonalVehicleSummaryScreen(
+                  managerId: int.tryParse(widget.managerId) ?? 0,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tabBtn(String label, IconData icon, int index) {
+    final isActive = _selectedTab == index;
+    final blue = Colors.blue[800]!;
+    return InkWell(
+      onTap: () => setState(() => _selectedTab = index),
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: isActive ? blue : Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isActive ? blue : const Color(0xFFE1E6EF),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (loading)
-              const Padding(
-                padding: EdgeInsets.only(top: 40),
-                child: Center(
-                  child: CircularProgressIndicator(
-                    color: Colors.blue, 
-                    backgroundColor: Colors.white),
-                ),
-              )
-            else if (errorText != null)
-              Column(
-                children: [
-                  Text(errorText!, style: const TextStyle(color: Colors.red)),
-                  const SizedBox(height: 10),
-                  ElevatedButton(
-                    onPressed: _loadManagerVehicleRequests,
-                    child: const Text("Retry"),
-                  ),
-                ],
-              )
-            else if (requests.isEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 40),
-                child: Center(
-                  child: Text(
-                    _isGeneralManager
-                        ? "No HOD-approved personal requests"
-                        : "No vehicle requests",
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                ),
-              )
-            else
-              ...requests.map((r) {
-                final st = _requestStatus(r);
-                final gm = _isGeneralManager;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: _VehicleRequestCard(
-                    data: r,
-                    status: st,
-                    hodComment: _hodComment(r),
-                    generalManagerView: gm,
-                    onReject: () => _showRejectDialog(context, r),
-                    onPrimary: gm
-                        ? () => _showGmApproveDialog(context, r)
-                        : () => _showApproveDialog(context, r),
-                    primaryLabel: gm ? "Approve" : "Accept & Forward",
-                    getPhoto: _getPhotoFuture,
-                    onChangeVehicle: () => _showManagerChangeVehicleDialog(r),
-                  ),
-                );
-              }),
+            Icon(icon, size: 17,
+                color: isActive ? Colors.white : Colors.black87),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w800,
+                color: isActive ? Colors.white : Colors.black87,
+              ),
+            ),
           ],
         ),
       ),
