@@ -417,6 +417,7 @@ class _PersonalRequestScreenState extends State<PersonalRequestScreen> {
                 ),
                 PersonalVehicleSummaryScreen(
                   managerId: int.tryParse(widget.managerId) ?? 0,
+                  isGeneralManager: _isGeneralManager,
                 ),
               ],
             ),

@@ -654,6 +654,22 @@ static Future<int> getPersonalUsageCount(String employeeId) async {
     return decoded;
   }
 
+  // ── Get ALL approved personal transport summary (General Manager view) ───
+  static Future<Map<String, dynamic>> getGeneralManagerPersonalTransportSummary() async {
+    final url = Uri.parse(
+      "$baseUrl/get_general_manager_personal_vehicle_summary.php",
+    );
+
+    final res = await http
+        .get(url, headers: {"Accept": "application/json"})
+        .timeout(const Duration(seconds: 15));
+
+    if (res.body.trim().isEmpty) throw Exception("Empty response from server");
+    final decoded = jsonDecode(res.body);
+    if (decoded is! Map<String, dynamic>) throw Exception("Unexpected response format");
+    return decoded;
+  }
+
   // ── Get manager approved PERSONAL transport summary ───────────────────────
   static Future<Map<String, dynamic>> getManagerPersonalTransportSummary({
     required int managerId,
