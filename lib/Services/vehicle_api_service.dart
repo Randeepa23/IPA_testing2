@@ -6,8 +6,8 @@ import 'package:http/http.dart' as http;
 class VehicleApiService {
 
   //Android Emulator → PC localhost
-//static const String baseUrl = "http://10.0.2.2/mobile-api/vehicle";
-  static const String baseUrl = "https://exploresuite.lk/mobile-api/vehicle";
+  static const String baseUrl = "http://10.0.2.2/mobile-api/vehicle";
+  //static const String baseUrl = "https://exploresuite.lk/mobile-api/vehicle";
 
   static String? _googlePlacesApiKeyCache;
 
@@ -349,57 +349,53 @@ class VehicleApiService {
   return Map<String, dynamic>.from(jsonDecode(res.body));
 }
 
- /// Create Vehicle Request -> inserts into office (type = transfer)
+  /// Create Vehicle Request -> inserts into office (type = transfer)
   static Future<Map<String, dynamic>> createOfficeVehicleRequest({
     required String employeeId,
     required String managerId,
     required String vehicleNo,
-    required String fromDate,     // yyyy-MM-dd
-    required String toDate,       // yyyy-MM-dd
+    required String fromDate,       // yyyy-MM-dd
+    required String toDate,         // yyyy-MM-dd
     required String destination,
     required String contactNo,
-  required String employeeName,
-    String reason = "Office Service",
-    String? vehicleType, 
-    int? vehicleId,       // ← new
-         // ← new
+    required String employeeName,
+    String   reason       = "Office Service",
+    String?  vehicleType,
+    int?     vehicleId,
+    List<int> companionEmployeeIds = const [], // ← new
   }) async {
     final url = Uri.parse("$baseUrl/create_office_vehicle_request.php");
-
+ 
     final res = await http.post(
       url,
       headers: {
         "Content-Type": "application/json",
-        "Accept": "application/json",
+        "Accept"       : "application/json",
       },
       body: jsonEncode({
-        "contact_no": contactNo,
-        "employee_id": employeeId,
-        "manager_id": managerId,
-        "vehicle_no": vehicleNo,
-        "from_date": fromDate,
-        "to_date": toDate,
-        "destination": destination,
-        "chauffer_phone": contactNo,
-        "chauffer_name": employeeName,
-        "reason": reason,
-        "vehicle_type": vehicleType,
-        "vehicle_id": vehicleId, // ← include this if provided
-
+        "employee_id"            : employeeId,
+        "manager_id"             : managerId,
+        "vehicle_no"             : vehicleNo,
+        "from_date"              : fromDate,
+        "to_date"                : toDate,
+        "destination"            : destination,
+        "chauffer_phone"         : contactNo,
+        "chauffer_name"          : employeeName,
+        "contact_no"             : contactNo,
+        "reason"                 : reason,
+        "vehicle_type"           : vehicleType,
+        "vehicle_id"             : vehicleId,
+        "companion_employee_ids" : companionEmployeeIds, // ← new
       }),
     ).timeout(const Duration(seconds: 12));
-
+ 
     if (res.body.trim().isEmpty) {
       throw Exception("Server returned EMPTY response");
     }
-
+ 
     final decoded = jsonDecode(res.body);
-
-    if (decoded is Map<String, dynamic>) {
-      return decoded;
-    }
-
-    // fallback if API returns object but decoded as Map<dynamic,dynamic>
+ 
+    if (decoded is Map<String, dynamic>) return decoded;
     return Map<String, dynamic>.from(decoded);
   }
 
@@ -482,6 +478,35 @@ static Future<Map<String, dynamic>> cancelTrip({required String id}) async {
   if (body.isEmpty) throw Exception("EMPTY response");
   return Map<String, dynamic>.from(jsonDecode(body));
 }
+
+  // ── Remove companion from vehicle request ─────────────────────────────────
+  static Future<Map<String, dynamic>> removeVehicleCompanion({
+    required int transportServiceId,
+    required int companionId,
+    required int managerId,
+  }) async {
+    final url = Uri.parse("$baseUrl/remove_vehicle_companion.php");
+ 
+    final res = await http
+        .post(
+          url,
+          headers: {
+            "Content-Type": "application/json",
+            "Accept"       : "application/json",
+          },
+          body: jsonEncode({
+            "transport_service_id": transportServiceId,
+            "companion_id"        : companionId,
+            "manager_id"          : managerId,
+          }),
+        )
+        .timeout(const Duration(seconds: 15));
+ 
+    if (res.body.trim().isEmpty) throw Exception("Empty response from server");
+    final decoded = jsonDecode(res.body);
+    if (decoded is! Map<String, dynamic>) throw Exception("Unexpected response format");
+    return decoded;
+  }
 
 static Future<List<Map<String, dynamic>>> fetchManagerVehicleRequests({
   required String managerId,

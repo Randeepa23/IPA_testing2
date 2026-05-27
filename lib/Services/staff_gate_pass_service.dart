@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class StaffGatePassService {
-  //static const String _baseUrl = "http://10.0.2.2/mobile-api/gatepass";
-  static const String _baseUrl = "https://exploresuite.lk/mobile-api/gatepass";
+  static const String _baseUrl = "http://10.0.2.2/mobile-api/gatepass";
+  //static const String _baseUrl = "https://exploresuite.lk/mobile-api/gatepass";
 
   // ── Get all staff ─────────────────────────────────────────────────────────
   /// Returns { "success": true, "members": [...] } from get_all_staff.php
@@ -222,6 +222,44 @@ class StaffGatePassService {
         )
         .timeout(const Duration(seconds: 15));
  
+    if (res.body.trim().isEmpty) throw Exception("Empty response from server");
+    final decoded = jsonDecode(res.body);
+    if (decoded is! Map<String, dynamic>) throw Exception("Unexpected response format");
+    return decoded;
+  }
+
+  // ── Remove companion from gate pass ──────────────────────────────────────
+  static Future<Map<String, dynamic>> removeGatePassCompanion({
+    required int gatePassId,
+    required int companionId,
+    required int managerId,
+  }) async {
+    final res = await http
+        .post(
+          Uri.parse("$_baseUrl/remove_gate_pass_companion.php"),
+          headers: {"Content-Type": "application/json", "Accept": "application/json"},
+          body: jsonEncode({
+            "gate_pass_id" : gatePassId,
+            "companion_id" : companionId,
+            "manager_id"   : managerId,
+          }),
+        )
+        .timeout(const Duration(seconds: 15));
+ 
+    if (res.body.trim().isEmpty) throw Exception("Empty response from server");
+    final decoded = jsonDecode(res.body);
+    if (decoded is! Map<String, dynamic>) throw Exception("Unexpected response format");
+    return decoded;
+  }
+
+    // ── Get manager approved summary ──────────────────────────────────────────
+  static Future<Map<String, dynamic>> getManagerGatePassSummary({
+    required int managerId,
+  }) async {
+    final url = Uri.parse("$_baseUrl/get_manager_gate_pass_summary.php?manager_id=$managerId");
+    final res = await http
+        .get(url, headers: {"Accept": "application/json"})
+        .timeout(const Duration(seconds: 15));
     if (res.body.trim().isEmpty) throw Exception("Empty response from server");
     final decoded = jsonDecode(res.body);
     if (decoded is! Map<String, dynamic>) throw Exception("Unexpected response format");

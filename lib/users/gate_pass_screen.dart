@@ -3,6 +3,7 @@ import '../StaffGatePass/gate_pass_request_form_screen.dart';
 import '../StaffGatePass/gate_pass_request_screen.dart';
 import '../StaffGatePass/manager_gate_pass_request_screen.dart';
 import '../Services/staff_gate_pass_service.dart';
+import '../StaffGatePass/gate_pass_summary_screen.dart';
 
 class GatePassScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -126,6 +127,16 @@ class _GatePassScreenState extends State<GatePassScreen> {
                     badgeCount: _pendingCount,
                   ),
                 ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _tabButton(
+                    label: "Summary",
+                    icon: Icons.bar_chart_outlined,
+                    isActive: selectedTab == 3,
+                    onTap: () => setState(() => selectedTab = 3),
+                    activeColor: blue,
+                  ),
+                ),
               ],
             ),
           ),
@@ -140,17 +151,23 @@ class _GatePassScreenState extends State<GatePassScreen> {
                   user: widget.user,
                   onRequestSubmitted: _onRequestSubmitted,
                 ),
-
+ 
                 // Tab 1 — My Gate Passes list
                 GatePassRequestScreen(
                   user: widget.user,
                   key: ValueKey(_myPassesRefreshKey),
                 ),
-
+ 
                 // Tab 2 — Manager gate pass approvals
                 ManagerGatePassScreen(
                   user: widget.user,
                   key: ValueKey(_requestsRefreshKey),
+                ),
+ 
+                // Tab 3 — Summary (manager approved gate passes)
+                GatePassSummaryScreen(
+                  user: widget.user,
+                  key: const ValueKey('summary'),
                 ),
               ],
             ),

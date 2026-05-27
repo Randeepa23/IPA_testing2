@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../ui/dialogs/vehicle_submit_dialog.dart';
 import '../Services/vehicle_api_service.dart';
+import '../Services/staff_gate_pass_service.dart';
 import '../Leaves/top_banner.dart';
 import 'dart:convert';
 import '../Services/api_service.dart';
@@ -10,16 +11,9 @@ import '../ui/widgets/common_form_widgets.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:http/http.dart' as http;
 
-
-class VehicleRequestFormScreen extends StatefulWidget {
-  final Map<String, dynamic> user;
-  final VoidCallback? onRequestSubmitted;
-
-  const VehicleRequestFormScreen({super.key, required this.user, this.onRequestSubmitted});
-
-  @override
-  State<VehicleRequestFormScreen> createState() => _VehicleRequestFormScreenState();
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Existing models (unchanged)
+// ─────────────────────────────────────────────────────────────────────────────
 
 class PlaceSuggestion {
   final String description;
@@ -27,12 +21,10 @@ class PlaceSuggestion {
 
   PlaceSuggestion({required this.description, required this.placeId});
 
-  factory PlaceSuggestion.fromJson(Map<String, dynamic> json) {
-    return PlaceSuggestion(
-      description: json['description'],
-      placeId: json['place_id'],
-    );
-  }
+  factory PlaceSuggestion.fromJson(Map<String, dynamic> json) => PlaceSuggestion(
+        description: json['description'],
+        placeId:     json['place_id'],
+      );
 }
 
 Future<List<PlaceSuggestion>> fetchPlaceSuggestions(String input) async {
@@ -48,33 +40,22 @@ Future<List<PlaceSuggestion>> fetchPlaceSuggestions(String input) async {
   final uri = Uri.https(
     "maps.googleapis.com",
     "/maps/api/place/autocomplete/json",
-    {
-      "input": input,
-      "key": apiKey,
-      "components": "country:lk",
-    },
+    {"input": input, "key": apiKey, "components": "country:lk"},
   );
 
-  final res = await http.get(uri);
-  final body = res.body;
-  final data = jsonDecode(body) as Map<String, dynamic>;
-
+  final res  = await http.get(uri);
+  final data = jsonDecode(res.body) as Map<String, dynamic>;
   final status = (data["status"] ?? "").toString();
-  final err = (data["error_message"] ?? "").toString();
 
-  debugPrint("Places status=$status code=${res.statusCode} err=$err");
-
-  if (res.statusCode != 200) return [];
-  if (status != "OK") return [];
+  debugPrint("Places status=$status code=${res.statusCode}");
+  if (res.statusCode != 200 || status != "OK") return [];
 
   final preds = (data["predictions"] as List? ?? []);
-  return preds
-      .map((e) => PlaceSuggestion.fromJson(e as Map<String, dynamic>))
-      .toList();
+  return preds.map((e) => PlaceSuggestion.fromJson(e as Map<String, dynamic>)).toList();
 }
 
 class AvailableVehicleOption {
-  final int id;
+  final int    id;
   final String regNo;
   final String make;
   final String model;
@@ -90,235 +71,273 @@ class AvailableVehicleOption {
     required this.vehicleTypeName,
   });
 
-  factory AvailableVehicleOption.fromJson(Map<String, dynamic> json) {
-    return AvailableVehicleOption(
-      id: int.tryParse((json["id"] ?? "").toString()) ?? 0,
-      regNo: (json["reg_no"] ?? "").toString().trim(),
-      make: (json["make"] ?? "").toString().trim(),
-      model: (json["model"] ?? "").toString().trim(),
-      companyName: (json["company_name"] ?? "").toString().trim(),
-      vehicleTypeName: (json["vehicle_type_name"] ?? "").toString().trim(),
-    );
-  }
+  factory AvailableVehicleOption.fromJson(Map<String, dynamic> json) =>
+      AvailableVehicleOption(
+        id:              int.tryParse((json["id"] ?? "").toString()) ?? 0,
+        regNo:           (json["reg_no"]           ?? "").toString().trim(),
+        make:            (json["make"]              ?? "").toString().trim(),
+        model:           (json["model"]             ?? "").toString().trim(),
+        companyName:     (json["company_name"]      ?? "").toString().trim(),
+        vehicleTypeName: (json["vehicle_type_name"] ?? "").toString().trim(),
+      );
 
-  String get displayLabel {
-    final vehicleName = "$make $model".trim();
-    return "$regNo - $vehicleName";
-  }
+  String get displayLabel => "$regNo - ${"$make $model".trim()}";
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Staff member model (same as gate pass)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _StaffMember {
+  final int    id;
+  final String name;
+  final String jobTitle;
+
+  const _StaffMember({
+    required this.id,
+    required this.name,
+    required this.jobTitle,
+  });
+
+  factory _StaffMember.fromJson(Map<String, dynamic> j) => _StaffMember(
+        id:       int.tryParse((j['employee_id'] ?? '').toString()) ?? 0,
+        name:     (j['name']      ?? '').toString().trim(),
+        jobTitle: (j['job_title'] ?? '').toString().trim(),
+      );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Screen
+// ─────────────────────────────────────────────────────────────────────────────
+
+class VehicleRequestFormScreen extends StatefulWidget {
+  final Map<String, dynamic> user;
+  final VoidCallback? onRequestSubmitted;
+
+  const VehicleRequestFormScreen(
+      {super.key, required this.user, this.onRequestSubmitted});
+
+  @override
+  State<VehicleRequestFormScreen> createState() =>
+      _VehicleRequestFormScreenState();
 }
 
 class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // Read-only user details
-  final nameController = TextEditingController();
-  final employeeController = TextEditingController();
+  // ── Read-only user detail controllers ─────────────────────────────────────
+  final nameController       = TextEditingController();
+  final employeeController   = TextEditingController();
   final departmentController = TextEditingController();
-  final contactController = TextEditingController();
+  final contactController    = TextEditingController();
   final FocusNode _destinationFocusNode = FocusNode();
 
-  // Fields
-  final destinationController = TextEditingController();
-
+  // ── Form fields ───────────────────────────────────────────────────────────
+  final destinationController     = TextEditingController();
+  final _vehicleLettersController = TextEditingController();
+  final _vehicleNumbersController = TextEditingController();
   DateTime? fromDate;
   DateTime? toDate;
 
-  // Vehicle number parts
-  final TextEditingController _vehicleLettersController = TextEditingController();
-  final TextEditingController _vehicleNumbersController = TextEditingController();
+  // ── Managers ──────────────────────────────────────────────────────────────
+  List<Map<String, String>> managers       = [];
+  String?                   selectedManagerId;
+  bool                      loadingManagers = true;
+  String?                   managerError;
+  final Map<int, Future<Map<String, dynamic>?>> _photoFutureCache = {};
 
-  // Manager
-  List<Map<String, String>> managers = [];
-  String? selectedManagerId;
-  bool loadingManagers = true;
-  String? managerError;
+  // ── Staff (Going With) ────────────────────────────────────────────────────
+  List<_StaffMember> _allStaff         = [];
+  bool               _loadingStaff     = true;
+  String?            _staffError;
+  final Set<int>     _selectedStaffIds = {};
+  final              _staffSearchCtrl  = TextEditingController();
+  String             _staffSearchQuery = '';
 
   bool _isSubmitting = false;
-
-  // Photo cache for manager avatars
-  final Map<int, Future<Map<String, dynamic>?>> _photoFutureCache = {};
 
   @override
   void initState() {
     super.initState();
-      _loadManagers();
-
-    nameController.text = widget.user['name'] ?? '';
-    employeeController.text = widget.user['employeeCode'] ?? '';
-    departmentController.text = widget.user['department'] ?? '';
-    contactController.text = widget.user['phone'] ?? '';
+    nameController.text       = widget.user['name']         ?? '';
+    employeeController.text   = widget.user['employeeCode'] ?? '';
+    departmentController.text = widget.user['department']   ?? '';
+    contactController.text    = widget.user['phone']        ?? '';
+    _loadManagers();
+    _loadAllStaff();
   }
 
   @override
   void dispose() {
     _vehicleLettersController.dispose();
     _vehicleNumbersController.dispose();
+    _staffSearchCtrl.dispose();
     super.dispose();
   }
 
-    Future<Map<String, dynamic>?> _getPhotoFuture(int employeeId) {
-    return _photoFutureCache.putIfAbsent(
-      employeeId,
-      () => ApiService.getProfilePhoto(employeeId: employeeId),
-    );
-  }
+  // ── Photo helper ──────────────────────────────────────────────────────────
+  Future<Map<String, dynamic>?> _getPhotoFuture(int employeeId) =>
+      _photoFutureCache.putIfAbsent(
+          employeeId, () => ApiService.getProfilePhoto(employeeId: employeeId));
 
-Future<void> _loadManagers() async {
-  try {
-    setState(() {
-      loadingManagers = true;
-      managerError = null;
-    });
+  // ── Load managers ─────────────────────────────────────────────────────────
+  Future<void> _loadManagers() async {
+    try {
+      setState(() { loadingManagers = true; managerError = null; });
 
-    final empId = widget.user["employee_id"]?.toString()
-        ?? widget.user["employeeId"]?.toString()
-        ?? "";
+      final empId = widget.user["employee_id"]?.toString() ??
+          widget.user["employeeId"]?.toString() ?? "";
+      if (empId.isEmpty) throw Exception("employee_id missing in login data");
 
-    if (empId.isEmpty) throw Exception("employee_id missing in login data");
+      final res = await VehicleApiService.getDefaultManagers(
+          employeeId: int.parse(empId));
+      if (res["success"] != true) throw Exception(res["message"] ?? "API failed");
 
-    final res = await VehicleApiService.getDefaultManagers(employeeId: int.parse(empId));
+      final data        = res["data"] ?? {};
+      final raw         = List.from(data["managers"] ?? []);
+      final reportingId = data["reporting_manager_id"]?.toString();
 
-    if (res["success"] != true) {
-      throw Exception(res["message"] ?? "API failed");
-    }
+      final list = raw.map<Map<String, String>>((e) => {
+            "id":   e["id"].toString(),
+            "name": (e["name"] ?? "").toString(),
+          }).toList();
 
-    final data = res["data"] ?? {};
-    final raw = List.from(data["managers"] ?? []);
-    final reportingId = data["reporting_manager_id"]?.toString();
-
-    final list = raw.map<Map<String, String>>((e) {
-      return {
-        "id": e["id"].toString(),
-        "name": (e["name"] ?? "").toString(),
-      };
-    }).toList();
-
-    debugPrint("[LoadManagers] loaded: $list  reportingId: $reportingId");
-
-    String? defaultId;
-
-    if (reportingId != null && list.any((m) => m["id"] == reportingId)) {
-      defaultId = reportingId;
-    } else if (list.isNotEmpty) {
-      defaultId = list.first["id"];
-    }
-
-    setState(() {
-      managers = list;
-      selectedManagerId = defaultId;
-      loadingManagers = false;
-    });
-  } catch (e) {
-    setState(() {
-      loadingManagers = false;
-      managerError = e.toString();
-      managers = [];
-      selectedManagerId = null;
-    });
-  }
-}
-
-Future<void> _submitForm() async {
-  if (!_formKey.currentState!.validate()) return;
-  if (fromDate == null || toDate == null) return;
-
-  setState(() => _isSubmitting = true);
-
-  try {
-    String _employeeIdFromUser() {
-      final u = widget.user;
-      final v = u["employee_id"] ?? u["employeeId"] ?? u["id"] ?? u["user_id"];
-      return (v ?? "").toString().trim();
-    }
-    final empId = _employeeIdFromUser();
-    final managerId = selectedManagerId!;
-    final employeeName = nameController.text.trim();
-    final employeePhone = contactController.text.trim();
-
-    final letters = _vehicleLettersController.text.trim().toUpperCase();
-    final numbers = _vehicleNumbersController.text.trim();
-    final vehicleNo = "$letters-$numbers";
-
-    final fromDateTxt = DateFormat("yyyy-MM-dd").format(fromDate!);
-    final toDateTxt = DateFormat("yyyy-MM-dd").format(toDate!);
-
-    final res = await VehicleApiService.createOfficeVehicleRequest(
-      employeeId: empId,
-      managerId: managerId,
-      vehicleNo: vehicleNo,
-      fromDate: fromDateTxt,
-      toDate: toDateTxt,
-      destination: destinationController.text.trim(),
-      contactNo: employeePhone,
-      employeeName: employeeName,
-      reason: "Office Service",
-      vehicleType: "-",
-      vehicleId: 0,
-    );
-
-    if (res["success"] == true) {
-          if (!mounted) return;
-
-          TopBanner.show(
-            context,
-            title: "Request Submitted",
-            message: "Your vehicle request has been submitted successfully.",
-            icon: Icons.check_circle,
-            isSuccess: true,
-      );
-      if (widget.onRequestSubmitted != null) {
-        widget.onRequestSubmitted!();
-      } else {
-        Navigator.pop(context);
+      String? defaultId;
+      if (reportingId != null && list.any((m) => m["id"] == reportingId)) {
+        defaultId = reportingId;
+      } else if (list.isNotEmpty) {
+        defaultId = list.first["id"];
       }
-    } else {
-      throw Exception(res["message"] ?? "Submission failed");
+
+      setState(() {
+        managers          = list;
+        selectedManagerId = defaultId;
+        loadingManagers   = false;
+      });
+    } catch (e) {
+      setState(() {
+        loadingManagers   = false;
+        managerError      = e.toString();
+        managers          = [];
+        selectedManagerId = null;
+      });
     }
-  } catch (e) {
-    if (!mounted) return;
-    final errText = e
-        .toString()
-        .replaceFirst(RegExp(r'^Exception:\s*'), '')
-        .trim();
-    TopBanner.show(
-      context,
-      title: "Submission Failed",
-      message: errText.isEmpty ? "Something went wrong." : errText,
-      icon: Icons.error_outline,
-      isSuccess: false,
-    );
-  } finally {
-    if (mounted) setState(() => _isSubmitting = false);
   }
-}
-void _showVehicleSubmitConfirmation() {
-  final letters = _vehicleLettersController.text.trim().toUpperCase();
-  final numbers = _vehicleNumbersController.text.trim();
-  final vehicleNoTxt = (letters.isNotEmpty || numbers.isNotEmpty)
-      ? "$letters-$numbers"
-      : "-";
 
-  final fromTxt = fromDate == null ? "-" : DateFormat('MM/dd/yyyy').format(fromDate!);
-  final toTxt = toDate == null ? "-" : DateFormat('MM/dd/yyyy').format(toDate!);
+  // ── Load staff ────────────────────────────────────────────────────────────
+  Future<void> _loadAllStaff() async {
+    try {
+      setState(() { _loadingStaff = true; _staffError = null; });
 
-  final destinationTxt = destinationController.text.trim().isEmpty
-      ? "-"
-      : destinationController.text.trim();
+      final res = await StaffGatePassService.getAllStaff();
+      if (res['success'] != true) throw Exception(res['message'] ?? 'Failed');
 
-  showVehicleSubmitDialog(
-    context: context,
-    vehicleNoTxt: vehicleNoTxt,
-    fromTxt: fromTxt,
-    toTxt: toTxt,
-    destinationTxt: destinationTxt,
-    isSubmitting: _isSubmitting,
-    onConfirm: _submitForm,
-  );
-}
+      final raw          = List.from(res['members'] ?? []);
+      final currentEmpId = (widget.user['employee_id'] ??
+              widget.user['employeeId'] ?? '').toString().trim();
 
+      setState(() {
+        _allStaff = raw
+            .map((e) => _StaffMember.fromJson(e as Map<String, dynamic>))
+            .where((s) => s.id.toString() != currentEmpId)
+            .toList();
+        _loadingStaff = false;
+      });
+    } catch (e) {
+      setState(() { _loadingStaff = false; _staffError = e.toString(); });
+    }
+  }
 
+  // ── Submit ────────────────────────────────────────────────────────────────
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (fromDate == null || toDate == null) return;
 
+    setState(() => _isSubmitting = true);
 
+    try {
+      final u      = widget.user;
+      final empId  = (u["employee_id"] ?? u["employeeId"] ??
+              u["id"] ?? u["user_id"] ?? "").toString().trim();
+      final managerId     = selectedManagerId!;
+      final employeeName  = nameController.text.trim();
+      final employeePhone = contactController.text.trim();
+
+      final letters   = _vehicleLettersController.text.trim().toUpperCase();
+      final numbers   = _vehicleNumbersController.text.trim();
+      final vehicleNo = "$letters-$numbers";
+
+      final fromDateTxt = DateFormat("yyyy-MM-dd").format(fromDate!);
+      final toDateTxt   = DateFormat("yyyy-MM-dd").format(toDate!);
+
+      final res = await VehicleApiService.createOfficeVehicleRequest(
+        employeeId:           empId,
+        managerId:            managerId,
+        vehicleNo:            vehicleNo,
+        fromDate:             fromDateTxt,
+        toDate:               toDateTxt,
+        destination:          destinationController.text.trim(),
+        contactNo:            employeePhone,
+        employeeName:         employeeName,
+        reason:               "Office Service",
+        vehicleType:          "-",
+        vehicleId:            0,
+        companionEmployeeIds: _selectedStaffIds.toList(), // ← new
+      );
+
+      if (res["success"] == true) {
+        if (!mounted) return;
+        TopBanner.show(context,
+            title:     "Request Submitted",
+            message:   "Your vehicle request has been submitted successfully.",
+            icon:      Icons.check_circle,
+            isSuccess: true);
+        widget.onRequestSubmitted != null
+            ? widget.onRequestSubmitted!()
+            : Navigator.pop(context);
+      } else {
+        throw Exception(res["message"] ?? "Submission failed");
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final errText = e.toString()
+          .replaceFirst(RegExp(r'^Exception:\s*'), '').trim();
+      TopBanner.show(context,
+          title:     "Submission Failed",
+          message:   errText.isEmpty ? "Something went wrong." : errText,
+          icon:      Icons.error_outline,
+          isSuccess: false);
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  void _showVehicleSubmitConfirmation() {
+    final letters      = _vehicleLettersController.text.trim().toUpperCase();
+    final numbers      = _vehicleNumbersController.text.trim();
+    final vehicleNoTxt = (letters.isNotEmpty || numbers.isNotEmpty)
+        ? "$letters-$numbers"
+        : "-";
+    final fromTxt = fromDate == null ? "-" : DateFormat('MM/dd/yyyy').format(fromDate!);
+    final toTxt   = toDate   == null ? "-" : DateFormat('MM/dd/yyyy').format(toDate!);
+    final destTxt = destinationController.text.trim().isEmpty
+        ? "-"
+        : destinationController.text.trim();
+
+    showVehicleSubmitDialog(
+      context:        context,
+      vehicleNoTxt:   vehicleNoTxt,
+      fromTxt:        fromTxt,
+      toTxt:          toTxt,
+      destinationTxt: destTxt,
+      isSubmitting:   _isSubmitting,
+      onConfirm:      _submitForm,
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // BUILD
+  // ─────────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -330,7 +349,8 @@ void _showVehicleSubmitConfirmation() {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ---------------- YOUR DETAILS ----------------
+
+              // ── User details (unchanged) ──────────────────────────────
               const FormSectionTitle('Your Name'),
               const SizedBox(height: 8),
               ReadonlyInfoField(value: nameController.text),
@@ -352,15 +372,13 @@ void _showVehicleSubmitConfirmation() {
 
               const SizedBox(height: 16),
 
-              // Reason (read-only)
               const FormSectionTitle("Reason for request"),
-              const SizedBox(height: 8),
               const SizedBox(height: 8),
               const ReadonlyInfoField(value: "Office Service"),
 
               const SizedBox(height: 16),
 
-                            // From / To date
+              // ── From / To date (unchanged) ────────────────────────────
               Row(
                 children: [
                   Expanded(
@@ -372,9 +390,7 @@ void _showVehicleSubmitConfirmation() {
                         _buildDatePicker("From date", fromDate, (d) {
                           setState(() {
                             fromDate = d;
-                            if (toDate != null && toDate!.isBefore(d)) {
-                              toDate = null;
-                            }
+                            if (toDate != null && toDate!.isBefore(d)) toDate = null;
                           });
                         }),
                       ],
@@ -387,9 +403,9 @@ void _showVehicleSubmitConfirmation() {
                       children: [
                         const FormSectionTitle("To date *"),
                         const SizedBox(height: 8),
-                        _buildDatePicker("To date", toDate, (d) {
-                          setState(() => toDate = d);
-                        }, minDate: fromDate),
+                        _buildDatePicker("To date", toDate,
+                            (d) => setState(() => toDate = d),
+                            minDate: fromDate),
                       ],
                     ),
                   ),
@@ -398,7 +414,7 @@ void _showVehicleSubmitConfirmation() {
 
               const SizedBox(height: 16),
 
-              // Vehicle number entry
+              // ── Vehicle number (unchanged) ────────────────────────────
               const FormSectionTitle("Vehicle Number"),
               const SizedBox(height: 8),
               Row(
@@ -411,15 +427,13 @@ void _showVehicleSubmitConfirmation() {
                       style: const TextStyle(color: Colors.black, fontSize: 15),
                       textCapitalization: TextCapitalization.characters,
                       inputFormatters: [
-                        TextInputFormatter.withFunction((old, newVal) =>
-                            newVal.copyWith(text: newVal.text.toUpperCase())),
+                        TextInputFormatter.withFunction((old, nv) =>
+                            nv.copyWith(text: nv.text.toUpperCase())),
                         FilteringTextInputFormatter.allow(RegExp(r'[A-Z]')),
                         LengthLimitingTextInputFormatter(3),
                       ],
-                      decoration: _inputDecoration(
-                        "Letters (e.g. ABC)",
-                        icon: Icons.directions_car_outlined,
-                      ),
+                      decoration: _inputDecoration("Letters (e.g. ABC)",
+                          icon: Icons.directions_car_outlined),
                       validator: (v) {
                         final val = (v ?? '').trim();
                         if (val.length < 2 || val.length > 3) {
@@ -431,10 +445,11 @@ void _showVehicleSubmitConfirmation() {
                   ),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 14),
-                    child: Text(
-                      "-",
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.black54),
-                    ),
+                    child: Text("-",
+                        style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black54)),
                   ),
                   Expanded(
                     flex: 5,
@@ -456,86 +471,89 @@ void _showVehicleSubmitConfirmation() {
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
 
               const SizedBox(height: 10),
-                if (fromDate != null && toDate != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEAF1FF),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Total Days',
-                          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF1E2A3A)),
-                        ),
-                        Text(
-                          '${toDate!.difference(fromDate!).inDays + 1} days',
-                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900, color: Color(0xFF1E2A3A)),
-                        ),
-                      ],
-                    ),
+
+              // Total days
+              if (fromDate != null && toDate != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAF1FF),
+                    borderRadius: BorderRadius.circular(10),
                   ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Total Days',
+                          style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1E2A3A))),
+                      Text('${toDate!.difference(fromDate!).inDays + 1} days',
+                          style: const TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF1E2A3A))),
+                    ],
+                  ),
+                ),
+
               const SizedBox(height: 16),
+
+              // ── Destination (unchanged) ───────────────────────────────
               const FormSectionTitle("Destination *"),
               const SizedBox(height: 8),
-              // Destination (Autocomplete)
               TypeAheadField<PlaceSuggestion>(
-                controller: destinationController, 
-                focusNode: _destinationFocusNode,          
-
+                controller:       destinationController,
+                focusNode:        _destinationFocusNode,
                 debounceDuration: const Duration(milliseconds: 400),
-                suggestionsCallback: (pattern) async => fetchPlaceSuggestions(pattern),
-
+                suggestionsCallback: fetchPlaceSuggestions,
                 loadingBuilder: (context) => const Padding(
                   padding: EdgeInsets.all(12),
                   child: Center(
-                    child: CircularProgressIndicator(
-                      color: Colors.blue,
-                      backgroundColor: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  ),
+                      child: CircularProgressIndicator(
+                          color: Colors.blue,
+                          backgroundColor: Colors.white,
+                          strokeWidth: 2)),
                 ),
-
-                itemBuilder: (context, suggestion) => ListTile(
+                itemBuilder: (context, s) => ListTile(
                   leading: const Icon(Icons.location_on_outlined),
-                  title: Text(suggestion.description),
+                  title: Text(s.description),
                 ),
-
-                onSelected: (suggestion) {
-                  destinationController.text = suggestion.description; 
-                  _destinationFocusNode.unfocus();     
+                onSelected: (s) {
+                  destinationController.text = s.description;
+                  _destinationFocusNode.unfocus();
                 },
-
-                builder: (context, controller, focusNode) {
-                  return TextFormField(
-                    controller: controller,
-                    focusNode: focusNode,
-
-                        style: const TextStyle(
-                        color: Colors.black,
-                      ),
-                    decoration: _inputDecoration(
-                      "Enter your destination",
-                      icon: Icons.location_on_outlined,
-                      
-                    ),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? "Required" : null,
-                  );
-                },
+                builder: (context, controller, focusNode) => TextFormField(
+                  controller: controller,
+                  focusNode:  focusNode,
+                  style: const TextStyle(color: Colors.black),
+                  decoration: _inputDecoration("Enter your destination",
+                      icon: Icons.location_on_outlined),
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? "Required" : null,
+                ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
-              // Approving Manager dropdown
+              // ── Going With (NEW) ──────────────────────────────────────
+              const FormSectionTitle("Going With "),
+              //_buildSectionHeader('Going With', Icons.group_outlined),
+              const SizedBox(height: 4),
+              const Text(
+                'Select staff members accompanying you (optional)',
+                style: TextStyle(fontSize: 12, color: Colors.black45),
+              ),
+              const SizedBox(height: 10),
+              _buildStaffSelector(),
+
+              const SizedBox(height: 20),
+
+              // ── Approving Manager (unchanged) ─────────────────────────
               const FormSectionTitle("Select Approving Manager *"),
               const SizedBox(height: 8),
-
               if (managers.isEmpty)
                 const Text("No managers found")
               else
@@ -547,83 +565,63 @@ void _showVehicleSubmitConfirmation() {
                   ),
                   child: Column(
                     children: managers.map((m) {
-                      final managerId = (m["id"] ?? "").toString();
-                      final empId = int.tryParse(managerId) ?? 0;
-
+                      final mId  = (m["id"] ?? "").toString();
+                      final eId  = int.tryParse(mId) ?? 0;
                       return RadioListTile<String>(
-                        value: managerId,
-                        groupValue: selectedManagerId,
-                        onChanged: (v) => setState(() => selectedManagerId = v),
-
-                        // radio on right
-                        controlAffinity: ListTileControlAffinity.trailing,
-
-                        // radio color
+                        value:            mId,
+                        groupValue:       selectedManagerId,
+                        onChanged:        (v) => setState(() => selectedManagerId = v),
+                        controlAffinity:  ListTileControlAffinity.trailing,
                         fillColor: MaterialStateProperty.resolveWith((states) {
                           if (states.contains(MaterialState.selected)) return Colors.blue;
                           return Colors.grey;
                         }),
-
-                        // photo on left
                         secondary: FutureBuilder<Map<String, dynamic>?>(
-                          future: empId > 0 ? _getPhotoFuture(empId) : Future.value(null),
+                          future: eId > 0 ? _getPhotoFuture(eId) : Future.value(null),
                           builder: (context, snap) {
                             final url = (snap.data?["fileUrl"] ?? "").toString().trim();
-
                             if (snap.connectionState == ConnectionState.waiting) {
                               return const CircleAvatar(
                                 radius: 18,
                                 backgroundColor: Color(0xFFEAF1FF),
-                                child: SizedBox(
-                                  width: 14,
-                                  height: 14,
-                                  child: CircularProgressIndicator(
-                                    backgroundColor: Colors.white,
-                                    color: Colors.blue,
-                                    strokeWidth: 2),
-                                ),
+                                child: SizedBox(width: 14, height: 14,
+                                    child: CircularProgressIndicator(
+                                        backgroundColor: Colors.white,
+                                        color: Colors.blue,
+                                        strokeWidth: 2)),
                               );
                             }
-
                             if (url.isNotEmpty) {
                               return CircleAvatar(
-                                radius: 18,
-                                backgroundColor: const Color(0xFFEAF1FF),
-                                backgroundImage: NetworkImage(url),
-                              );
+                                  radius: 18,
+                                  backgroundColor: const Color(0xFFEAF1FF),
+                                  backgroundImage: NetworkImage(url));
                             }
-
                             return const CircleAvatar(
-                              radius: 18,
-                              backgroundColor: Color(0xFFEAF1FF),
-                              child: Icon(Icons.person, size: 18, color: Colors.black54),
-                            );
+                                radius: 18,
+                                backgroundColor: Color(0xFFEAF1FF),
+                                child: Icon(Icons.person, size: 18, color: Colors.black54));
                           },
                         ),
-
-                        // name
-                        title: Text(
-                          (m["name"] ?? "-").toString(),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.black87,
-                          ),
-                        ),
+                        title: Text((m["name"] ?? "-").toString(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.black87)),
                       );
                     }).toList(),
                   ),
                 ),
 
               const SizedBox(height: 18),
-              // Submit
-            GradientSubmitButton(
-              label: 'SUBMIT',
-              isLoading: _isSubmitting,
-              onPressed: _isSubmitting ? null : _showVehicleSubmitConfirmation,
-            ),
+
+              GradientSubmitButton(
+                label:     'SUBMIT',
+                isLoading: _isSubmitting,
+                onPressed: _isSubmitting ? null : _showVehicleSubmitConfirmation,
+              ),
             ],
           ),
         ),
@@ -631,16 +629,210 @@ void _showVehicleSubmitConfirmation() {
     );
   }
 
-  // ---------------- UI HELPERS ----------------
-  // Same input style as login/leave form - clear on all devices
-  InputDecoration _inputDecoration(String hint, {IconData? icon, Widget? suffix}) {
+  // ── Staff selector (identical to gate pass) ───────────────────────────────
+  Widget _buildStaffSelector() {
+    if (_loadingStaff) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 20),
+          child: CircularProgressIndicator(
+              color: Color(0xFF1565C0), strokeWidth: 2),
+        ),
+      );
+    }
+
+    if (_staffError != null) {
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF3F3),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFFFCDD2)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.redAccent, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+                child: Text(_staffError!,
+                    style: const TextStyle(fontSize: 12, color: Colors.black54))),
+            TextButton(
+              onPressed: _loadAllStaff,
+              child: const Text('Retry',
+                  style: TextStyle(color: Color(0xFF1565C0))),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_allStaff.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: Text('No staff members found.',
+            style: TextStyle(color: Colors.black45)),
+      );
+    }
+
+    final filtered = _staffSearchQuery.isEmpty
+        ? _allStaff
+        : _allStaff
+            .where((s) =>
+                s.name.toLowerCase().contains(_staffSearchQuery.toLowerCase()) ||
+                s.jobTitle.toLowerCase().contains(_staffSearchQuery.toLowerCase()))
+            .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+
+        // Search bar
+        TextFormField(
+          controller: _staffSearchCtrl,
+          style: const TextStyle(color: Colors.black, fontSize: 14),
+          decoration: _inputDecoration(
+            'Search by name or job title…',
+            icon: Icons.search,
+            suffix: _staffSearchQuery.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear, size: 18),
+                    onPressed: () => setState(() {
+                      _staffSearchCtrl.clear();
+                      _staffSearchQuery = '';
+                    }),
+                  )
+                : null,
+          ),
+          onChanged: (v) => setState(() => _staffSearchQuery = v),
+        ),
+
+        // Selected chips
+        if (_selectedStaffIds.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: _allStaff
+                .where((s) => _selectedStaffIds.contains(s.id))
+                .map((s) => Chip(
+                      label: Text(s.name,
+                          style: const TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w700)),
+                      backgroundColor: const Color(0xFFEAF1FF),
+                      side: const BorderSide(color: Color(0xFFB3C8F0)),
+                      deleteIcon: const Icon(Icons.close, size: 14),
+                      onDeleted: () =>
+                          setState(() => _selectedStaffIds.remove(s.id)),
+                    ))
+                .toList(),
+          ),
+        ],
+
+        const SizedBox(height: 10),
+
+        // Staff list
+        Container(
+          constraints: const BoxConstraints(maxHeight: 280),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE1E6EF)),
+          ),
+          child: filtered.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Center(
+                      child: Text('No results found',
+                          style: TextStyle(color: Colors.black45))),
+                )
+              : ListView.separated(
+                  shrinkWrap: true,
+                  physics: const ClampingScrollPhysics(),
+                  itemCount: filtered.length,
+                  separatorBuilder: (_, __) =>
+                      const Divider(height: 1, color: Color(0xFFEEF2F8)),
+                  itemBuilder: (ctx, i) {
+                    final staff    = filtered[i];
+                    final selected = _selectedStaffIds.contains(staff.id);
+                    return InkWell(
+                      onTap: () => setState(() => selected
+                          ? _selectedStaffIds.remove(staff.id)
+                          : _selectedStaffIds.add(staff.id)),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        child: Row(
+                          children: [
+                            const CircleAvatar(
+                              radius: 18,
+                              backgroundColor: Color(0xFFEAF1FF),
+                              child: Icon(Icons.person,
+                                  size: 18, color: Colors.black45),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(staff.name,
+                                      style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.black87),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis),
+                                  const SizedBox(height: 2),
+                                  Text(staff.jobTitle,
+                                      style: const TextStyle(
+                                          fontSize: 11, color: Colors.black45),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis),
+                                ],
+                              ),
+                            ),
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              width: 22,
+                              height: 22,
+                              decoration: BoxDecoration(
+                                color: selected
+                                    ? const Color(0xFF1565C0)
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: selected
+                                      ? const Color(0xFF1565C0)
+                                      : const Color(0xFFCDD5E0),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: selected
+                                  ? const Icon(Icons.check,
+                                      size: 14, color: Colors.white)
+                                  : null,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  // ── UI helpers (unchanged) ────────────────────────────────────────────────
+  InputDecoration _inputDecoration(String hint,
+      {IconData? icon, Widget? suffix}) {
     return InputDecoration(
-      hintText: hint,
-      hintStyle: TextStyle(color: Colors.grey.shade600),
+      hintText:   hint,
+      hintStyle:  TextStyle(color: Colors.grey.shade600),
       prefixIcon: icon != null ? Icon(icon, color: Colors.grey.shade700) : null,
       suffixIcon: suffix,
-      filled: true,
-      fillColor: Colors.white,
+      filled:     true,
+      fillColor:  Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
@@ -651,12 +843,12 @@ void _showVehicleSubmitConfirmation() {
         borderSide: const BorderSide(color: Colors.blue, width: 1.4),
       ),
       errorStyle: const TextStyle(
-        color: Color(0xFFD32F2F),
-        fontWeight: FontWeight.w700,
-        fontSize: 12.5,
-      ),
+          color: Color(0xFFD32F2F),
+          fontWeight: FontWeight.w700,
+          fontSize: 12.5),
     );
   }
+
   Widget _buildDatePicker(
     String label,
     DateTime? selected,
@@ -666,33 +858,27 @@ void _showVehicleSubmitConfirmation() {
     return TextFormField(
       readOnly: true,
       style: const TextStyle(color: Colors.black, fontSize: 15),
-      decoration: _inputDecoration(
-        label,
-        suffix: Icon(Icons.calendar_today, color: Colors.grey.shade700),
-      ),
+      decoration: _inputDecoration(label,
+          suffix: Icon(Icons.calendar_today, color: Colors.grey.shade700)),
       controller: TextEditingController(
         text: selected == null ? '' : DateFormat('MM/dd/yyyy').format(selected),
       ),
       validator: (_) => selected == null ? 'Required' : null,
       onTap: () async {
-        final now = DateTime.now();
-
+        final now       = DateTime.now();
         final firstDate = minDate ?? DateTime(now.year, now.month, now.day);
-
-        final initialDate = selected ??
-            (now.isBefore(firstDate) ? firstDate : now);
-
+        final initial   = selected ?? (now.isBefore(firstDate) ? firstDate : now);
         final picked = await showDatePicker(
           context: context,
-          initialDate: initialDate,
-          firstDate: firstDate,
-          lastDate: DateTime(2030),
+          initialDate: initial,
+          firstDate:   firstDate,
+          lastDate:    DateTime(2030),
           builder: (ctx, child) => Theme(
             data: Theme.of(ctx).copyWith(
               colorScheme: const ColorScheme.light(
-                primary: Color(0xFF1565C0),
+                primary:   Color(0xFF1565C0),
                 onPrimary: Colors.white,
-                surface: Colors.white,
+                surface:   Colors.white,
                 onSurface: Color(0xFF1E2A3A),
               ),
               dialogBackgroundColor: Colors.white,
@@ -700,7 +886,6 @@ void _showVehicleSubmitConfirmation() {
             child: child!,
           ),
         );
-
         if (picked != null) onSelect(picked);
       },
     );
