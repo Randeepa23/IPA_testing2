@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:open_file/open_file.dart';
+import 'package:screen_protector/screen_protector.dart';
 import '../Constants/app_colors.dart';
 import '../Leaves/top_banner.dart';
 import '../Services/airport_parking_service.dart';
@@ -42,7 +43,14 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
   static const _textMuted = Color(0xFF64748B);
 
   @override
+  void initState() {
+    super.initState();
+    ScreenProtector.protectDataLeakageOff();
+  }
+
+  @override
   void dispose() {
+    ScreenProtector.protectDataLeakageOn();
     gNumberController.dispose();
     apNumberController.dispose();
     super.dispose();
