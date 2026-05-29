@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -7,8 +8,22 @@ class ApiService {
 
 
 //Android Emulator → PC localhost
-static const String baseUrl = "http://10.0.2.2/mobile-api/api";
-//static const String baseUrl = "https://exploresuite.lk/mobile-api/api";
+//static const String baseUrl = "http://10.0.2.2/mobile-api/api";
+static const String baseUrl = "https://exploresuite.lk/mobile-api/api";
+
+// ── Friendly error helper (put this anywhere in your api file) ──────────────
+static String _friendlyError(dynamic e) {
+  final msg = e.toString();
+  if (msg.contains('Connection timed out') || msg.contains('errno = 110')) {
+    return 'Server is unreachable. Please check your internet connection and try again.';
+  }
+  if (msg.contains('SocketException') || msg.contains('NetworkException')) {
+    return 'No internet connection. Please check your Wi-Fi or mobile data.';
+  }
+  if (msg.contains('404')) return 'Service not found. Please contact support.';
+  if (msg.contains('500')) return 'Server error. Please try again later.';
+  return 'Something went wrong. Please try again.';
+}
 
   // File upload API (use this in LeaveFormScreen after applying leave request)
   static Future<void> uploadLeaveDocument({
@@ -32,7 +47,7 @@ static const String baseUrl = "http://10.0.2.2/mobile-api/api";
     static Future<Map<String, dynamic>?> getProfilePhoto({
       required int employeeId,
     }) async {
-      final uri = Uri.parse("https://exploresuite.lk/mobile-api/api/get_profile_photo.php?employee_id=$employeeId");
+      final uri = Uri.parse("$baseUrl/get_profile_photo.php?employee_id=$employeeId");
 
       final res = await http
           .get(uri)
@@ -224,28 +239,35 @@ static const String baseUrl = "http://10.0.2.2/mobile-api/api";
 
 
     //Get Leave Balance API (use this in LeaveFormScreen when user selects leave type)
-    static Future<Map<String, dynamic>> getLeaveBalance({
-    required String employeeId,
-    }) async {
-      final url = Uri.parse("$baseUrl/get_leave_balance.php");
+static Future<Map<String, dynamic>> getLeaveBalance({
+  required String employeeId,
+}) async {
+  try {
+    final url = Uri.parse("$baseUrl/get_leave_balance.php");
 
-      final res = await http.post(
-        url,
-        headers: {"Content-Type": "application/json", "Accept": "application/json"},
-        body: jsonEncode({"employeeId": employeeId}),
-      );
+    final res = await http
+        .post(
+          url,
+          headers: {"Content-Type": "application/json", "Accept": "application/json"},
+          body: jsonEncode({"employeeId": employeeId}),
+        )
+        .timeout(const Duration(seconds: 15)); // ← prevents infinite hang
 
-      debugPrint("LEAVE URL: $url");
-      debugPrint("LEAVE STATUS: ${res.statusCode}");
-      debugPrint("LEAVE BODY: '${res.body}'");
-
-      if (res.body.trim().isEmpty) {
-        throw Exception("Server returned EMPTY response (check PHP / URL).");
-      }
-
-      final decoded = jsonDecode(res.body);
-      return Map<String, dynamic>.from(decoded);
+    if (res.statusCode != 200) {
+      throw Exception('Server error (${res.statusCode}). Please try again later.');
     }
+    if (res.body.trim().isEmpty) {
+      throw Exception('No response from server. Please try again.');
+    }
+
+    return Map<String, dynamic>.from(jsonDecode(res.body));
+
+  } on TimeoutException {
+    throw Exception('Request timed out. Please check your connection and retry.');
+  } catch (e) {
+    throw Exception(_friendlyError(e));
+  }
+}
 
   //Apply Leave API (use this in LeaveFormScreen)
   static Future<Map<String, dynamic>> applyLeaveRequest({
