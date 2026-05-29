@@ -6,8 +6,8 @@ import 'package:http/http.dart' as http;
 class VehicleApiService {
 
   //Android Emulator → PC localhost
-  static const String baseUrl = "http://10.0.2.2/mobile-api/vehicle";
-  //static const String baseUrl = "https://exploresuite.lk/mobile-api/vehicle";
+  //static const String baseUrl = "http://10.0.2.2/mobile-api/vehicle";
+  static const String baseUrl = "https://exploresuite.lk/mobile-api/vehicle";
 
   static String? _googlePlacesApiKeyCache;
 

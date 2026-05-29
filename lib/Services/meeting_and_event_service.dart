@@ -3,8 +3,8 @@ import 'package:http/http.dart' as http;
 
 class MeetingAndEventService {
 
-  static const String baseUrl = "http://10.0.2.2/mobile-api/meetings";
-  //static const String baseUrl = "https://exploresuite.lk/mobile-api/meetings";
+  //static const String baseUrl = "http://10.0.2.2/mobile-api/meetings";
+  static const String baseUrl = "https://exploresuite.lk/mobile-api/meetings";
   //static const String baseUrl = "https://exploresuite.lk/mobile-api/api";
 
   //Get All Staff API (use this in CreateEventScreen)

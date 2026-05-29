@@ -370,7 +370,7 @@ Future<void> _loadApprovedPersonalTripCount() async {
     } catch (e) {
       setState(() {
         loadingLeave = false;
-        leaveError = e.toString();
+        leaveError = e.toString().replaceFirst('Exception: ', ''); // ✅ only this line changes
       });
     }
   }
