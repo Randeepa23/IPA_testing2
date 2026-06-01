@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../ui/dialogs/start_trip_dialog.dart';
 import '../ui/dialogs/stop_trip_dialog.dart';
@@ -47,15 +46,11 @@ class _PersonalTripScreenState extends State<PersonalTripScreen> {
 
 Future<void> _loadTripsByTab() async {
     try {
-      setState(() => loading = true);
+      setState(() { loading = true; errorText = null; });
 
       final employeeId = widget.user["employeeId"]?.toString() ?? "";
       if (employeeId.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("employeeId not found in login data")),
-          );
-        }
+        if (mounted) setState(() => errorText = "Employee ID not found. Please log in again.");
         return;
       }
 
@@ -177,9 +172,7 @@ Future<void> _loadTripsByTab() async {
       setState(() => trips = mapped);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to load trips: $e")),
-      );
+      setState(() => errorText = e.toString().replaceFirst("Exception: ", ""));
     } finally {
       if (mounted) setState(() => loading = false);
     }
@@ -311,8 +304,12 @@ Future<bool?> _confirmCancelTrip() async {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
+      TopBanner.show(
+        context,
+        title: "Cancel Failed",
+        message: e.toString().replaceFirst("Exception: ", ""),
+        icon: Icons.error_outline,
+        isSuccess: false,
       );
     } finally {
       if (mounted) setState(() => loading = false);
@@ -356,20 +353,28 @@ Future<bool?> _confirmCancelTrip() async {
                                 strokeWidth: 4,
                       )),
                     ),
-                  if (errorText != null)
+                  if (!loading && errorText != null)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.only(top: 200),
                       child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                          const Icon(Icons.error_outline, size: 52, color: Colors.redAccent),
+                          const SizedBox(height: 12),
                           Text(
                             errorText!,
-                            style: const TextStyle(color: Colors.red),
                             textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.black54, fontSize: 13),
                           ),
-                          const SizedBox(height: 8),
-                          ElevatedButton(
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1565C0),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
                             onPressed: _refreshTrips,
-                            child: const Text("Retry"),
+                            icon: const Icon(Icons.refresh, color: Colors.white, size: 16),
+                            label: const Text('Retry', style: TextStyle(color: Colors.white)),
                           ),
                         ],
                       ),

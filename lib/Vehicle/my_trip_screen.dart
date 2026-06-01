@@ -80,6 +80,8 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
       }));
 
       setState(() => trips = mapped);
+    } catch (e) {
+      if (mounted) setState(() => errorText = e.toString().replaceFirst("Exception: ", ""));
     } finally {
       if (mounted) setState(() => loading = false);
     }
@@ -183,8 +185,13 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Error: $e")));
+      TopBanner.show(
+        context,
+        title: "Cancel Failed",
+        message: e.toString().replaceFirst("Exception: ", ""),
+        icon: Icons.error_outline,
+        isSuccess: false,
+      );
     } finally {
       if (mounted) setState(() => loading = false);
     }
@@ -221,7 +228,33 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                       child: Center(child: CircularProgressIndicator(
                           color: Colors.blue, strokeWidth: 4)),
                     ),
-                  if (!loading && filtered.isEmpty)
+                  if (!loading && errorText != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 200),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.error_outline, size: 52, color: Colors.redAccent),
+                          const SizedBox(height: 12),
+                          Text(
+                            errorText!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.black54, fontSize: 13),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1565C0),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            onPressed: _refreshTrips,
+                            icon: const Icon(Icons.refresh, color: Colors.white, size: 16),
+                            label: const Text('Retry', style: TextStyle(color: Colors.white)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (!loading && errorText == null && filtered.isEmpty)
                     const Padding(
                       padding: EdgeInsets.only(top: 40),
                       child: Center(

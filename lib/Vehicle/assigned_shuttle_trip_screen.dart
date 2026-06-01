@@ -49,8 +49,12 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
       final employeeId = widget.user["employeeId"]?.toString() ?? "";
       if (employeeId.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("employeeId not found in login data")),
+          TopBanner.show(
+            context,
+            title: "Session Error",
+            message: "Employee ID not found. Please log in again.",
+            icon: Icons.error_outline,
+            isSuccess: false,
           );
         }
         return;
@@ -137,8 +141,12 @@ class _AssignedShuttleTripScreenState extends State<AssignedShuttleTripScreen> {
       setState(() => trips = mapped);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to load trips: $e")),
+      TopBanner.show(
+        context,
+        title: "Failed to Load Trips",
+        message: e.toString().replaceFirst("Exception: ", ""),
+        icon: Icons.error_outline,
+        isSuccess: false,
       );
     } finally {
       if (mounted) setState(() => loading = false);

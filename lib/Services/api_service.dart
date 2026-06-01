@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 
 class ApiService {
 
+  //static const String _baseUrl = "http://10.0.2.2/mobile-api/api";
   static const String baseUrl = "https://exploresuite.lk/mobile-api/api";
 
   // ── Friendly error mapper ─────────────────────────────────────────────────

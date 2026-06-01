@@ -123,8 +123,12 @@ class _PersonalRequestScreenState extends State<PersonalRequestScreen> {
           }
         } catch (e) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Reject failed: $e")),
+            TopBanner.show(
+              context,
+              title: "Reject Failed",
+              message: e.toString().replaceFirst("Exception: ", ""),
+              icon: Icons.error_outline,
+              isSuccess: false,
             );
           }
         }
@@ -177,8 +181,12 @@ class _PersonalRequestScreenState extends State<PersonalRequestScreen> {
           }
         } catch (e) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Accept & forward failed: $e")),
+            TopBanner.show(
+              context,
+              title: "Accept & Forward Failed",
+              message: e.toString().replaceFirst("Exception: ", ""),
+              icon: Icons.error_outline,
+              isSuccess: false,
             );
           }
         }
@@ -217,8 +225,12 @@ class _PersonalRequestScreenState extends State<PersonalRequestScreen> {
           );
         } catch (e) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Approve failed: $e")),
+            TopBanner.show(
+              context,
+              title: "Approve Failed",
+              message: e.toString().replaceFirst("Exception: ", ""),
+              icon: Icons.error_outline,
+              isSuccess: false,
             );
           }
         }
@@ -234,8 +246,12 @@ class _PersonalRequestScreenState extends State<PersonalRequestScreen> {
     final requestId = VehicleApiService.transportServiceIdFromRequest(request) ?? 0;
     if (requestId <= 0) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Invalid request id")),
+      TopBanner.show(
+        context,
+        title: "Invalid Request",
+        message: "Invalid request ID. Please refresh and try again.",
+        icon: Icons.error_outline,
+        isSuccess: false,
       );
       return;
     }
@@ -244,8 +260,12 @@ class _PersonalRequestScreenState extends State<PersonalRequestScreen> {
     if (currentType.isNotEmpty &&
         currentType.toLowerCase() != vehicleType.trim().toLowerCase()) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Only $currentType type can be changed")),
+      TopBanner.show(
+        context,
+        title: "Vehicle Type Mismatch",
+        message: "Only $currentType type vehicles can be changed for this request.",
+        icon: Icons.error_outline,
+        isSuccess: false,
       );
       return;
     }
@@ -366,16 +386,30 @@ class _PersonalRequestScreenState extends State<PersonalRequestScreen> {
                           ),
                         )
                       else if (errorText != null)
-                        Column(
-                          children: [
-                            Text(errorText!,
-                                style: const TextStyle(color: Colors.red)),
-                            const SizedBox(height: 10),
-                            ElevatedButton(
-                              onPressed: _loadManagerVehicleRequests,
-                              child: const Text("Retry"),
-                            ),
-                          ],
+                        Padding(
+                          padding: const EdgeInsets.only(top: 40),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.error_outline, size: 52, color: Colors.redAccent),
+                              const SizedBox(height: 12),
+                              Text(
+                                errorText!,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(color: Colors.black54, fontSize: 13),
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF1565C0),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                                onPressed: _loadManagerVehicleRequests,
+                                icon: const Icon(Icons.refresh, color: Colors.white, size: 16),
+                                label: const Text('Retry', style: TextStyle(color: Colors.white)),
+                              ),
+                            ],
+                          ),
                         )
                       else if (requests.isEmpty)
                         Padding(

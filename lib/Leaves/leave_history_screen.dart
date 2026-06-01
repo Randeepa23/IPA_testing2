@@ -156,14 +156,22 @@ LeaveStatus _parseStatus(String s) {
 
       } else {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(res["message"] ?? "Failed")),
+        TopBanner.show(
+          context,
+          title: "Cancel Failed",
+          message: (res["message"] ?? "Failed to cancel request.").toString(),
+          icon: Icons.error_outline,
+          isSuccess: false,
         );
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
+      TopBanner.show(
+        context,
+        title: "Cancel Failed",
+        message: e.toString().replaceFirst("Exception: ", ""),
+        icon: Icons.error_outline,
+        isSuccess: false,
       );
     }
   }
@@ -195,23 +203,27 @@ Widget build(BuildContext context) {
 
           // --- error ---
           else if (error != null)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF3F3),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFFD1D1)),
-              ),
+            Padding(
+              padding: const EdgeInsets.only(top: 200),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text("Error: $error",
-                      style: const TextStyle(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 10),
-                  ElevatedButton(
+                  const Icon(Icons.error_outline, size: 52, color: Colors.redAccent),
+                  const SizedBox(height: 12),
+                  Text(
+                    error!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.black54, fontSize: 13),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1565C0),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
                     onPressed: _loadHistory,
-                    child: const Text("Retry"),
+                    icon: const Icon(Icons.refresh, color: Colors.white, size: 16),
+                    label: const Text('Retry', style: TextStyle(color: Colors.white)),
                   ),
                 ],
               ),
