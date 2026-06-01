@@ -38,10 +38,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Check the user is in the list of HR management
   bool get isHrManagement {
-    final id = (widget.user["jobTitleId"] ?? widget.user["job_title_id"])
+    final id = (widget.user["employeeId"] ?? widget.user["employeeId"])
             ?.toString() ??
         "";
-    return ["11", "14", "15", "16", "17", "18", "19","21", "20", "48"]
+    return ["26","11","14","24","25","19"]
         .contains(id);
   }
 

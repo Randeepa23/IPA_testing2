@@ -92,8 +92,11 @@ class _VehicleRequestScreenState extends State<VehicleRequestScreen> {
           }
         } catch (e) {
           if (mounted) {
-            ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text("Reject failed: $e")));
+            TopBanner.show(context,
+                title:   "Reject Failed",
+                message: e.toString().replaceFirst("Exception: ", ""),
+                icon:    Icons.error_outline,
+                isSuccess: false);
           }
         }
       },
@@ -123,8 +126,11 @@ class _VehicleRequestScreenState extends State<VehicleRequestScreen> {
               isSuccess: true);
         } catch (e) {
           if (mounted) {
-            ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text("Approve failed: $e")));
+            TopBanner.show(context,
+                title:   "Approve Failed",
+                message: e.toString().replaceFirst("Exception: ", ""),
+                icon:    Icons.error_outline,
+                isSuccess: false);
           }
         }
       },
@@ -153,14 +159,30 @@ class _VehicleRequestScreenState extends State<VehicleRequestScreen> {
                     color: Colors.blue, backgroundColor: Colors.white)),
               )
             else if (errorText != null)
-              Column(
-                children: [
-                  Text(errorText!, style: const TextStyle(color: Colors.red)),
-                  const SizedBox(height: 10),
-                  ElevatedButton(
+              Padding(
+                padding: const EdgeInsets.only(top: 200),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, size: 52, color: Colors.redAccent),
+                    const SizedBox(height: 12),
+                    Text(
+                      errorText!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.black54, fontSize: 13),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1565C0),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
                       onPressed: _loadRequests,
-                      child: const Text("Retry")),
-                ],
+                      icon: const Icon(Icons.refresh, color: Colors.white, size: 16),
+                      label: const Text('Retry', style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
               )
             else if (requests.isEmpty)
               const Padding(
@@ -771,36 +793,30 @@ class _VehicleCompanionsSheetState extends State<_VehicleCompanionsSheet> {
         widget.onRemoved(c.id);
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('${c.name} removed'),
-            backgroundColor: const Color(0xFF1565C0),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)),
-          ));
+          TopBanner.show(context,
+              title:   "Member Removed",
+              message: "${c.name} has been removed from the trip.",
+              icon:    Icons.check_circle,
+              isSuccess: true);
         }
 
         if (_companions.isEmpty && mounted) Navigator.pop(context);
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(res['message'] ?? 'Could not remove'),
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)),
-          ));
+          TopBanner.show(context,
+              title:   "Remove Failed",
+              message: (res['message'] ?? 'Could not remove').toString(),
+              icon:    Icons.error_outline,
+              isSuccess: false);
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(e.toString()),
-          backgroundColor: Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10)),
-        ));
+        TopBanner.show(context,
+            title:   "Remove Failed",
+            message: e.toString().replaceFirst("Exception: ", ""),
+            icon:    Icons.error_outline,
+            isSuccess: false);
       }
     } finally {
       if (mounted) setState(() => _removingId = null);
