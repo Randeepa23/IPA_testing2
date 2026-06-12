@@ -32,7 +32,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.test_app"
+        applicationId = "explore.enterprise.suite"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
