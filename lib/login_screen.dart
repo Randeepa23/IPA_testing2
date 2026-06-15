@@ -2,12 +2,14 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:test_app/Services/api_service.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'create_new_password.dart';
 import 'forgot_password_screen.dart';
 import 'home_screen.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Services/biometric_service.dart';
+import 'Services/notification_service.dart';
 
 class LoginScreen extends StatefulWidget {
   final String? initialUsername;
@@ -198,6 +200,21 @@ class _LoginScreenState extends State<LoginScreen> {
           await Future.delayed(const Duration(milliseconds: 900));
 
           if (!mounted) return;
+
+          // Request notification permission (required on iOS and Android 13+)
+          await FirebaseMessaging.instance.requestPermission();
+
+          // Save FCM token to server (non-critical — failure doesn't block login)
+          final fcmToken = await FirebaseMessaging.instance.getToken();
+          debugPrint("FCM getToken() result: $fcmToken");
+          if (fcmToken != null) {
+            NotificationService.saveFcmToken(
+              employeeId: user["employeeId"].toString(),
+              fcmToken: fcmToken,
+            );
+          } else {
+            debugPrint("FCM: getToken() returned null — check google-services.json and Firebase setup");
+          }
 
           // Check if user is logging in with default HR password (first-time login)
           if (password == "Test@123") {
