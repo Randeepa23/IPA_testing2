@@ -74,36 +74,36 @@ class _ReceiptExistsDialog extends StatelessWidget {
     }
   }
 
-  String _extractDateFromFileName(String fileName) {
-    final match = RegExp(r'(\d{8})(\d{6})').firstMatch(fileName);
-    if (match == null) return '';
-    final dateStr = match.group(1)!;
-    final timeStr = match.group(2)!;
-    try {
-      final y  = dateStr.substring(0, 4);
-      final mo = dateStr.substring(4, 6);
-      final d  = dateStr.substring(6, 8);
-      final h  = int.parse(timeStr.substring(0, 2));
-      final mi = timeStr.substring(2, 4);
-      const months = [
-        'Jan','Feb','Mar','Apr','May','Jun',
-        'Jul','Aug','Sep','Oct','Nov','Dec',
-      ];
-      final monthName = months[int.parse(mo) - 1];
-      final hour = h % 12 == 0 ? 12 : h % 12;
-      final ampm = h >= 12 ? 'PM' : 'AM';
-      return '$d $monthName $y  $hour:$mi $ampm';
-    } catch (_) {
-      return '';
-    }
-  }
+  // String _extractDateFromFileName(String fileName) {
+  //   final match = RegExp(r'(\d{8})(\d{6})').firstMatch(fileName);
+  //   if (match == null) return '';
+  //   final dateStr = match.group(1)!;
+  //   final timeStr = match.group(2)!;
+  //   try {
+  //     final y  = dateStr.substring(0, 4);
+  //     final mo = dateStr.substring(4, 6);
+  //     final d  = dateStr.substring(6, 8);
+  //     final h  = int.parse(timeStr.substring(0, 2));
+  //     final mi = timeStr.substring(2, 4);
+  //     const months = [
+  //       'Jan','Feb','Mar','Apr','May','Jun',
+  //       'Jul','Aug','Sep','Oct','Nov','Dec',
+  //     ];
+  //     final monthName = months[int.parse(mo) - 1];
+  //     final hour = h % 12 == 0 ? 12 : h % 12;
+  //     final ampm = h >= 12 ? 'PM' : 'AM';
+  //     return '$d $monthName $y  $hour:$mi $ampm';
+  //   } catch (_) {
+  //     return '';
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
     final dialogW =
         (MediaQuery.of(context).size.width * 0.90).clamp(300.0, 420.0);
     final fileName    = _extractFileName(pdfUrl);
-    final generatedAt = _extractDateFromFileName(fileName);
+    // final generatedAt = _extractDateFromFileName(fileName);
 
     return Stack(
       children: [

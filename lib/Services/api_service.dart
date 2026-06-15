@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 
 class ApiService {
 
-  //static const String _baseUrl = "http://10.0.2.2/mobile-api/api";
+  //static const String baseUrl = "http://10.0.2.2/mobile-api/api";
   static const String baseUrl = "https://exploresuite.lk/mobile-api/api";
 
   // ── Friendly error mapper ─────────────────────────────────────────────────
@@ -305,16 +305,23 @@ class ApiService {
         headers: {"Content-Type": "application/json", "Accept": "application/json"},
         body: jsonEncode(body),
       ).timeout(const Duration(seconds: 15));
-      if (res.statusCode != 200) {
+
+      debugPrint("LEAVE APPLY → HTTP ${res.statusCode}: ${res.body}");
+
+      // 5xx = real server crash — throw so caller shows generic error
+      if (res.statusCode >= 500) {
         throw Exception('Server error (${res.statusCode}).');
       }
       if (res.body.trim().isEmpty) {
         throw Exception('No response from server.');
       }
+      // 4xx (overlap/balance/validation) have a JSON body with success+message —
+      // return it so the form can show the real reason via the TopBanner.
       return Map<String, dynamic>.from(jsonDecode(res.body));
     } on TimeoutException {
       throw Exception('Request timed out. Please check your connection and retry.');
     } catch (e) {
+      debugPrint("LEAVE APPLY ERROR: $e");
       throw Exception(_friendlyError(e));
     }
   }
