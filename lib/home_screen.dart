@@ -11,6 +11,9 @@ import '../users/biometric_enabled_screen.dart';
 import 'Meeting&Events/dashbord_screen.dart';
 import 'AirportParking/airport_parking_screen.dart';
 import 'users/gate_pass_screen.dart';
+import '../users/vehicle_screen.dart';
+import '../users/personal_vehicle_screen.dart' as pvs;
+
 class HomeScreen extends StatefulWidget {
   final String username;
   final Map<String, dynamic> user;
@@ -32,10 +35,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   static const blue = Color(0xFF0060A6);
   bool _privacyNoticeShown = false;
-  /// Same pixel size for every service icon (inside a fixed box).
-  static const double _kServiceImageSize = 75;
-  static const double _kServiceLabelFontSize = 13.5;
-
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = "";
   // Check the user is in the list of HR management
   bool get isHrManagement {
     final id = (widget.user["employeeId"] ?? widget.user["employeeId"])
@@ -56,6 +57,12 @@ class _HomeScreenState extends State<HomeScreen> {
             .trim() ??
         "";
     return _airportParkingAllowedIds.contains(id);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -103,7 +110,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final rawServices = <_ServiceItem>[
       _ServiceItem(
         image: 'assets/456123.png',
-        label: "Leave & Personal \nVehicle Request",
+        label: "Apply Leave",
+        description: "Apply and track your leaves and personal vehicle requests",
         disabled: false,
         onTap: () {
           Navigator.push(
@@ -112,10 +120,34 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
-      // more services can be added here without changing the UI code
+      _ServiceItem(
+        image: 'assets/personal-vehicle.png',
+        label: "Vehicle Request (Personal Use)",
+        description: "Request personal vehicles for trips",
+        disabled: false,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => pvs.VehicleScreen(user: user)),
+          );
+        },
+      ),
+      _ServiceItem(
+        image: 'assets/office-vehicle.png',
+        label: "Vehicle Request (Office Use)",
+        description: "Request company vehicles for official trips",
+        disabled: false,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => VehicleScreen(user: user)),
+          );
+        },
+      ),
       _ServiceItem(
         image: 'assets/123456.png',
-        label: "Vehicle Request",
+        label: "Shuttle & Transfer Trip",
+        description: "Track and manage your Shuttle and Transfer vehicle trips",
         disabled: false,
         onTap: () {
           Navigator.push(
@@ -124,22 +156,22 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
-      // placeholder services (disabled with message)
       _ServiceItem(
         image: 'assets/qr.png',
         label: "Fuel QR Code",
+        description: "Scan and manage fuel QR codes for vehicles",
         disabled: false,
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) =>  VehicleQrScreen(user:widget.user)),
+            MaterialPageRoute(builder: (_) => VehicleQrScreen(user: widget.user)),
           );
-        }
+        },
       ),
-            // more placeholders can be added here without changing the UI code
       _ServiceItem(
         image: 'assets/airportparking.png',
-        label: "Airport Parking",
+        label: "Airport Parking Customer Handling",
+        description: "Reserve and manage airport parking slots",
         disabled: !isAirportParkingAllowed,
         onTap: () {
           Navigator.push(
@@ -150,10 +182,10 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
-
       _ServiceItem(
         image: 'assets/report.png',
         label: "Reports",
+        description: "View and export HR and operational reports",
         disabled: !isHrManagement,
         onTap: () {
           Navigator.push(
@@ -164,10 +196,10 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
-
       _ServiceItem(
         image: 'assets/meeting&event.png',
         label: "Meeting & Events",
+        description: "Schedule and manage meetings and events",
         disabled: true,
         onTap: () {
           Navigator.push(
@@ -176,10 +208,10 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
-      // placeholder services (disabled with message)
       _ServiceItem(
         image: 'assets/gatepass.png',
         label: "Gate Pass",
+        description: "Request and track visitor gate passes",
         disabled: false,
         onTap: () {
           Navigator.push(
@@ -188,57 +220,58 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
-      // more placeholders can be added here without changing the UI code
       _ServiceItem(
         image: 'assets/setting.png',
         label: "Settings",
+        description: "Manage your account and app preferences",
         disabled: false,
         onTap: () {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => SettingsScreen()),
           );
-        }
+        },
       ),
       _ServiceItem(
         image: 'assets/help.png',
         label: "Help",
+        description: "Get assistance and user guide",
         disabled: false,
         onTap: () => showBottomMessage("Help is coming soon 🚧"),
       ),
-      // only one real service for now, but placeholders can be added easily
       _ServiceItem(
         image: 'assets/itSupport.png',
         label: "IT Support",
+        description: "Raise and track IT support tickets",
         disabled: true,
-        onTap: () => showBottomMessage("IT Support is coming soon 🚧")
+        onTap: () => showBottomMessage("IT Support is coming soon 🚧"),
       ),
-      // more placeholders can be added here without changing the UI code
-      // _ServiceItem(
-      //   image: 'assets/inventory.png',
-      //   label: "Inventory Management",
-      //   disabled: true,
-      //   onTap: () => showBottomMessage("Inventory Management is coming soon 🚧"),
-      // ),
-      // more placeholders can be added here without changing the UI code
       _ServiceItem(
         image: 'assets/project.png',
         label: "Project & Task",
+        description: "Manage projects and assign team tasks",
         disabled: true,
         onTap: () => showBottomMessage("Project & Task is coming soon 🚧"),
       ),
-      // more placeholders can be added here without changing the UI code
       _ServiceItem(
         image: 'assets/finance.png',
         label: "Finance & Accounting",
+        description: "Track financial records and accounting",
         disabled: true,
         onTap: () => showBottomMessage("Finance & Accounting is coming soon 🚧"),
       ),
     ];
-    final services = <_ServiceItem>[
+    final allServices = <_ServiceItem>[
       ...rawServices.where((s) => !s.disabled),
       ...rawServices.where((s) => s.disabled),
     ];
+    final services = _searchQuery.isEmpty
+        ? allServices
+        : allServices.where((s) {
+            final q = _searchQuery.toLowerCase();
+            return s.label.toLowerCase().contains(q) ||
+                s.description.toLowerCase().contains(q);
+          }).toList();
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -296,7 +329,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           _greeting,
                           style: TextStyle(
                             color: const Color(0xFF000000)
-                                .withOpacity(0.78),
+                                .withValues(alpha: 0.78),
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
@@ -328,30 +361,79 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 4),
 
-              // Fixed 3×3 grid — same image size on every card
-              Expanded(
-                child: GridView.builder(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  itemCount: services.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 20,
-                    crossAxisSpacing: 20,
-                    childAspectRatio: 1.15,
+              // Search bar
+              TextField(
+                controller: _searchController,
+                onChanged: (v) => setState(() => _searchQuery = v.trim()),
+                style: const TextStyle(fontSize: 12.5, color: Colors.black87),
+                decoration: InputDecoration(
+                  hintText: "Search services...",
+                  hintStyle: const TextStyle(fontSize: 12.5, color: Color(0xFFAAB4C4)),
+                  prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF8A97AD), size: 17),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.close_rounded, size: 15, color: Color(0xFF8A97AD)),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = "");
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: const Color(0xFFF4F7FC),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
                   ),
-                  itemBuilder: (context, i) {
-                    final s = services[i];
-                    return _serviceCard(
-                      imagePath: s.image,
-                      iconData: s.icon,
-                      label: s.label,
-                      onTap: s.onTap,
-                      isDisabled: s.disabled,
-                    );
-                  },
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE4EBF8)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: blue, width: 1.4),
+                  ),
                 ),
+              ),
+
+              const SizedBox(height: 14),
+
+              Expanded(
+                child: services.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.search_off_rounded, size: 48, color: Color(0xFFCCD5E0)),
+                            const SizedBox(height: 10),
+                            Text(
+                              'No services found for "$_searchQuery"',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 13, color: Color(0xFF8A97AD)),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        itemCount: services.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 12),
+                        itemBuilder: (context, i) {
+                          final s = services[i];
+                          return _serviceCard(
+                            imagePath: s.image,
+                            iconData: s.icon,
+                            label: s.label,
+                            description: s.description,
+                            onTap: s.onTap,
+                            isDisabled: s.disabled,
+                          );
+                        },
+                      ),
               ),
             ],
           ),
@@ -364,7 +446,7 @@ class _HomeScreenState extends State<HomeScreen> {
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      barrierColor: Colors.black.withOpacity(0.15),
+      barrierColor: Colors.black.withValues(alpha: 0.15),
       builder: (_) => LogoutDialog(
         onLogout: () {
           Navigator.pushReplacement(
@@ -416,65 +498,93 @@ class _HomeScreenState extends State<HomeScreen> {
     String? imagePath,
     IconData? iconData,
     required String label,
+    String description = "",
     required VoidCallback onTap,
     bool isDisabled = false,
   }) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: isDisabled ? null : onTap,
-      child: Opacity(
-        opacity: isDisabled ? 0.45 : 1,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color.fromARGB(255, 228, 228, 228)),
-            boxShadow: [
-              BoxShadow(
-                color: blue.withOpacity(0.20),
-                blurRadius: 3,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(6, 10, 6, 8),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+    return Opacity(
+      opacity: isDisabled ? 0.40 : 1.0,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: isDisabled ? null : onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE4EBF8)),
+              boxShadow: [
+                BoxShadow(
+                  color: blue.withValues(alpha: 0.10),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
               children: [
-                // Fixed slot so every asset draws at identical logical size
-                SizedBox(
-                  width: _kServiceImageSize + 12,
-                  height: _kServiceImageSize + 12,
+                // Icon box
+                Container(
+                  width: 68,
+                  height: 68,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEEF4FF),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                   child: Center(
                     child: imagePath != null
                         ? Image.asset(
                             imagePath,
-                            width: _kServiceImageSize,
-                            height: _kServiceImageSize,
+                            width: 68,
+                            height: 68,
                             fit: BoxFit.contain,
                           )
                         : iconData != null
-                            ? Icon(
-                                iconData,
-                                size: _kServiceImageSize - 8,
-                                color: blue,
-                              )
+                            ? Icon(iconData, size: 36, color: blue)
                             : const SizedBox.shrink(),
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  label,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: _kServiceLabelFontSize,
-                    fontWeight: FontWeight.w800,
-                    color: blue,
-                    height: 1.15,
+                const SizedBox(width: 16),
+                // Label + description
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        label,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w800,
+                          color: blue,
+                          height: 1.2,
+                        ),
+                      ),
+                      if (description.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          description,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF8A97AD),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
+                ),
+                const SizedBox(width: 6),
+                Icon(
+                  isDisabled ? Icons.lock_outline_rounded : Icons.chevron_right_rounded,
+                  color: isDisabled ? const Color(0xFFB0BCCC) : const Color(0xFF8A97AD),
+                  size: 20,
                 ),
               ],
             ),
@@ -489,6 +599,7 @@ class _ServiceItem {
   final String? image;
   final IconData? icon;
   final String label;
+  final String description;
   final bool disabled;
   final VoidCallback onTap;
 
@@ -496,6 +607,7 @@ class _ServiceItem {
     this.image,
     this.icon,
     required this.label,
+    this.description = "",
     required this.disabled,
     required this.onTap,
   }) : assert(image != null || icon != null,
