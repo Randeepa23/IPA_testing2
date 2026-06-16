@@ -27,12 +27,23 @@ class _PersonalRequestScreenState extends State<PersonalRequestScreen> {
   String? errorText;
   int _selectedTab = 0;
 
-  bool get _isGeneralManager {
-    final u = widget.user;
-    if (u == null) return false;
-    final id = u["jobTitleId"] ?? u["job_title_id"];
-    return id?.toString() == "15";
-  }
+bool get _isGeneralManager {
+  final u = widget.user;
+  if (u == null) return false;
+
+  // Check by job title ID (GM = 15)
+  final jobTitleId = (u["jobTitleId"] ?? u["job_title_id"])?.toString() ?? "";
+  if (jobTitleId == "15") return true;
+
+  // Check by job title name — covers MD and any other senior title
+  final jobTitle = (u["jobTitle"] ?? u["job_title_name"] ?? "")
+      .toString()
+      .toLowerCase();
+  if (jobTitle.contains("general manager")) return true;
+  if (jobTitle.contains("managing director")) return true;
+
+  return false;
+} 
 
   static String _requestStatus(Map<String, dynamic> r) {
     return (r["status"] ?? r["request_status"] ?? "PENDING")
@@ -62,29 +73,33 @@ class _PersonalRequestScreenState extends State<PersonalRequestScreen> {
     _loadManagerVehicleRequests();
   }
 
-  Future<void> _loadManagerVehicleRequests() async {
-    setState(() {
-      loading = true;
-      errorText = null;
-    });
+Future<void> _loadManagerVehicleRequests() async {
+  setState(() {
+    loading = true;
+    errorText = null;
+  });
 
-    try {
+  try {
+      // In _loadManagerVehicleRequests, capture the server message
       final data = _isGeneralManager
-          ? await VehicleApiService.fetchGeneralManagerPersonalRequests()
-          : await VehicleApiService.fetchManagerPersonalRequests(
-              managerId: widget.managerId,
-            );
-      setState(() {
-        requests = data;
-        loading = false;
-      });
-    } catch (e) {
-      setState(() {
-        errorText = e.toString();
-        loading = false;
-      });
-    }
+        ? await VehicleApiService.fetchGeneralManagerPersonalRequests(
+            userId: widget.managerId,
+          )
+        : await VehicleApiService.fetchManagerPersonalRequests(
+            managerId: widget.managerId,
+          );
+
+    setState(() {
+      requests = data;
+      loading = false;
+    });
+  } catch (e) {
+    setState(() {
+      errorText = e.toString();
+      loading = false;
+    });
   }
+}
 
   final Map<int, Future<Map<String, dynamic>?>> _photoFutureCache = {};
 

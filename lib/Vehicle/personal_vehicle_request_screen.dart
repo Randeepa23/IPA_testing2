@@ -243,46 +243,46 @@ Future<void> _loadManagers() async {
 
     if (empId.isEmpty) throw Exception("employee_id missing in login data");
 
-    final res = await VehicleApiService.getDefaultManagers(employeeId: int.parse(empId));
+    final res = await VehicleApiService.getDefaultManagers(
+      employeeId: int.parse(empId),
+    );
 
     if (res["success"] != true) {
       throw Exception(res["message"] ?? "API failed");
     }
 
     final data = res["data"] ?? {};
-    final raw = List.from(data["managers"] ?? []);
-    final reportingId = data["reporting_manager_id"]?.toString();
-    reportingManagerId = widget.user["reportingManagerId"]?.toString();
+    final raw  = List.from(data["managers"] ?? []);
+
+    // ── KEY FIX: use the API's returned manager ID, not widget.user ──
+    // The API already resolved the fallback chain (unavailable/on-leave managers
+    // are skipped and replaced with HR → GM → Director in order).
+    final resolvedManagerId = data["reporting_manager_id"]?.toString();
 
     final list = raw.map<Map<String, String>>((e) {
       return {
-        "id": e["id"].toString(),
+        "id":   e["id"].toString(),
         "name": (e["name"] ?? "").toString(),
       };
     }).toList();
 
-    // DEBUG (check in console)
-    print("Managers loaded: $list");
-    print("Reporting manager: $reportingId");
-
-    String? defaultId;
-
-    if (reportingId != null && list.any((m) => m["id"] == reportingId)) {
-      defaultId = reportingId;
-    } else if (list.isNotEmpty) {
-      defaultId = list.first["id"];
-    }
-
     setState(() {
-      managers = list;
-      selectedManagerId = defaultId;
-      loadingManagers = false;
+      managers          = list;
+      // Use API-resolved manager as the pre-selected and displayed manager
+      reportingManagerId = resolvedManagerId;
+      selectedManagerId  = resolvedManagerId;
+      loadingManagers    = false;
     });
+
+    // Optional debug — remove before release
+    debugPrint("Resolved manager: $resolvedManagerId");
+    debugPrint("Fallback reason: ${data["fallback_reason"]}");
+
   } catch (e) {
     setState(() {
-      loadingManagers = false;
-      managerError = e.toString();
-      managers = [];
+      loadingManagers   = false;
+      managerError      = e.toString();
+      managers          = [];
       selectedManagerId = null;
     });
   }

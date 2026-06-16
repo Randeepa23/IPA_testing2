@@ -6,8 +6,8 @@ import 'package:http/http.dart' as http;
 class VehicleApiService {
 
   //Android Emulator → PC localhost
-  //static const String baseUrl = "http://10.0.2.2/mobile-api/vehicle";
-  static const String baseUrl = "https://exploresuite.lk/mobile-api/vehicle";
+  static const String baseUrl = "http://10.0.2.2/mobile-api/vehicle";
+  //static const String baseUrl = "https://exploresuite.lk/mobile-api/vehicle";
 
   static String? _googlePlacesApiKeyCache;
 
@@ -638,31 +638,31 @@ class VehicleApiService {
   /// **Do not send [userId]** unless your PHP uses it only for auth/audit. Many backends
   /// incorrectly add `AND e.employee_id = user_id`, which hides every request not filed
   /// by that employee (empty inbox for the GM).
-  static Future<List<Map<String, dynamic>>> fetchGeneralManagerPersonalRequests({
-    String? userId,
-  }) async {
-    try {
-      final base = Uri.parse("$baseUrl/get_general_manager_personal_vehicle_request.php");
-      final url = (userId != null && userId.isNotEmpty)
-          ? base.replace(queryParameters: {"user_id": userId})
-          : base;
-      final res = await http
-          .get(url, headers: {"Accept": "application/json"})
-          .timeout(const Duration(seconds: 15));
+static Future<List<Map<String, dynamic>>> fetchGeneralManagerPersonalRequests({
+  String? userId,
+}) async {
+  try {
+    final base = Uri.parse("$baseUrl/get_general_manager_personal_vehicle_request.php");
+    final url  = (userId != null && userId.isNotEmpty)
+        ? base.replace(queryParameters: {"user_id": userId})
+        : base;
 
-      if (res.body.trim().isEmpty) throw Exception('No response from server.');
-      final decoded = jsonDecode(res.body);
-      if (decoded["success"] != true) {
-        throw Exception(decoded["message"] ?? "Failed to load requests");
-      }
-      return List<Map<String, dynamic>>.from(decoded["data"] ?? []);
-    } on TimeoutException {
-      throw Exception('Request timed out. Please check your connection and retry.');
-    } catch (e) {
-      throw Exception(_friendlyError(e));
+    final res = await http
+        .get(url, headers: {"Accept": "application/json"})
+        .timeout(const Duration(seconds: 15));
+
+    if (res.body.trim().isEmpty) throw Exception('No response from server.');
+    final decoded = jsonDecode(res.body);
+    if (decoded["success"] != true) {
+      throw Exception(decoded["message"] ?? "Failed to load requests");
     }
+    return List<Map<String, dynamic>>.from(decoded["data"] ?? []);
+  } on TimeoutException {
+    throw Exception('Request timed out.');
+  } catch (e) {
+    throw Exception(_friendlyError(e));
   }
-
+}
   /// Calls approve endpoint. PHP expects `hod_comment` (manager/HOD note on forward step).
   /// Response [data] may include `trip_code` only after final approval (e.g. GM step for personal).
   static Future<Map<String, dynamic>> approveVehicleRequest({
