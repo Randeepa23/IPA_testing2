@@ -120,50 +120,47 @@ class _GatePassRequestFormScreenState
     super.dispose();
   }
 
-  // ── Load reporting manager from API ──────────────────────────────────────
-  Future<void> _loadManagers() async {
-    try {
-      setState(() {
-        _loadingManagers = true;
-        _managerError    = null;
-      });
+ // ── Load managers from API ─────────────────────────────────────────────────
+ Future<void> _loadManagers() async {
+  try {
+    setState(() {
+      _loadingManagers = true;
+      _managerError    = null;
+    });
 
-      final empId = (widget.user['employee_id'] ?? widget.user['employeeId'] ?? '').toString();
-      if (empId.isEmpty) throw Exception('Employee ID missing');
+    final empId = (widget.user['employee_id'] ?? widget.user['employeeId'] ?? '').toString();
+    if (empId.isEmpty) throw Exception('Employee ID missing');
 
-      final res = await VehicleApiService.getDefaultManagers(employeeId: int.parse(empId));
-      if (res['success'] != true) throw Exception(res['message'] ?? 'Failed to load manager');
+    final res = await VehicleApiService.getDefaultManagers(employeeId: int.parse(empId));
+    if (res['success'] != true) throw Exception(res['message'] ?? 'Failed to load manager');
 
-      final data       = res['data'] ?? {};
-      final raw        = List.from(data['managers'] ?? []);
-      final reportingId = data['reporting_manager_id']?.toString();
+    final data        = res['data'] ?? {};
+    final raw         = List.from(data['managers'] ?? []);
+    final resolvedId  = data['reporting_manager_id']?.toString();
 
-      _reportingManagerId = widget.user['reportingManagerId']?.toString() ?? reportingId;
+    // ── KEY FIX: use the API's resolved ID, not widget.user ──────────────
+    // The API already walked the fallback chain:
+    // reporting manager → HR (10) → GM (14) → MD (11)
+    // So resolvedId is the best available manager right now.
+    _reportingManagerId = resolvedId;
 
-      final list = raw.map<Map<String, String>>((e) => {
-        'id'  : e['id'].toString(),
-        'name': (e['name'] ?? '').toString(),
-      }).toList();
+    final list = raw.map<Map<String, String>>((e) => {
+      'id'  : e['id'].toString(),
+      'name': (e['name'] ?? '').toString(),
+    }).toList();
 
-      String? defaultId;
-      if (_reportingManagerId != null && list.any((m) => m['id'] == _reportingManagerId)) {
-        defaultId = _reportingManagerId;
-      } else if (list.isNotEmpty) {
-        defaultId = list.first['id'];
-      }
-
-      setState(() {
-        _managers          = list;
-        _selectedManagerId = defaultId;
-        _loadingManagers   = false;
-      });
-    } catch (e) {
-      setState(() {
-        _loadingManagers = false;
-        _managerError    = e.toString();
-      });
-    }
+    setState(() {
+      _managers          = list;
+      _selectedManagerId = resolvedId; // auto-select the resolved manager
+      _loadingManagers   = false;
+    });
+  } catch (e) {
+    setState(() {
+      _loadingManagers = false;
+      _managerError    = e.toString();
+    });
   }
+}
 
   Future<Map<String, dynamic>?> _getPhotoFuture(int employeeId) {
     return _photoFutureCache.putIfAbsent(
@@ -232,28 +229,48 @@ class _GatePassRequestFormScreenState
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
 
-              // ── Your Details ─────────────────────────────────────────────
-              _sectionHeader('Your Details', Icons.person_outline),
-              const SizedBox(height: 10),
-
-              _fieldLabel('Your Name'),
-              const SizedBox(height: 6),
-              _readonlyField(_nameController.text),
-
-              const SizedBox(height: 12),
-              _fieldLabel('Employee No.'),
-              const SizedBox(height: 6),
-              _readonlyField(_employeeController.text),
-
-              const SizedBox(height: 12),
-              _fieldLabel('Department'),
-              const SizedBox(height: 6),
-              _readonlyField(_departmentController.text),
-
-              const SizedBox(height: 12),
-              _fieldLabel('Contact No.'),
-              const SizedBox(height: 6),
-              _readonlyField(_contactController.text),
+              // ── Your Details (compact card) ───────────────────────────────
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4F7FF),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFDDE5F8)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Your Details',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1565C0),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Divider(height: 1, thickness: 1, color: Color(0xFFDDE5F8)),
+                    const SizedBox(height: 14),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: _infoCell('Name', _nameController.text, Icons.badge_outlined)),
+                        const SizedBox(width: 20),
+                        Expanded(child: _infoCell('Employee No.', _employeeController.text, Icons.tag_rounded)),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: _infoCell('Department', _departmentController.text, Icons.apartment_rounded)),
+                        const SizedBox(width: 20),
+                        Expanded(child: _infoCell('Contact No.', _contactController.text, Icons.phone_outlined)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
 
               const SizedBox(height: 22),
 
@@ -437,7 +454,7 @@ class _GatePassRequestFormScreenState
               const SizedBox(height: 12),
               TextFormField(
                 controller: _remarkController,
-                maxLines: 3,
+                maxLines: 2,
                 style: const TextStyle(color: Colors.black, fontSize: 15),
                 decoration: _inputDecoration(
                   'Enter remark…',
@@ -491,23 +508,40 @@ class _GatePassRequestFormScreenState
     );
   }
 
-  Widget _readonlyField(String value) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F7FA),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE1E6EF)),
-      ),
-      child: Text(
-        value.isEmpty ? '—' : value,
-        style: TextStyle(
-          fontSize: 14,
-          color: value.isEmpty ? Colors.black38 : Colors.black87,
-          fontWeight: FontWeight.w600,
+  Widget _infoCell(String label, String value, IconData icon) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 14, color: const Color(0xFF8A9BB0)),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF8A97AD),
+                  letterSpacing: 0.2,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value.isEmpty ? '—' : value,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E2A3A),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -880,6 +914,7 @@ class _GatePassRequestFormScreenState
       );
     }
 
+    // Filter managers to only show the one matching the resolved reporting manager ID
     final visible = _managers
         .where((m) => m['id'].toString() == _reportingManagerId)
         .toList();

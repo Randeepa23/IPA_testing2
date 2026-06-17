@@ -144,6 +144,7 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
 
   // Photo cache for manager avatars
   final Map<int, Future<Map<String, dynamic>?>> _photoFutureCache = {};
+  final remarkController = TextEditingController();
 
 
 //check if the vehicle type is a car type
@@ -169,6 +170,7 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
   @override
   void dispose() {
     _availableVehicleController.dispose();
+    remarkController.dispose();
     super.dispose();
   }
 
@@ -243,46 +245,46 @@ Future<void> _loadManagers() async {
 
     if (empId.isEmpty) throw Exception("employee_id missing in login data");
 
-    final res = await VehicleApiService.getDefaultManagers(employeeId: int.parse(empId));
+    final res = await VehicleApiService.getDefaultManagers(
+      employeeId: int.parse(empId),
+    );
 
     if (res["success"] != true) {
       throw Exception(res["message"] ?? "API failed");
     }
 
     final data = res["data"] ?? {};
-    final raw = List.from(data["managers"] ?? []);
-    final reportingId = data["reporting_manager_id"]?.toString();
-    reportingManagerId = widget.user["reportingManagerId"]?.toString();
+    final raw  = List.from(data["managers"] ?? []);
+
+    // ── KEY FIX: use the API's returned manager ID, not widget.user ──
+    // The API already resolved the fallback chain (unavailable/on-leave managers
+    // are skipped and replaced with HR → GM → Director in order).
+    final resolvedManagerId = data["reporting_manager_id"]?.toString();
 
     final list = raw.map<Map<String, String>>((e) {
       return {
-        "id": e["id"].toString(),
+        "id":   e["id"].toString(),
         "name": (e["name"] ?? "").toString(),
       };
     }).toList();
 
-    // DEBUG (check in console)
-    print("Managers loaded: $list");
-    print("Reporting manager: $reportingId");
-
-    String? defaultId;
-
-    if (reportingId != null && list.any((m) => m["id"] == reportingId)) {
-      defaultId = reportingId;
-    } else if (list.isNotEmpty) {
-      defaultId = list.first["id"];
-    }
-
     setState(() {
-      managers = list;
-      selectedManagerId = defaultId;
-      loadingManagers = false;
+      managers          = list;
+      // Use API-resolved manager as the pre-selected and displayed manager
+      reportingManagerId = resolvedManagerId;
+      selectedManagerId  = resolvedManagerId;
+      loadingManagers    = false;
     });
+
+    // Optional debug — remove before release
+    debugPrint("Resolved manager: $resolvedManagerId");
+    debugPrint("Fallback reason: ${data["fallback_reason"]}");
+
   } catch (e) {
     setState(() {
-      loadingManagers = false;
-      managerError = e.toString();
-      managers = [];
+      loadingManagers   = false;
+      managerError      = e.toString();
+      managers          = [];
       selectedManagerId = null;
     });
   }
@@ -370,6 +372,7 @@ Future<void> _submitForm() async {
     debugPrint("[SubmitForm] vehicleId   : $vehicleId");
     debugPrint("[SubmitForm] fromDate    : $fromDateTxt");
     debugPrint("[SubmitForm] toDate      : $toDateTxt");
+    debugPrint("[Remark] remark: ${remarkController.text}");
     debugPrint("[SubmitForm] ────────────────────────────────");
 
     final res = await VehicleApiService.createPersonalVehicleRequest(
@@ -384,7 +387,9 @@ Future<void> _submitForm() async {
       reason: "Personal Request",
       vehicleType: vehicleType,  // ← new optional param
       vehicleId: _selectedVehicle!.id, // <-- pass the ID here
-
+      remark:       remarkController.text.trim().isEmpty
+                    ? null
+                    : remarkController.text.trim(), // ← read controller HERE
       
     );
     print("Vehicle Type Name: $vehicleType");
@@ -554,31 +559,53 @@ void _showVehicleSubmitConfirmation() {
               _buildDiscountNotice(),
               const SizedBox(height: 16),
 
-              // ---------------- YOUR DETAILS ----------------
-              const FormSectionTitle('Your Name'),
-              const SizedBox(height: 8),
-              ReadonlyInfoField(value: nameController.text),
-
-              const SizedBox(height: 12),
-              const FormSectionTitle('Employee No.'),
-              const SizedBox(height: 8),
-              ReadonlyInfoField(value: employeeController.text),
-
-              const SizedBox(height: 12),
-              const FormSectionTitle('Department'),
-              const SizedBox(height: 8),
-              ReadonlyInfoField(value: departmentController.text),
-
-              const SizedBox(height: 12),
-              const FormSectionTitle('Contact No.'),
-              const SizedBox(height: 8),
-              ReadonlyInfoField(value: contactController.text),
+              // ---------------- YOUR DETAILS (compact card) ----------------
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4F7FF),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFDDE5F8)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Your Details',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1565C0),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Divider(height: 1, thickness: 1, color: Color(0xFFDDE5F8)),
+                    const SizedBox(height: 14),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: _infoCell('Name', nameController.text, Icons.badge_outlined)),
+                        const SizedBox(width: 20),
+                        Expanded(child: _infoCell('Employee No.', employeeController.text, Icons.tag_rounded)),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: _infoCell('Department', departmentController.text, Icons.apartment_rounded)),
+                        const SizedBox(width: 20),
+                        Expanded(child: _infoCell('Contact No.', contactController.text, Icons.phone_outlined)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
 
               const SizedBox(height: 16),
 
               // Reason (read-only)
               const FormSectionTitle("Reason for request"),
-              const SizedBox(height: 8),
               const SizedBox(height: 8),
               const ReadonlyInfoField(value: "Personal Request"),
 
@@ -822,7 +849,23 @@ void _showVehicleSubmitConfirmation() {
                     },
                   ),
 
-              const SizedBox(height: 16),
+            const SizedBox(height: 2),
+
+            // ── Remark (Optional) ──────────────────────────────────────────────────
+            const FormSectionTitle("Remark (Optional)"),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: remarkController,
+              style: const TextStyle(color: Colors.black, fontSize: 15),
+              maxLines: 2,
+              maxLength: 300,
+              decoration: _inputDecoration(
+                "Enter any additional notes or remarks...",
+              ),
+              // No validator — field is optional
+            ),
+
+            const SizedBox(height: 16),
 
               // Approving Manager dropdown
               const FormSectionTitle("Select Approving Manager *"),
@@ -1212,6 +1255,43 @@ void _showVehicleSubmitConfirmation() {
 
         if (picked != null) onSelect(picked);
       },
+    );
+  }
+
+  Widget _infoCell(String label, String value, IconData icon) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 14, color: const Color(0xFF8A9BB0)),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF8A97AD),
+                  letterSpacing: 0.2,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value.isEmpty ? '—' : value,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E2A3A),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

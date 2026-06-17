@@ -154,6 +154,8 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
   final Set<int>     _selectedStaffIds = {};
   final              _staffSearchCtrl  = TextEditingController();
   String             _staffSearchQuery = '';
+  final remarkController = TextEditingController();
+
 
   bool _isSubmitting = false;
 
@@ -173,6 +175,7 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
     _vehicleLettersController.dispose();
     _vehicleNumbersController.dispose();
     _staffSearchCtrl.dispose();
+    remarkController.dispose();
     super.dispose();
   }
 
@@ -287,6 +290,9 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
         reason:               "Office Service",
         vehicleType:          "-",
         vehicleId:            0,
+        remark:               remarkController.text.trim().isEmpty
+                              ? null
+                              : remarkController.text.trim(),
         companionEmployeeIds: _selectedStaffIds.toList(), // ← new
       );
 
@@ -355,25 +361,48 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
 
-              // ── User details (unchanged) ──────────────────────────────
-              const FormSectionTitle('Your Name'),
-              const SizedBox(height: 8),
-              ReadonlyInfoField(value: nameController.text),
-
-              const SizedBox(height: 12),
-              const FormSectionTitle('Employee No.'),
-              const SizedBox(height: 8),
-              ReadonlyInfoField(value: employeeController.text),
-
-              const SizedBox(height: 12),
-              const FormSectionTitle('Department'),
-              const SizedBox(height: 8),
-              ReadonlyInfoField(value: departmentController.text),
-
-              const SizedBox(height: 12),
-              const FormSectionTitle('Contact No.'),
-              const SizedBox(height: 8),
-              ReadonlyInfoField(value: contactController.text),
+              // ── User details (compact card) ───────────────────────────
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4F7FF),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFDDE5F8)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Your Details',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1565C0),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Divider(height: 1, thickness: 1, color: Color(0xFFDDE5F8)),
+                    const SizedBox(height: 14),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: _infoCell('Name', nameController.text, Icons.badge_outlined)),
+                        const SizedBox(width: 20),
+                        Expanded(child: _infoCell('Employee No.', employeeController.text, Icons.tag_rounded)),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: _infoCell('Department', departmentController.text, Icons.apartment_rounded)),
+                        const SizedBox(width: 20),
+                        Expanded(child: _infoCell('Contact No.', contactController.text, Icons.phone_outlined)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
 
               const SizedBox(height: 16),
 
@@ -555,6 +584,23 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
               _buildStaffSelector(),
 
               const SizedBox(height: 20),
+
+              
+            const SizedBox(height: 2),
+
+            // ── Remark (Optional) ──────────────────────────────────────────────────
+            const FormSectionTitle("Remark (Optional)"),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: remarkController,
+              style: const TextStyle(color: Colors.black, fontSize: 15),
+              maxLines: 2,
+              maxLength: 300,
+              decoration: _inputDecoration(
+                "Enter any additional notes or remarks...",
+              ),
+              // No validator — field is optional
+            ),
 
               // ── Approving Manager (unchanged) ─────────────────────────
               const FormSectionTitle("Select Approving Manager *"),
@@ -929,6 +975,43 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
         );
         if (picked != null) onSelect(picked);
       },
+    );
+  }
+
+  Widget _infoCell(String label, String value, IconData icon) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 14, color: const Color(0xFF8A9BB0)),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF8A97AD),
+                  letterSpacing: 0.2,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value.isEmpty ? '—' : value,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E2A3A),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

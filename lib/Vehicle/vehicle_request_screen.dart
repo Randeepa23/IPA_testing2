@@ -1,5 +1,6 @@
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../Services/vehicle_api_service.dart';
 import '../Leaves/top_banner.dart';
 import '../Services/api_service.dart';
@@ -258,6 +259,10 @@ class _VehicleRequestCard extends StatelessWidget {
     final destination  = (data["destination"] ?? data["dropoff_location"] ?? "").toString();
     final fromDate     = (data["from_date"] ?? data["fromDate"]         ?? "").toString();
     final toDate       = (data["to_date"]   ?? data["toDate"]           ?? "").toString();
+    final appliedStr   = _fmtApplied([
+      data["created_at"], data["requested_at"], data["request_date"],
+      data["apply_date"], data["applied_date"],
+    ].map((v) => v?.toString() ?? "").firstWhere((s) => s.isNotEmpty, orElse: () => ""));
 
     return Container(
       decoration: BoxDecoration(
@@ -460,9 +465,28 @@ class _VehicleRequestCard extends StatelessWidget {
                   const [Color(0xFF2E7D32), Color(0xFF1B5E20)], onApprove)),
             ],
           ),
+          if (appliedStr.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                appliedStr,
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF6B7A90)),
+              ),
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  String _fmtApplied(String v) {
+    if (v.isEmpty) return "";
+    try {
+      return 'Applied on: ${DateFormat('MMM dd, yyyy  hh:mm a').format(DateTime.parse(v))}';
+    } catch (_) {
+      return v.length >= 16 ? 'Applied on: ${v.substring(0, 16)}' : (v.isNotEmpty ? 'Applied on: $v' : '');
+    }
   }
 
   // ── Companions sheet — stateful so removal updates live ───────────────────

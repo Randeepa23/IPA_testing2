@@ -6,8 +6,8 @@ import 'package:http/http.dart' as http;
 
 class ApiService {
 
-  //static const String baseUrl = "http://10.0.2.2/mobile-api/api";
-  static const String baseUrl = "https://exploresuite.lk/mobile-api/api";
+  static const String baseUrl = "http://10.0.2.2/mobile-api/api";
+  //static const String baseUrl = "https://exploresuite.lk/mobile-api/api";
 
   // ── Friendly error mapper ─────────────────────────────────────────────────
   static String _friendlyError(dynamic e) {
@@ -119,6 +119,7 @@ class ApiService {
           "attachmentPath":   x["attachment_path"],
           "is_special_request": x["is_special_request"],
           "status":           x["status"],
+          "requested_at":     x["requested_at"],
         };
       }).toList();
     } on TimeoutException {
@@ -285,6 +286,7 @@ class ApiService {
     required bool isSpecialRequest,
     String? address,
     String? halfDaySession,
+    String? managerId,
   }) async {
     try {
       final url  = Uri.parse("$baseUrl/apply_leave_request.php");
@@ -299,6 +301,7 @@ class ApiService {
         "isSpecialRequest": isSpecialRequest ? 1 : 0,
         "address":         address ?? "",
         "halfDaySession":  halfDaySession ?? "",
+        "managerId":       managerId ?? "",
       };
       final res = await http.post(
         url,
@@ -323,6 +326,24 @@ class ApiService {
     } catch (e) {
       debugPrint("LEAVE APPLY ERROR: $e");
       throw Exception(_friendlyError(e));
+    }
+  }
+
+  // ── Get manager employee IDs ──────────────────────────────────────────────
+  static Future<List<String>> getManagerIds() async {
+    try {
+      final url = Uri.parse("$baseUrl/get_manager_ids.php");
+      final res = await http
+          .get(url, headers: {"Accept": "application/json"})
+          .timeout(const Duration(seconds: 10));
+      if (res.statusCode != 200) return [];
+      if (res.body.trim().isEmpty) return [];
+      final decoded = jsonDecode(res.body);
+      if (decoded["success"] != true) return [];
+      return List<String>.from(decoded["manager_ids"] ?? []);
+    } catch (e) {
+      debugPrint("getManagerIds failed: $e");
+      return []; // fail silently — non-critical
     }
   }
 
@@ -354,6 +375,30 @@ class ApiService {
       return Map<String, dynamic>.from(jsonDecode(res.body));
     } on TimeoutException {
       throw Exception('Request timed out. Please check your connection and retry.');
+    } catch (e) {
+      throw Exception(_friendlyError(e));
+    }
+  }
+
+  // ── Get leave managers ────────────────────────────────────────────────────
+  static Future<Map<String, dynamic>> getLeaveManagers({
+    required String employeeId,
+  }) async {
+    try {
+      // Reuses the same get_default_managers.php endpoint
+      final url = Uri.parse(
+        "$baseUrl/../vehicle/get_default_managers.php?employee_id=$employeeId",
+      );
+      final res = await http
+          .get(url, headers: {"Accept": "application/json"})
+          .timeout(const Duration(seconds: 15));
+      if (res.statusCode != 200) {
+        throw Exception('Server error (${res.statusCode}).');
+      }
+      if (res.body.trim().isEmpty) throw Exception('No response from server.');
+      return Map<String, dynamic>.from(jsonDecode(res.body));
+    } on TimeoutException {
+      throw Exception('Request timed out.');
     } catch (e) {
       throw Exception(_friendlyError(e));
     }

@@ -66,6 +66,15 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
   String? _memberError;
   String? _confirmError;
 
+  // Approving manager
+  List<Map<String, String>> _leaveManagers = [];
+  String? _selectedManagerId;
+  bool _loadingManagers = true;
+  String? _managerError;
+
+  // Manager employee IDs (fetched from server)
+  List<String> _managerIds = [];
+
   // Cache for profile photo futures to avoid redundant API calls
   final Map<int, Future<Map<String, dynamic>?>> _photoFutureCache = {};
 
@@ -82,6 +91,15 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
       lower.endsWith('.png') ||
       lower.endsWith('.webp');
 }
+
+  // Check if the user is a manager, based on IDs fetched from the server
+  bool get _isManager {
+    final empId = (widget.user["employeeId"] ?? widget.user["employee_id"] ?? "")
+        .toString().trim();
+    return _managerIds.contains(empId);
+  }
+
+
 
   // Same input style as login/forgot password - clear on all devices
   InputDecoration _inputDecoration(String hint, {IconData? icon, Widget? suffix}) {
@@ -130,6 +148,43 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
     );
   }
 
+  Widget _infoCell(String label, String value, IconData icon) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 14, color: const Color(0xFF8A9BB0)),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF8A97AD),
+                  letterSpacing: 0.2,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value.isEmpty ? '—' : value,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E2A3A),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
 @override
 void initState() {
   super.initState();
@@ -143,18 +198,82 @@ void initState() {
   WidgetsBinding.instance.addPostFrameCallback((_) {
     _recoverLostData();
   });
+
+  // Load manager IDs first — this drives _isManager check
+  _loadManagerIds();
+  _loadLeaveManagers();
 }
+
+Future<void> _loadManagerIds() async {
+  final ids = await ApiService.getManagerIds();
+  if (!mounted) return;
+  setState(() {
+    _managerIds = ids;
+    // Auto-confirm no reliever if this user is a manager
+    if (_isManager) {
+      noMemberConfirmed = true;
+    }
+  });
+}
+
+Future<void> _loadLeaveManagers() async {
+  try {
+    setState(() { _loadingManagers = true; _managerError = null; });
+
+    final empId = widget.user["employeeId"]?.toString()
+        ?? widget.user["employee_id"]?.toString()
+        ?? "";
+    if (empId.isEmpty) throw Exception("employeeId missing");
+
+    final res = await ApiService.getLeaveManagers(employeeId: empId);
+    if (res["success"] != true) throw Exception(res["message"] ?? "Failed");
+
+    final data       = res["data"] ?? {};
+    final raw        = List.from(data["managers"] ?? []);
+    // This is the single best available manager after fallback chain:
+    // reporting manager → HR (10) → GM (14) → MD (11)
+    final resolvedId = data["reporting_manager_id"]?.toString();
+
+    final allManagers = raw.map<Map<String, String>>((e) => {
+      "id":   e["id"].toString(),
+      "name": (e["name"] ?? "").toString(),
+    }).toList();
+
+    // ── KEY: filter to show ONLY the resolved single manager ─────────────
+    // Same as PersonalVehicleRequestScreen — employee sees one manager,
+    // already resolved through the availability/fallback chain on the server.
+    final displayList = allManagers
+        .where((m) => m["id"].toString() == resolvedId)
+        .toList();
+
+    setState(() {
+      _leaveManagers     = displayList;  // only 1 manager shown
+      _selectedManagerId = resolvedId;   // auto-selected
+      _loadingManagers   = false;
+    });
+
+  } catch (e) {
+    setState(() {
+      _loadingManagers = false;
+      _managerError    = e.toString();
+    });
+  }
+}
+
 Future<void> _submitForm() async {
+
   if (!_formKey.currentState!.validate()) return;
 
-  if (availableMembers.isNotEmpty && selectedMember == null) {
-    setState(() => _memberError = 'Please select a team member to cover your duties');
-    return;
-  }
-
-  if (availableMembers.isEmpty && !noMemberConfirmed) {
-    setState(() => _confirmError = 'Please confirm to proceed without a reliever');
-    return;
+  // Only validate reliever selection for non-managers
+  if (!_isManager) {
+    if (availableMembers.isNotEmpty && selectedMember == null) {
+      setState(() => _memberError = 'Please select a team member to cover your duties');
+      return;
+    }
+    if (availableMembers.isEmpty && !noMemberConfirmed) {
+      setState(() => _confirmError = 'Please confirm to proceed without a reliever');
+      return;
+    }
   }
 
   if (fromDate == null || toDate == null || selectedLeaveType == null) return;
@@ -197,7 +316,7 @@ Future<void> _submitForm() async {
       isSpecialRequest: noMemberConfirmed,
       address: addressController.text.trim(),
       halfDaySession: isHalfDay ? halfDaySession : null,
-
+      managerId: _selectedManagerId,
     );
 
       if (res["success"] == true) {
@@ -307,6 +426,9 @@ void _showSubmitConfirmation() {
 
   // ===== DATE RANGE FILTER LOGIC =====
     Future<void> _loadRelievers() async {
+
+      // Managers don't need a reliever — skip loading
+      if (_isManager) return;
       if (fromDate == null) return;
 
       // for half day: toDate = fromDate
@@ -389,26 +511,61 @@ void _showSubmitConfirmation() {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ---------------- YOUR DETAILS ----------------
-              const FormSectionTitle('Your Name'),
-              const SizedBox(height: 8),
-              ReadonlyInfoField(value: nameController.text),
-
-              const SizedBox(height: 12),
-              const FormSectionTitle('Employee No.'),
-              const SizedBox(height: 8),
-              ReadonlyInfoField(value: employeeController.text),
-
-              const SizedBox(height: 12),
-              const FormSectionTitle('Department'),
-              const SizedBox(height: 8),
-              ReadonlyInfoField(value: departmentController.text),
-
-              const SizedBox(height: 12),
-              const FormSectionTitle('Contact No.'),
-              const SizedBox(height: 8),
-              ReadonlyInfoField(value: contactController.text),
-
+              // ── Employee info card ──────────────────────────────────
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4F7FF),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFDDE5F8)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        //const SizedBox(width: 8),
+                        const Text(
+                          'Your Details',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF1565C0),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    const Divider(height: 1, thickness: 1, color: Color(0xFFDDE5F8)),
+                    const SizedBox(height: 14),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _infoCell('Name', nameController.text, Icons.badge_outlined),
+                        ),
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: _infoCell('Employee No.', employeeController.text, Icons.tag_rounded),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _infoCell('Department', departmentController.text, Icons.apartment_rounded),
+                        ),
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: _infoCell('Contact No.', contactController.text, Icons.phone_outlined),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 16),
 
               // ---------------- LEAVE TYPE ----------------
@@ -666,192 +823,220 @@ void _showSubmitConfirmation() {
               const SizedBox(height: 16),
 
               // ---------------- TEAM MEMBER (RELIEVER) ----------------
-              const FormSectionTitle('Select Team Member to Cover Your Duties *'),
-              const SizedBox(height: 10),
-
-              if (fromDate != null && toDate != null)
+              if (_isManager) ...[
+                // Managers see a simple info card instead of reliever selection
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: const Color(0xFFEAF1FF),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFBDD0F8)),
                   ),
                   child: Row(
-                    children: [
-                      Icon(Icons.info_outline, color: blue, size: 18),
-                      const SizedBox(width: 8),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Icon(Icons.info_outline, color: Color(0xFF1565C0), size: 18),
+                      SizedBox(width: 10),
                       Expanded(
-                        child: Text(
-                          availableMembers.isNotEmpty
-                              ? 'Showing team availability for ${DateFormat('yyyy-MM-dd').format(fromDate!)} to ${DateFormat('yyyy-MM-dd').format(toDate!)}'
-                              : 'Peak leave period detected - all members unavailable',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF1E2A3A),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "No reliever required",
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF1E2A3A),
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              "As a manager, your leave request will be sent directly to your reporting manager for approval.",
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF6B7A90),
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else ...[
+                // Non-managers: show full reliever selection (existing UI unchanged)
+                const FormSectionTitle('Select Team Member to Cover Your Duties *'),
+                const SizedBox(height: 10),
+
+                if (fromDate != null && toDate != null)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEAF1FF),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, color: blue, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            availableMembers.isNotEmpty
+                                ? 'Showing team availability for ${DateFormat('yyyy-MM-dd').format(fromDate!)} to ${DateFormat('yyyy-MM-dd').format(toDate!)}'
+                                : 'Peak leave period detected - all members unavailable',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1E2A3A),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-
-              const SizedBox(height: 10),
-
-              // Available members list
-              if (availableMembers.isNotEmpty)
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE1E6EF)),
-                  ),
-                  child: Column(
-                    // Radio button on RIGHT, Photo on LEFT, Name in middle
-                    children: availableMembers.map((m) {
-                    final empId = int.tryParse(m["id"] ?? "") ?? 0;
-                    return RadioListTile<String>(
-                      value: m['id']!,
-                      groupValue: selectedMember,
-                      onChanged: (v) => setState(() { selectedMember = v; _memberError = null; }),
-                     fillColor: MaterialStateProperty.resolveWith<Color>((states) {
-                      if (states.contains(MaterialState.selected)) {
-                        return Colors.blue; // selected radio color
-                      }
-                      return Colors.black54; // unselected radio color
-                    }),
-
-                      // radio button on RIGHT
-                      controlAffinity: ListTileControlAffinity.trailing,
-
-                      // Photo on LEFT
-                      secondary: FutureBuilder<Map<String, dynamic>?>(
-                        future: empId > 0 ? _getPhotoFuture(empId) : Future.value(null),
-                        builder: (context, snap) {
-                          final url = (snap.data?["fileUrl"] ?? "").toString().trim();
-
-                          if (snap.connectionState == ConnectionState.waiting) {
-                            return const CircleAvatar(
-                              radius: 18,
-                              backgroundColor: Color(0xFFEAF1FF),
-                              child: SizedBox(
-                                width: 14,
-                                height: 14,
-                                child: CircularProgressIndicator(
-                                  color: Colors.blue,
-                                  backgroundColor: Colors.white,
-                                  strokeWidth: 2
-                                ),
-                              ),
-                            );
-                          }
-
-                          if (url.isNotEmpty) {
-                            return CircleAvatar(
-                              radius: 18,
-                              backgroundColor: const Color(0xFFEAF1FF),
-                              backgroundImage: NetworkImage(url),
-                            );
-                          }
-
-                          return const CircleAvatar(
-                            radius: 18,
-                            backgroundColor: Color(0xFFEAF1FF),
-                            child: Icon(Icons.person, size: 18, color: Colors.black54),
-                          );
-                        },
-                      ),
-
-                      // Name in middle
-                      title: Text(
-                        m['name']!,
-                        style: const TextStyle(fontSize: 13,
-                        fontWeight: FontWeight.w800, 
-                        color: Colors.black87
-                        ),
-                      ),
-
-                    );
-                    }).toList(),
-                  ),
-                )
-              else if (fromDate != null && toDate != null)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD7E8F6),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-
-                  title: const Text(
-                    'Proceed without reliever team member (By HOD Approval)',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 12.5,
-                      color: Colors.black,
+                      ],
                     ),
                   ),
 
-                  subtitle: const Text(
-                    'This request will be escalated to HR for special approval.',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87,
+                const SizedBox(height: 10),
+
+                if (availableMembers.isNotEmpty)
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE1E6EF)),
+                    ),
+                    child: Column(
+                      children: availableMembers.map((m) {
+                        final empId = int.tryParse(m["id"] ?? "") ?? 0;
+                        return RadioListTile<String>(
+                          value: m['id']!,
+                          groupValue: selectedMember,
+                          onChanged: (v) => setState(() {
+                            selectedMember = v;
+                            _memberError = null;
+                          }),
+                          fillColor: MaterialStateProperty.resolveWith<Color>((states) {
+                            if (states.contains(MaterialState.selected)) return Colors.blue;
+                            return Colors.black54;
+                          }),
+                          controlAffinity: ListTileControlAffinity.trailing,
+                          secondary: FutureBuilder<Map<String, dynamic>?>(
+                            future: empId > 0 ? _getPhotoFuture(empId) : Future.value(null),
+                            builder: (context, snap) {
+                              final url = (snap.data?["fileUrl"] ?? "").toString().trim();
+                              if (snap.connectionState == ConnectionState.waiting) {
+                                return const CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor: Color(0xFFEAF1FF),
+                                  child: SizedBox(
+                                    width: 14, height: 14,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.blue,
+                                      backgroundColor: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                );
+                              }
+                              if (url.isNotEmpty) {
+                                return CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor: const Color(0xFFEAF1FF),
+                                  backgroundImage: NetworkImage(url),
+                                );
+                              }
+                              return const CircleAvatar(
+                                radius: 18,
+                                backgroundColor: Color(0xFFEAF1FF),
+                                child: Icon(Icons.person, size: 18, color: Colors.black54),
+                              );
+                            },
+                          ),
+                          title: Text(
+                            m['name']!,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  )
+                else if (fromDate != null && toDate != null)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD7E8F6),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text(
+                        'Proceed without reliever team member (By HOD Approval)',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12.5,
+                          color: Colors.black,
+                        ),
+                      ),
+                      subtitle: const Text(
+                        'This request will be escalated to HR for special approval.',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      value: noMemberConfirmed,
+                      onChanged: (v) => setState(() {
+                        noMemberConfirmed = v!;
+                        _confirmError = null;
+                      }),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      activeColor: Colors.blue,
                     ),
                   ),
 
-                  value: noMemberConfirmed,
-                  onChanged: (v) => setState(() { noMemberConfirmed = v!; _confirmError = null; }),
-
-                  controlAffinity: ListTileControlAffinity.leading,
-                  activeColor: Colors.blue,
-                ),
-              ),
-
-              // inline error: member not selected
-              if (_memberError != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6, left: 4),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.error_outline, color: Color(0xFFD32F2F), size: 14),
-                      const SizedBox(width: 4),
-                      Text(
-                        _memberError!,
-                        style: const TextStyle(
-                          color: Color(0xFFD32F2F),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
+                if (_memberError != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6, left: 4),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: Color(0xFFD32F2F), size: 14),
+                        const SizedBox(width: 4),
+                        Text(_memberError!,
+                            style: const TextStyle(
+                              color: Color(0xFFD32F2F),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            )),
+                      ],
+                    ),
                   ),
-                ),
 
-              // inline error: confirmation not ticked
-              if (_confirmError != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6, left: 4),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.error_outline, color: Color(0xFFD32F2F), size: 14),
-                      const SizedBox(width: 4),
-                      Text(
-                        _confirmError!,
-                        style: const TextStyle(
-                          color: Color(0xFFD32F2F),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
+                if (_confirmError != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6, left: 4),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: Color(0xFFD32F2F), size: 14),
+                        const SizedBox(width: 4),
+                        Text(_confirmError!,
+                            style: const TextStyle(
+                              color: Color(0xFFD32F2F),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            )),
+                      ],
+                    ),
                   ),
-                ),
+              ],
 
               const SizedBox(height: 16),
+
 
               // ---------------- ADDRESS ----------------
               const FormSectionTitle('Address While on Leave (Optional)'),
@@ -912,6 +1097,84 @@ void _showSubmitConfirmation() {
                   ),
                 ),
               ),
+
+              // ---------------- APPROVING MANAGER ----------------
+              const SizedBox(height: 16),
+              const FormSectionTitle('Approving Manager *'),
+              const SizedBox(height: 8),
+
+              if (_loadingManagers)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: CircularProgressIndicator(color: Colors.blue, strokeWidth: 2),
+                  ),
+                )
+              else if (_managerError != null)
+                Text(_managerError!, style: const TextStyle(color: Color(0xFFD32F2F), fontSize: 12, fontWeight: FontWeight.w700))
+              else if (_leaveManagers.isEmpty)
+                const Text("No managers available", style: TextStyle(color: Colors.grey))
+              else
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE1E6EF)),
+                  ),
+                  child: Column(
+                    children: _leaveManagers.map((m) {
+                      final mId = (m["id"] ?? "").toString();
+                      final eId = int.tryParse(mId) ?? 0;
+                      return RadioListTile<String>(
+                        value: mId,
+                        groupValue: _selectedManagerId,
+                        onChanged: (v) => setState(() => _selectedManagerId = v),
+                        controlAffinity: ListTileControlAffinity.trailing,
+                        fillColor: MaterialStateProperty.resolveWith<Color>((states) {
+                          if (states.contains(MaterialState.selected)) {
+                            return Colors.blue;
+                          }
+                          return Colors.black54;
+                        }),
+                        secondary: FutureBuilder<Map<String, dynamic>?>(
+                          future: eId > 0 ? _getPhotoFuture(eId) : Future.value(null),
+                          builder: (context, snap) {
+                            final url = (snap.data?["fileUrl"] ?? "").toString().trim();
+                            if (snap.connectionState == ConnectionState.waiting) {
+                              return const CircleAvatar(
+                                radius: 18,
+                                backgroundColor: Color(0xFFEAF1FF),
+                                child: SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(color: Colors.blue, backgroundColor: Colors.white, strokeWidth: 2),
+                                ),
+                              );
+                            }
+                            if (url.isNotEmpty) {
+                              return CircleAvatar(
+                                radius: 18,
+                                backgroundColor: const Color(0xFFEAF1FF),
+                                backgroundImage: NetworkImage(url),
+                              );
+                            }
+                            return const CircleAvatar(
+                              radius: 18,
+                              backgroundColor: Color(0xFFEAF1FF),
+                              child: Icon(Icons.person, size: 18, color: Colors.black54),
+                            );
+                          },
+                        ),
+                        title: Text(
+                          (m["name"] ?? "-"),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.black87),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
 
               const SizedBox(height: 18),
 

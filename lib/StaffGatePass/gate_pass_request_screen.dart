@@ -508,11 +508,11 @@ class _GatePassRequestScreenState extends State<GatePassRequestScreen> {
                 border: const Color(0xFFC8E6C9)),
           ],
 
-          // ── Footer: created date ──────────────────────────────────────
+          // ── Footer: applied date ──────────────────────────────────────
           const SizedBox(height: 14),
           Text(
-            _fmtDateTime(req.createdAt),
-            style: const TextStyle(fontSize: 11, color: Colors.black38),
+            'Applied on: ${_fmtDateTime(req.createdAt)}',
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF6B7A90)),
           ),
 
           // ── Action buttons ────────────────────────────────────────────
