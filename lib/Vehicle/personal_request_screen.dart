@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../Services/vehicle_api_service.dart';
 import '../Leaves/top_banner.dart';
 import '../Services/api_service.dart';
@@ -915,9 +916,28 @@ class _VehicleRequestCard extends StatelessWidget {
               ),
             ],
           ),
+          if (_fmtApplied((data["created_at"] ?? data["requested_at"] ?? "").toString()).isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                _fmtApplied((data["created_at"] ?? data["requested_at"] ?? "").toString()),
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6B7A90)),
+              ),
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  String _fmtApplied(String v) {
+    if (v.isEmpty) return "";
+    try {
+      return 'Applied on: ${DateFormat('MMM dd, yyyy  hh:mm a').format(DateTime.parse(v))}';
+    } catch (_) {
+      return v.length >= 16 ? 'Applied on: ${v.substring(0, 16)}' : (v.isNotEmpty ? 'Applied on: $v' : '');
+    }
   }
 
   Widget _attemptBanner() {

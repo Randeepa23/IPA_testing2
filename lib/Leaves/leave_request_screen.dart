@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'dart:ui';
 import '../Services/api_service.dart';
 import '../ui/dialogs/reject_leave_dialog.dart';
@@ -164,6 +165,14 @@ class _LeaveRequestCard extends StatelessWidget {
     final isSpecial = data["is_special_request"].toString() == "1";
     final attachmentName = data["attachmentName"];
     final attachmentPath = data["attachmentPath"];
+    final String rawApplied = (data["requested_at"] ?? data["appliedOn"] ?? data["applied_on"] ?? "-").toString();
+    final String appliedOn = () {
+      try {
+        return DateFormat('yyyy-MM-dd  hh:mm a').format(DateTime.parse(rawApplied));
+      } catch (_) {
+        return rawApplied.length >= 16 ? rawApplied.substring(0, 16) : rawApplied;
+      }
+    }();
 
 
 
@@ -388,8 +397,18 @@ class _LeaveRequestCard extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
           ],
+
+          Text(
+            'Applied on: $appliedOn',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF6B7A90),
+            ),
+          ),
+          const SizedBox(height: 12),
 
           Row(
             children: [

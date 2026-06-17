@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../ui/dialogs/start_trip_dialog.dart';
 import '../ui/dialogs/stop_trip_dialog.dart';
 import '../Services/vehicle_api_service.dart';
@@ -129,6 +130,7 @@ Future<void> _loadTripsByTab() async {
 
         
         return <String, dynamic>{
+          ...Map<String, dynamic>.from(e),
           "id": e["id"].toString(),
           "status": (e["status"] ?? "").toString(),
 
@@ -165,6 +167,7 @@ Future<void> _loadTripsByTab() async {
           "endMeter": (e["trip_end_odometer"] ?? "-").toString(),
           "odoDistance": (e["distance_km"] ?? "-").toString(),
           "gpsDistance": e["gps_distance"],
+          "appliedOn": (e["created_at"] ?? e["requested_at"] ?? "").toString(),
         };
       }));
 
@@ -739,12 +742,32 @@ class TripCard extends StatelessWidget {
                     rejectReason.isNotEmpty ? rejectReason : hodNote,
                   ),
                 ],
+
+                if (_fmtApplied((data["appliedOn"] ?? "").toString()).isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      _fmtApplied((data["appliedOn"] ?? "").toString()),
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF6B7A90)),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  String _fmtApplied(String v) {
+    if (v.isEmpty) return "";
+    try {
+      return 'Applied on: ${DateFormat('MMM dd, yyyy  hh:mm a').format(DateTime.parse(v))}';
+    } catch (_) {
+      return v.length >= 16 ? 'Applied on: ${v.substring(0, 16)}' : (v.isNotEmpty ? 'Applied on: $v' : '');
+    }
   }
 
   Widget _commentBox(String title, String note) {

@@ -157,6 +157,18 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
       _ServiceItem(
+        image: 'assets/gatepass.png',
+        label: "Gate Pass",
+        description: "Request and track visitor gate passes",
+        disabled: false,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => GatePassScreen(user: user)),
+          );
+        },
+      ),
+      _ServiceItem(
         image: 'assets/qr.png',
         label: "Fuel QR Code",
         description: "Scan and manage fuel QR codes for vehicles",
@@ -205,18 +217,6 @@ class _HomeScreenState extends State<HomeScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => MeetingDashboardScreen(user: user)),
-          );
-        },
-      ),
-      _ServiceItem(
-        image: 'assets/gatepass.png',
-        label: "Gate Pass",
-        description: "Request and track visitor gate passes",
-        disabled: false,
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => GatePassScreen(user: user)),
           );
         },
       ),

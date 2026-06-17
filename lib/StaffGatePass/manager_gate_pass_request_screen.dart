@@ -496,8 +496,10 @@ class _GatePassCard extends StatelessWidget {
           ],
 
           const SizedBox(height: 10),
-          Text(_fmtDateTime(req.createdAt),
-              style: const TextStyle(fontSize: 11, color: Colors.black38)),
+          Text(
+            'Applied on: ${_fmtDateTime(req.createdAt)}',
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF6B7A90)),
+          ),
 
           const SizedBox(height: 12),
 

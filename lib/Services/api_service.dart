@@ -119,6 +119,7 @@ class ApiService {
           "attachmentPath":   x["attachment_path"],
           "is_special_request": x["is_special_request"],
           "status":           x["status"],
+          "requested_at":     x["requested_at"],
         };
       }).toList();
     } on TimeoutException {

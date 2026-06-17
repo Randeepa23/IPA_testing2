@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../ui/dialogs/start_trip_dialog.dart';
 import '../ui/dialogs/stop_trip_dialog.dart';
 import '../Services/vehicle_api_service.dart';
@@ -451,6 +452,10 @@ class TripCard extends StatelessWidget {
     final isApproved   = status == "APPROVED";
     final isInProgress = status == "IN_PROGRESS";
     final isCompleted  = status == "COMPLETED";
+    final appliedStr   = _fmtApplied([
+      data["created_at"], data["requested_at"], data["request_date"],
+      data["apply_date"], data["applied_date"],
+    ].map((v) => v?.toString() ?? "").firstWhere((s) => s.isNotEmpty, orElse: () => ""));
 
     return Container(
       decoration: BoxDecoration(
@@ -642,12 +647,32 @@ class TripCard extends StatelessWidget {
                     _companionsRow(context, companions),
                   ],
                 ],
+
+                if (appliedStr.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      appliedStr,
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF6B7A90)),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  String _fmtApplied(String v) {
+    if (v.isEmpty) return "";
+    try {
+      return 'Applied on: ${DateFormat('MMM dd, yyyy  hh:mm a').format(DateTime.parse(v))}';
+    } catch (_) {
+      return v.length >= 16 ? 'Applied on: ${v.substring(0, 16)}' : (v.isNotEmpty ? 'Applied on: $v' : '');
+    }
   }
 
   // ── Companions row — overlapping avatars + tap to see all ─────────────────

@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:intl/intl.dart';
 import '../ui/dialogs/cancel_leave_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:test_app/Services/api_service.dart';
@@ -106,7 +107,14 @@ LeaveStatus _parseStatus(String s) {
               startDate: (x["leave_start_date"] ?? "-").toString(),
               endDate: (x["leave_end_date"] ?? "-").toString(),
               duration: "$numDays Days",
-              appliedOn: (x["requested_at"] ?? "-").toString(),
+              appliedOn: () {
+                final v = (x["requested_at"] ?? "-").toString();
+                try {
+                  return DateFormat('yyyy-MM-dd  hh:mm a').format(DateTime.parse(v));
+                } catch (_) {
+                  return v.length >= 16 ? v.substring(0, 16) : v;
+                }
+              }(),
               status: _parseStatus((x["status"] ?? "PENDING").toString()),
               managerComment: x["manager_comment"]?.toString(),
               relieverComment: x["reliever_comment"]?.toString() ?? x["reliever_notes"]?.toString(),
@@ -320,11 +328,11 @@ Widget build(BuildContext context) {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFFE8EDF5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 14,
             offset: const Offset(0, 6),
           ),
@@ -333,7 +341,7 @@ Widget build(BuildContext context) {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header row: Leave type + status
+          // Header: leave type + reason + status pill
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -352,6 +360,8 @@ Widget build(BuildContext context) {
                     const SizedBox(height: 2),
                     Text(
                       r.reason,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,
@@ -370,84 +380,81 @@ Widget build(BuildContext context) {
             ],
           ),
 
-          const SizedBox(height: 10),
-          _fieldBox(icon: Icons.calendar_month_outlined, label: 'Start Date', value: r.startDate),
-          const SizedBox(height: 8),
-          _fieldBox(icon: Icons.calendar_month_outlined, label: 'End Date', value: r.endDate),
-          const SizedBox(height: 8),
-          _fieldBox(icon: Icons.timelapse_outlined, label: 'Duration', value: r.duration),
+          const SizedBox(height: 12),
 
-          if (r.managerComment != null && r.managerComment!.trim().isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 246, 219, 215),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: RichText(
-                text: TextSpan(
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF1E2A3A), height: 1.3),
-                  children: [
-                    const TextSpan(
-                      text: "Manager's Comment:\n",
-                      style: TextStyle(fontWeight: FontWeight.w900),
-                    ),
-                    TextSpan(
-                      text: r.managerComment!,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  ],
-                ),
-              ),
+          // Details box — matches request card style
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFF),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE1E6EF)),
             ),
-          ],
-
-          // Reliever comment: blue box when accepted, red box when declined
-          if (r.relieverComment != null && r.relieverComment!.trim().isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: r.status == LeaveStatus.relieverDeclined
-                    ? const Color(0xFFFFD9D9) // light red for declined
-                    : const Color(0xFFD7E8F6), // same blue tone as manager comment for accepted
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: RichText(
-                text: TextSpan(
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: r.status == LeaveStatus.relieverDeclined
-                        ? const Color(0xFF7A1A1A)
-                        : const Color(0xFF1E2A3A),
-                    height: 1.3,
+            child: Column(
+              children: [
+                _cardDetailRow('Start Date', r.startDate),
+                const SizedBox(height: 8),
+                _cardDetailRow('End Date', r.endDate),
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAF1FF),
+                    borderRadius: BorderRadius.circular(999),
                   ),
-                  children: [
-                    TextSpan(
-                      text: "Reliever's Comment:\n",
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        color: r.status == LeaveStatus.relieverDeclined
-                            ? const Color(0xFF7A1A1A)
-                            : const Color(0xFF1E2A3A),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Duration:',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF1E2A3A),
+                          ),
+                        ),
                       ),
-                    ),
-                    TextSpan(
-                      text: r.relieverComment!,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  ],
+                      Text(
+                        r.duration,
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF1E2A3A),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
+            ),
+          ),
+
+          // Manager comment
+          if (r.managerComment != null && r.managerComment!.trim().isNotEmpty) ...[
+            const SizedBox(height: 10),
+            _cardBoxField(
+              "Manager's Comment",
+              r.managerComment!,
+              const Color.fromARGB(255, 246, 219, 215),
             ),
           ],
 
-          const SizedBox(height: 10),
+          // Reliever comment
+          if (r.relieverComment != null && r.relieverComment!.trim().isNotEmpty) ...[
+            const SizedBox(height: 10),
+            _cardBoxField(
+              "Reliever's Comment",
+              r.relieverComment!,
+              r.status == LeaveStatus.relieverDeclined
+                  ? const Color(0xFFFFD9D9)
+                  : const Color(0xFFD7E8F6),
+            ),
+          ],
+
+          const SizedBox(height: 12),
           Text(
-            'Apply on: ${r.appliedOn}',
+            'Applied on: ${r.appliedOn}',
             style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
@@ -455,9 +462,9 @@ Widget build(BuildContext context) {
             ),
           ),
 
-          // Cancel button — full width at the bottom, only for pending/relieverDeclined
+          // Cancel button — only for pending / reliever declined
           if (r.status == LeaveStatus.pending || r.status == LeaveStatus.relieverDeclined) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               height: 44,
@@ -468,7 +475,7 @@ Widget build(BuildContext context) {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: ElevatedButton(
                   onPressed: () async {
@@ -480,7 +487,7 @@ Widget build(BuildContext context) {
                     shadowColor: Colors.transparent,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: const Text(
@@ -500,34 +507,66 @@ Widget build(BuildContext context) {
     );
   }
 
-  Widget _fieldBox({required IconData icon, required String label, required String value}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE1E6EF)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: const Color(0xFF6B7A90)),
-          const SizedBox(width: 10),
-          Expanded(
+  Widget _cardDetailRow(String label, String value) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 85,
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF6B7A90),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerRight,
             child: Text(
-              label,
+              value,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w900,
                 color: Color(0xFF1E2A3A),
               ),
             ),
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _cardBoxField(String label, String value, Color bgColor) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF1E2A3A),
+            ),
+          ),
+          const SizedBox(height: 4),
           Text(
             value,
             style: const TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w700,
               color: Color(0xFF1E2A3A),
+              height: 1.3,
             ),
           ),
         ],

@@ -559,31 +559,53 @@ void _showVehicleSubmitConfirmation() {
               _buildDiscountNotice(),
               const SizedBox(height: 16),
 
-              // ---------------- YOUR DETAILS ----------------
-              const FormSectionTitle('Your Name'),
-              const SizedBox(height: 8),
-              ReadonlyInfoField(value: nameController.text),
-
-              const SizedBox(height: 12),
-              const FormSectionTitle('Employee No.'),
-              const SizedBox(height: 8),
-              ReadonlyInfoField(value: employeeController.text),
-
-              const SizedBox(height: 12),
-              const FormSectionTitle('Department'),
-              const SizedBox(height: 8),
-              ReadonlyInfoField(value: departmentController.text),
-
-              const SizedBox(height: 12),
-              const FormSectionTitle('Contact No.'),
-              const SizedBox(height: 8),
-              ReadonlyInfoField(value: contactController.text),
+              // ---------------- YOUR DETAILS (compact card) ----------------
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4F7FF),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFDDE5F8)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Your Details',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1565C0),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Divider(height: 1, thickness: 1, color: Color(0xFFDDE5F8)),
+                    const SizedBox(height: 14),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: _infoCell('Name', nameController.text, Icons.badge_outlined)),
+                        const SizedBox(width: 20),
+                        Expanded(child: _infoCell('Employee No.', employeeController.text, Icons.tag_rounded)),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: _infoCell('Department', departmentController.text, Icons.apartment_rounded)),
+                        const SizedBox(width: 20),
+                        Expanded(child: _infoCell('Contact No.', contactController.text, Icons.phone_outlined)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
 
               const SizedBox(height: 16),
 
               // Reason (read-only)
               const FormSectionTitle("Reason for request"),
-              const SizedBox(height: 8),
               const SizedBox(height: 8),
               const ReadonlyInfoField(value: "Personal Request"),
 
@@ -1233,6 +1255,43 @@ void _showVehicleSubmitConfirmation() {
 
         if (picked != null) onSelect(picked);
       },
+    );
+  }
+
+  Widget _infoCell(String label, String value, IconData icon) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 14, color: const Color(0xFF8A9BB0)),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF8A97AD),
+                  letterSpacing: 0.2,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value.isEmpty ? '—' : value,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E2A3A),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
