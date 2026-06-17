@@ -325,14 +325,21 @@ class _HomeScreenState extends State<HomeScreen> {
                             color: Colors.black,
                           ),
                         ),
-                        Text(
-                          _greeting,
-                          style: TextStyle(
-                            color: const Color(0xFF000000)
-                                .withValues(alpha: 0.78),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _greeting,
+                              style: TextStyle(
+                                color: const Color(0xFF000000)
+                                    .withValues(alpha: 0.78),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const _GreetingEmoji(),
+                          ],
                         ),
                       ],
                     ),
@@ -594,6 +601,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+class _GreetingEmoji extends StatelessWidget {
+  const _GreetingEmoji();
+
+  @override
+  Widget build(BuildContext context) {
+    final h = DateTime.now().hour;
+    final emoji = h < 12 ? '☀️' : h < 17 ? '🌤️' : '🌙';
+    return Text(emoji, style: const TextStyle(fontSize: 13));
+  }
+}
+
 // helper model
 class _ServiceItem {
   final String? image;
