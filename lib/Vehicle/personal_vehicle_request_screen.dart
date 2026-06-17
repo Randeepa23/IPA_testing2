@@ -144,6 +144,7 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
 
   // Photo cache for manager avatars
   final Map<int, Future<Map<String, dynamic>?>> _photoFutureCache = {};
+  final remarkController = TextEditingController();
 
 
 //check if the vehicle type is a car type
@@ -169,6 +170,7 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
   @override
   void dispose() {
     _availableVehicleController.dispose();
+    remarkController.dispose();
     super.dispose();
   }
 
@@ -370,6 +372,7 @@ Future<void> _submitForm() async {
     debugPrint("[SubmitForm] vehicleId   : $vehicleId");
     debugPrint("[SubmitForm] fromDate    : $fromDateTxt");
     debugPrint("[SubmitForm] toDate      : $toDateTxt");
+    debugPrint("[Remark] remark: ${remarkController.text}");
     debugPrint("[SubmitForm] ────────────────────────────────");
 
     final res = await VehicleApiService.createPersonalVehicleRequest(
@@ -384,7 +387,9 @@ Future<void> _submitForm() async {
       reason: "Personal Request",
       vehicleType: vehicleType,  // ← new optional param
       vehicleId: _selectedVehicle!.id, // <-- pass the ID here
-
+      remark:       remarkController.text.trim().isEmpty
+                    ? null
+                    : remarkController.text.trim(), // ← read controller HERE
       
     );
     print("Vehicle Type Name: $vehicleType");
@@ -822,7 +827,23 @@ void _showVehicleSubmitConfirmation() {
                     },
                   ),
 
-              const SizedBox(height: 16),
+            const SizedBox(height: 2),
+
+            // ── Remark (Optional) ──────────────────────────────────────────────────
+            const FormSectionTitle("Remark (Optional)"),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: remarkController,
+              style: const TextStyle(color: Colors.black, fontSize: 15),
+              maxLines: 2,
+              maxLength: 300,
+              decoration: _inputDecoration(
+                "Enter any additional notes or remarks...",
+              ),
+              // No validator — field is optional
+            ),
+
+            const SizedBox(height: 16),
 
               // Approving Manager dropdown
               const FormSectionTitle("Select Approving Manager *"),

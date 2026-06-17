@@ -154,6 +154,8 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
   final Set<int>     _selectedStaffIds = {};
   final              _staffSearchCtrl  = TextEditingController();
   String             _staffSearchQuery = '';
+  final remarkController = TextEditingController();
+
 
   bool _isSubmitting = false;
 
@@ -173,6 +175,7 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
     _vehicleLettersController.dispose();
     _vehicleNumbersController.dispose();
     _staffSearchCtrl.dispose();
+    remarkController.dispose();
     super.dispose();
   }
 
@@ -287,6 +290,9 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
         reason:               "Office Service",
         vehicleType:          "-",
         vehicleId:            0,
+        remark:               remarkController.text.trim().isEmpty
+                              ? null
+                              : remarkController.text.trim(),
         companionEmployeeIds: _selectedStaffIds.toList(), // ← new
       );
 
@@ -555,6 +561,23 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
               _buildStaffSelector(),
 
               const SizedBox(height: 20),
+
+              
+            const SizedBox(height: 2),
+
+            // ── Remark (Optional) ──────────────────────────────────────────────────
+            const FormSectionTitle("Remark (Optional)"),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: remarkController,
+              style: const TextStyle(color: Colors.black, fontSize: 15),
+              maxLines: 2,
+              maxLength: 300,
+              decoration: _inputDecoration(
+                "Enter any additional notes or remarks...",
+              ),
+              // No validator — field is optional
+            ),
 
               // ── Approving Manager (unchanged) ─────────────────────────
               const FormSectionTitle("Select Approving Manager *"),

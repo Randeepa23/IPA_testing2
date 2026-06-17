@@ -420,6 +420,7 @@ class VehicleApiService {
     String   reason       = "Office Service",
     String?  vehicleType,
     int?     vehicleId,
+    String? remark,
     List<int> companionEmployeeIds = const [],
   }) async {
     try {
@@ -446,6 +447,8 @@ class VehicleApiService {
               "vehicle_type"           : vehicleType,
               "vehicle_id"             : vehicleId,
               "companion_employee_ids" : companionEmployeeIds,
+              "remark": remark ?? "",
+
             }),
           )
           .timeout(const Duration(seconds: 15));
@@ -473,6 +476,7 @@ class VehicleApiService {
     String reason = "Personal Service",
     String? vehicleType,
     int? vehicleId,
+    String? remark,
   }) async {
     try {
       final url = Uri.parse("$baseUrl/create_personal_vehicle_request.php");
@@ -496,6 +500,8 @@ class VehicleApiService {
               "reason": reason,
               "vehicle_type": vehicleType,
               "vehicle_id": vehicleId,
+              "remark": remark ?? "",
+
             }),
           )
           .timeout(const Duration(seconds: 15));
