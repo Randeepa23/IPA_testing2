@@ -1410,15 +1410,15 @@ void _showSubmitConfirmation() {
     if (selectedLeaveType == 'Annual Leave') {
       return fromDate!.add(const Duration(days: 2));
     }
-    if (selectedLeaveType == 'Sick Leave') {
-      return fromDate!.add(const Duration(days: 1));
-    }
+    // if (selectedLeaveType == 'Sick Leave') {
+    //   return fromDate!.add(const Duration(days: 1));
+    // }
     return fromDate;
   }
 
   int _minimumDays() {
     if (selectedLeaveType == 'Annual Leave') return 3;
-    if (selectedLeaveType == 'Sick Leave') return 2;
+    // if (selectedLeaveType == 'Sick Leave') return 2;
     return 1;
   }
 
