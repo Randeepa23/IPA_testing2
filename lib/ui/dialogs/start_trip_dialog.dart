@@ -11,12 +11,14 @@ Future<void> showStartTripDialog({
   required Future<void> Function({
     required String meterReading,
     required String fuelPercent,
-    required File meterPhoto,
+    required File   meterPhoto,
+    String?         remark,
   }) onConfirm,
 }) async {
-  final meterCtrl = TextEditingController();
-  final fuelCtrl = TextEditingController();
-  final formKey = GlobalKey<FormState>();
+  final meterCtrl  = TextEditingController();
+  final fuelCtrl   = TextEditingController();
+  final remarkCtrl = TextEditingController();
+  final formKey    = GlobalKey<FormState>();
 
   File? photoFile;
   String? photoName;
@@ -72,20 +74,20 @@ Future<void> showStartTripDialog({
             ),
           );
 
-      Future<void> pickPhoto(ImageSource source) async {
-        final x =
-            await ImagePicker().pickImage(source: source, imageQuality: 80);
-        if (x == null) return;
-        photoFile = File(x.path);
-        photoName = x.name;
-        (ctx as Element).markNeedsBuild();
-      }
+      return StatefulBuilder(
+        builder: (_, setDialogState) {
+          Future<void> pickPhoto(ImageSource source) async {
+            final x =
+                await ImagePicker().pickImage(source: source, imageQuality: 80);
+            if (x == null) return;
+            setDialogState(() { photoFile = File(x.path); photoName = x.name; });
+          }
 
-      return Stack(
+          return Stack(
         children: [
           BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-            child: Container(color: Colors.black.withOpacity(0.20)),
+            child: Container(color: Colors.black.withValues(alpha: 0.20)),
           ),
           Center(
             child: Dialog(
@@ -127,7 +129,7 @@ Future<void> showStartTripDialog({
                             Text(
                               "$vehicleNo - $destination",
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.90),
+                                color: Colors.white.withValues(alpha: 0.90),
                                 fontWeight: FontWeight.w700,
                                 fontSize: 11.5,
                               ),
@@ -136,7 +138,12 @@ Future<void> showStartTripDialog({
                         ),
                       ),
 
-                      Padding(
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxHeight: MediaQuery.of(ctx).size.height * 0.72
+                              - MediaQuery.of(ctx).viewInsets.bottom,
+                        ),
+                        child: SingleChildScrollView(
                         padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,10 +234,7 @@ Future<void> showStartTripDialog({
                                                   const Text("Remove photo"),
                                               onTap: () {
                                                 Navigator.pop(ctx);
-                                                photoFile = null;
-                                                photoName = null;
-                                                (ctx as Element)
-                                                    .markNeedsBuild();
+                                                setDialogState(() { photoFile = null; photoName = null; });
                                               },
                                             ),
                                         ],
@@ -302,6 +306,17 @@ Future<void> showStartTripDialog({
                               ),
                             ),
 
+                            const SizedBox(height: 10),
+                            label("Remark (Optional)"),
+                            const SizedBox(height: 6),
+                            TextFormField(
+                              controller: remarkCtrl,
+                              maxLines: 2,
+                              maxLength: 300,
+                              style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+                              decoration: inputFieldStyle("Add any notes about this trip start..."),
+                            ),
+
                             const SizedBox(height: 14),
 
                             StatefulBuilder(
@@ -367,11 +382,11 @@ Future<void> showStartTripDialog({
                                                     setState(() =>
                                                         submitting = true);
                                                     await onConfirm(
-                                                      meterReading:
-                                                          meterCtrl.text.trim(),
-                                                      fuelPercent:
-                                                          fuelCtrl.text.trim(),
-                                                      meterPhoto: photoFile!,
+                                                      meterReading: meterCtrl.text.trim(),
+                                                      fuelPercent:  fuelCtrl.text.trim(),
+                                                      meterPhoto:   photoFile!,
+                                                      remark: remarkCtrl.text.trim().isEmpty
+                                                          ? null : remarkCtrl.text.trim(),
                                                     );
                                                     if (ctx.mounted)
                                                       Navigator.pop(ctx);
@@ -414,6 +429,7 @@ Future<void> showStartTripDialog({
                             ),
                           ],
                         ),
+                        ),
                       ),
                     ],
                   ),
@@ -422,6 +438,8 @@ Future<void> showStartTripDialog({
             ),
           ),
         ],
+      );
+        },
       );
     },
   );

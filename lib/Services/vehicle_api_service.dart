@@ -341,18 +341,20 @@ class VehicleApiService {
   }
 
   static Future<Map<String, dynamic>> startTrip({
-    required int transportServiceId,
-    required int odometer,
+    required int    transportServiceId,
+    required int    odometer,
     required double fuelPercent,
-    required File photoFile,
+    required File   photoFile,
+    String?         remark,
   }) async {
     try {
       final uri = Uri.parse("$baseUrl/start_trip.php");
 
       final req = http.MultipartRequest("POST", uri);
       req.fields["transport_service_id"] = transportServiceId.toString();
-      req.fields["odometer"] = odometer.toString();
-      req.fields["fuel_percent"] = fuelPercent.toString();
+      req.fields["odometer"]             = odometer.toString();
+      req.fields["fuel_percent"]         = fuelPercent.toString();
+      if (remark != null && remark.isNotEmpty) req.fields["start_remark"] = remark;
       req.files.add(await http.MultipartFile.fromPath("photo", photoFile.path));
 
       final streamed = await req.send().timeout(const Duration(seconds: 15));
@@ -368,18 +370,20 @@ class VehicleApiService {
   }
 
   static Future<Map<String, dynamic>> stopTrip({
-    required int transportServiceId,
-    required int endOdometer,
+    required int    transportServiceId,
+    required int    endOdometer,
     required double endFuelPercent,
-    required File photoFile,
+    required File   photoFile,
+    String?         remark,
   }) async {
     try {
       final uri = Uri.parse("$baseUrl/stop_trip.php");
 
       final req = http.MultipartRequest("POST", uri);
       req.fields["transport_service_id"] = transportServiceId.toString();
-      req.fields["end_odometer"] = endOdometer.toString();
-      req.fields["end_fuel_percent"] = endFuelPercent.toString();
+      req.fields["end_odometer"]         = endOdometer.toString();
+      req.fields["end_fuel_percent"]     = endFuelPercent.toString();
+      if (remark != null && remark.isNotEmpty) req.fields["end_remark"] = remark;
       req.files.add(await http.MultipartFile.fromPath("photo", photoFile.path));
 
       final streamed = await req.send().timeout(const Duration(seconds: 15));
@@ -530,6 +534,97 @@ class VehicleApiService {
       if (!body.startsWith("{") && !body.startsWith("[")) {
         throw Exception('Unexpected response from server.');
       }
+      return Map<String, dynamic>.from(jsonDecode(body));
+    } on TimeoutException {
+      throw Exception('Request timed out. Please check your connection and retry.');
+    } catch (e) {
+      throw Exception(_friendlyError(e));
+    }
+  }
+
+  static Future<Map<String, dynamic>> changeVehicleMidTrip({
+    required int    transportServiceId,
+    required int    oldEndMeter,
+    required double oldEndFuel,
+    required File   oldEndPhoto,
+    required String newVehicleNo,
+    required int    newStartMeter,
+    required double newStartFuel,
+    required File   newStartPhoto,
+    String?         remark,
+  }) async {
+    try {
+      final uri = Uri.parse("$baseUrl/change_vehicle_mid_trip.php");
+
+      final req = http.MultipartRequest("POST", uri);
+      req.fields["transport_service_id"] = transportServiceId.toString();
+      req.fields["old_end_meter"]        = oldEndMeter.toString();
+      req.fields["old_end_fuel"]         = oldEndFuel.toString();
+      req.fields["new_vehicle_no"]       = newVehicleNo;
+      req.fields["new_start_meter"]      = newStartMeter.toString();
+      req.fields["new_start_fuel"]       = newStartFuel.toString();
+      if (remark != null && remark.isNotEmpty) req.fields["remark"] = remark;
+      req.files.add(await http.MultipartFile.fromPath("old_end_photo",   oldEndPhoto.path));
+      req.files.add(await http.MultipartFile.fromPath("new_start_photo", newStartPhoto.path));
+
+      final streamed = await req.send().timeout(const Duration(seconds: 30));
+      final body = await streamed.stream.bytesToString();
+
+      if (body.trim().isEmpty) throw Exception('No response from server.');
+      return Map<String, dynamic>.from(jsonDecode(body));
+    } on TimeoutException {
+      throw Exception('Request timed out. Please check your connection and retry.');
+    } catch (e) {
+      throw Exception(_friendlyError(e));
+    }
+  }
+
+  static Future<Map<String, dynamic>> endCurrentVehicle({
+    required int    transportServiceId,
+    required int    endMeter,
+    required double endFuel,
+    required File   endPhoto,
+  }) async {
+    try {
+      final uri = Uri.parse("$baseUrl/end_current_vehicle.php");
+      final req = http.MultipartRequest("POST", uri);
+      req.fields["transport_service_id"] = transportServiceId.toString();
+      req.fields["end_meter"]            = endMeter.toString();
+      req.fields["end_fuel"]             = endFuel.toString();
+      req.files.add(await http.MultipartFile.fromPath("photo", endPhoto.path));
+      final streamed = await req.send().timeout(const Duration(seconds: 30));
+      final body = await streamed.stream.bytesToString();
+      if (body.trim().isEmpty) throw Exception('No response from server.');
+      return Map<String, dynamic>.from(jsonDecode(body));
+    } on TimeoutException {
+      throw Exception('Request timed out. Please check your connection and retry.');
+    } catch (e) {
+      throw Exception(_friendlyError(e));
+    }
+  }
+
+  static Future<Map<String, dynamic>> startNewVehicle({
+    required int    transportServiceId,
+    required String newVehicleNo,
+    required int    startMeter,
+    required double startFuel,
+    required File   startPhoto,
+    String?         remark,
+    String?         destination,
+  }) async {
+    try {
+      final uri = Uri.parse("$baseUrl/start_new_vehicle.php");
+      final req = http.MultipartRequest("POST", uri);
+      req.fields["transport_service_id"] = transportServiceId.toString();
+      req.fields["new_vehicle_no"]       = newVehicleNo;
+      req.fields["start_meter"]          = startMeter.toString();
+      req.fields["start_fuel"]           = startFuel.toString();
+      if (remark      != null && remark.isNotEmpty)      req.fields["remark"]      = remark;
+      if (destination != null && destination.isNotEmpty) req.fields["destination"] = destination;
+      req.files.add(await http.MultipartFile.fromPath("photo", startPhoto.path));
+      final streamed = await req.send().timeout(const Duration(seconds: 30));
+      final body = await streamed.stream.bytesToString();
+      if (body.trim().isEmpty) throw Exception('No response from server.');
       return Map<String, dynamic>.from(jsonDecode(body));
     } on TimeoutException {
       throw Exception('Request timed out. Please check your connection and retry.');

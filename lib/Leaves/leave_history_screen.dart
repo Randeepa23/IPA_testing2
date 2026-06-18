@@ -462,8 +462,8 @@ Widget build(BuildContext context) {
             ),
           ),
 
-          // Cancel button — only for pending / reliever declined
-          if (r.status == LeaveStatus.pending || r.status == LeaveStatus.relieverDeclined) ...[
+          // Cancel button — pending / reliever declined / reliever accepted
+          if (r.status == LeaveStatus.pending || r.status == LeaveStatus.relieverDeclined || r.status == LeaveStatus.relieverAccepted) ...[
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,

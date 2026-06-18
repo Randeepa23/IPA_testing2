@@ -706,9 +706,9 @@ Future<void> _loadApprovedPersonalTripCount() async {
     final medicalTotal = d(balance["medical_total"]);
     final casualTotal = d(balance["casual_total"]);
 
-    final annualUsed = (annualTotal - annualRemaining).clamp(0, annualTotal);
-    final medicalUsed = (medicalTotal - medicalRemaining).clamp(0, medicalTotal);
-    final casualUsed = (casualTotal - casualRemaining).clamp(0, casualTotal);
+    final annualUsed = (annualTotal - annualRemaining).clamp(0.0, annualTotal).toDouble();
+    final medicalUsed = (medicalTotal - medicalRemaining).clamp(0.0, medicalTotal).toDouble();
+    final casualUsed = (casualTotal - casualRemaining).clamp(0.0, casualTotal).toDouble();
 
     return Card(
       //color: Colors.white,
@@ -737,9 +737,9 @@ Future<void> _loadApprovedPersonalTripCount() async {
             ),
             const SizedBox(height: 10),
 
-            _progressRow('Annual Leave', annualUsed.toInt(), annualTotal.toInt()),
-            _progressRow('Medical Leave', medicalUsed.toInt(), medicalTotal.toInt()),
-            _progressRow('Casual Leave', casualUsed.toInt(), casualTotal.toInt()),
+            _progressRow('Annual Leave', annualUsed, annualTotal),
+            _progressRow('Medical Leave', medicalUsed, medicalTotal),
+            _progressRow('Casual Leave', casualUsed, casualTotal),
           ],
         ),
       ),
@@ -755,9 +755,10 @@ Future<void> _loadApprovedPersonalTripCount() async {
       return Color.lerp(Colors.blue, Colors.red, (v - 0.5) / 0.5)!;
     }
 
-    Widget _progressRow(String type, int used, int total) {
-      final safeTotal = total == 0 ? 1 : total;
+    Widget _progressRow(String type, double used, double total) {
+      final safeTotal = total == 0 ? 1.0 : total;
       final value = used / safeTotal;
+      String fmt(double v) => v == v.truncateToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
 
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -768,7 +769,7 @@ Future<void> _loadApprovedPersonalTripCount() async {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(type, style: GoogleFonts.poppins()),
-                Text('$used/$total', style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
+                Text('${fmt(used)}/${fmt(total)}', style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
               ],
             ),
             const SizedBox(height: 6),

@@ -172,6 +172,7 @@ class _AssignedTransferTripScreenState extends State<AssignedTransferTripScreen>
       required String meterReading,
       required String fuelPercent,
       required File meterPhoto,
+      String? remark,
     }) async {
       final tripId = int.tryParse(trip["id"].toString()) ?? 0;
       if (tripId <= 0) return;
@@ -184,6 +185,7 @@ class _AssignedTransferTripScreenState extends State<AssignedTransferTripScreen>
           odometer: int.parse(meterReading),
           fuelPercent: double.parse(fuelPercent),
           photoFile: meterPhoto,
+          remark: remark,
         );
 
         if (res["success"] == true) {
@@ -227,6 +229,7 @@ class _AssignedTransferTripScreenState extends State<AssignedTransferTripScreen>
       required String meterReading,
       required String fuelPercent,
       required File meterPhoto,
+      String? remark,
     }) async {
       final tripId = int.tryParse(trip["id"].toString()) ?? 0;
       if (tripId <= 0) return;
@@ -239,6 +242,7 @@ class _AssignedTransferTripScreenState extends State<AssignedTransferTripScreen>
           endOdometer: int.parse(meterReading),
           endFuelPercent: double.parse(fuelPercent),
           photoFile: meterPhoto,
+          remark: remark,
         );
 
         if (res["success"] == true) {
@@ -886,6 +890,7 @@ class TripCard extends StatelessWidget {
                             required meterReading,
                             required fuelPercent,
                             required meterPhoto,
+                            remark,
                           }) async {
                             // Call the parent state method
                             final state = context.findAncestorStateOfType<_AssignedTransferTripScreenState>();
@@ -894,6 +899,7 @@ class TripCard extends StatelessWidget {
                               meterReading: meterReading,
                               fuelPercent: fuelPercent,
                               meterPhoto: meterPhoto,
+                              remark: remark,
                             );
                           },
                           isSubmitting: false,
@@ -919,6 +925,7 @@ class TripCard extends StatelessWidget {
                             required meterReading,
                             required fuelPercent,
                             required meterPhoto,
+                            remark,
                           }) async {
                             // Call the parent state method
                             final state = context.findAncestorStateOfType<_AssignedTransferTripScreenState>();
@@ -927,6 +934,7 @@ class TripCard extends StatelessWidget {
                               meterReading: meterReading,
                               fuelPercent: fuelPercent,
                               meterPhoto: meterPhoto,
+                              remark: remark,
                             );
                           },
                           isSubmitting: false,
