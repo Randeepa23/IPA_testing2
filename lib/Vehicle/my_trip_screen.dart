@@ -773,7 +773,7 @@ class TripCard extends StatelessWidget {
                         children: [
                           Expanded(
                             child: _gradientButton(
-                              text:   "Change Vehicle",
+                              text:   "Switch Vehicle",
                               colors: const [Color(0xFFE65100), Color(0xFF8D2F00)],
                               icon:   Icons.swap_horiz_rounded,
                               onTap: () {

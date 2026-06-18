@@ -580,7 +580,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFF8A97AD),
+                            color: Color(0xFF2B2B30),
                           ),
                         ),
                       ],
@@ -590,7 +590,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(width: 6),
                 Icon(
                   isDisabled ? Icons.lock_outline_rounded : Icons.chevron_right_rounded,
-                  color: isDisabled ? const Color(0xFFB0BCCC) : const Color(0xFF8A97AD),
+                  color: isDisabled ? const Color(0xFFB0BCCC) : const Color(0xFF2B2B30),
                   size: 20,
                 ),
               ],

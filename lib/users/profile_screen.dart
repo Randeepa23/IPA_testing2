@@ -214,18 +214,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final medicalTotal = d(balance["medical_total"]);
     final casualTotal = d(balance["casual_total"]);
 
-    final annualUsed = (annualTotal - annualRemaining).clamp(0, annualTotal).toInt();
-    final medicalUsed = (medicalTotal - medicalRemaining).clamp(0, medicalTotal).toInt();
-    final casualUsed = (casualTotal - casualRemaining).clamp(0, casualTotal).toInt();
+    final annualUsed = (annualTotal - annualRemaining).clamp(0.0, annualTotal).toDouble();
+    final medicalUsed = (medicalTotal - medicalRemaining).clamp(0.0, medicalTotal).toDouble();
+    final casualUsed = (casualTotal - casualRemaining).clamp(0.0, casualTotal).toDouble();
 
     return _infoCard(
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
       children: [
-        _LeaveBar(title: 'Annual Leaves', used: annualUsed, total: annualTotal.toInt()),
+        _LeaveBar(title: 'Annual Leaves', used: annualUsed, total: annualTotal),
         const SizedBox(height: 12),
-        _LeaveBar(title: 'Medical Leaves', used: medicalUsed, total: medicalTotal.toInt()),
+        _LeaveBar(title: 'Medical Leaves', used: medicalUsed, total: medicalTotal),
         const SizedBox(height: 12),
-        _LeaveBar(title: 'Casual Leaves', used: casualUsed, total: casualTotal.toInt()),
+        _LeaveBar(title: 'Casual Leaves', used: casualUsed, total: casualTotal),
       ],
     );
   }
@@ -454,8 +454,8 @@ Color _leaveProgressColor(double value) {
 
 class _LeaveBar extends StatelessWidget {
   final String title;
-  final int used;
-  final int total;
+  final double used;
+  final double total;
 
   const _LeaveBar({required this.title, required this.used, required this.total});
 
@@ -463,6 +463,7 @@ class _LeaveBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final remaining = total - used;
     final ratio = total == 0 ? 0.0 : (used / total).clamp(0.0, 1.0);
+    String fmt(double v) => v == v.truncateToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -480,7 +481,7 @@ class _LeaveBar extends StatelessWidget {
               ),
             ),
             Text(
-              '$used/$total',
+              '${fmt(used)}/${fmt(total)}',
               style: const TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w800,
@@ -501,7 +502,7 @@ class _LeaveBar extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'Used: $used days   •   Remaining: $remaining days',
+          'Used: ${fmt(used)} days   •   Remaining: ${fmt(remaining)} days',
           style: const TextStyle(
             fontSize: 11.5,
             color: Color(0xFF6B7A90),

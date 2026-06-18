@@ -255,9 +255,19 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } catch (e) {
         debugPrint("LOGIN ERROR: $e");
+        final msg = e.toString().toLowerCase();
+        final isCredentialError = msg.contains("invalid") ||
+            msg.contains("password") ||
+            msg.contains("credentials") ||
+            msg.contains("username") ||
+            msg.contains("unauthorized") ||
+            msg.contains("incorrect") ||
+            msg.contains("wrong");
         setState(() {
           _isLoggingIn = false;
-          _loginError = "Unable to login right now. Please check your internet connection and try again.";
+          _loginError = isCredentialError
+              ? "Incorrect username or password. Please try again."
+              : "Unable to connect. Please check your internet connection and try again.";
         });
       }
     }

@@ -153,9 +153,14 @@ Future<void> showEndCurrentVehicleDialog({
                           ),
 
                           // ── Body ──────────────────────────────────────────
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-                            child: Column(
+                          ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxHeight: MediaQuery.of(ctx).size.height * 0.72
+                                  - MediaQuery.of(ctx).viewInsets.bottom,
+                            ),
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                              child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 fieldLabel("End Meter Reading (km) *"),
@@ -336,7 +341,8 @@ Future<void> showEndCurrentVehicleDialog({
                                                     child: CircularProgressIndicator(
                                                         strokeWidth: 2.5, color: Colors.white),
                                                   )
-                                                : const Text("Record End & Continue",
+                                                : const Text("End Vehicle &\nSwitch",
+                                                    textAlign: TextAlign.center,
                                                     style: TextStyle(
                                                         color: Colors.white,
                                                         fontWeight: FontWeight.w900)),
@@ -349,6 +355,7 @@ Future<void> showEndCurrentVehicleDialog({
                               ],
                             ),
                           ),
+                        ),
                         ],
                       ),
                     ),
@@ -476,7 +483,8 @@ Future<void> showStartNewVehicleDialog({
                         // ── Scrollable body ────────────────────────────────
                         ConstrainedBox(
                           constraints: BoxConstraints(
-                            maxHeight: MediaQuery.of(ctx).size.height * 0.70,
+                            maxHeight: MediaQuery.of(ctx).size.height * 0.72
+                                - MediaQuery.of(ctx).viewInsets.bottom,
                           ),
                           child: SingleChildScrollView(
                             padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),

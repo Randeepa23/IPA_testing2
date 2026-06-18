@@ -1039,21 +1039,21 @@ void _showVehicleSubmitConfirmation() {
         children: [
           // ── Header ──
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: const BoxDecoration(
               color: Color(0xFF1565C0),
               borderRadius: BorderRadius.vertical(top: Radius.circular(13)),
             ),
             child: const Row(
               children: [
-                Icon(Icons.info_outline, color: Colors.white, size: 17),
-                SizedBox(width: 8),
+                Icon(Icons.info_outline, color: Colors.white, size: 15),
+                SizedBox(width: 7),
                 Text(
                   "Personal Vehicle Request Policy",
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,
-                    fontSize: 13,
+                    fontSize: 12.5,
                   ),
                 ),
               ],
@@ -1062,34 +1062,34 @@ void _showVehicleSubmitConfirmation() {
 
           // ── Current attempt summary ──
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
             child: _loadingRequestCount
                 ? const Row(children: [
                     SizedBox(
-                      width: 14, height: 14,
+                      width: 13, height: 13,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1565C0)),
                     ),
                     SizedBox(width: 8),
                     Text("Loading your request info...",
-                        style: TextStyle(fontSize: 12.5, color: Color(0xFF6B7A90))),
+                        style: TextStyle(fontSize: 12, color: Color(0xFF6B7A90))),
                   ])
                 : Row(
                     children: [
                       _statBox("Your Attempt", "#$attempt", const Color(0xFF1E2A3A)),
-                      const SizedBox(width: 20),
+                      const SizedBox(width: 14),
                       _statBox("Discount", discount, discountColor),
                       const Spacer(),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(7),
                           border: Border.all(color: const Color(0xFFBDD0F8)),
                         ),
                         child: Text(
                           "Usage count: $usageCount",
                           style: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 10.5,
                             fontWeight: FontWeight.w700,
                             color: Color(0xFF1E2A3A),
                           ),
@@ -1103,20 +1103,20 @@ void _showVehicleSubmitConfirmation() {
 
           // ── Policy table ──
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
                   "DISCOUNT POLICY",
                   style: TextStyle(
-                    fontSize: 10.5,
+                    fontSize: 10,
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF6B7A90),
-                    letterSpacing: 0.5,
+                    letterSpacing: 0.4,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Table(
@@ -1176,11 +1176,11 @@ void _showVehicleSubmitConfirmation() {
       children: [
         Text(label,
             style: const TextStyle(
-                fontSize: 11, color: Color(0xFF6B7A90), fontWeight: FontWeight.w600)),
-        const SizedBox(height: 2),
+                fontSize: 10.5, color: Color(0xFF6B7A90), fontWeight: FontWeight.w600)),
+        const SizedBox(height: 1),
         Text(value,
             style: TextStyle(
-                fontSize: 22, fontWeight: FontWeight.w900, color: valueColor)),
+                fontSize: 17, fontWeight: FontWeight.w900, color: valueColor)),
       ],
     );
   }
@@ -1196,12 +1196,12 @@ void _showVehicleSubmitConfirmation() {
       else                     textColor = const Color(0xFFB71C1C);
     }
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
       child: Text(
         text,
         textAlign: TextAlign.center,
         style: TextStyle(
-          fontSize: 11.5,
+          fontSize: 11,
           fontWeight: (isHeader || isCurrent) ? FontWeight.w800 : FontWeight.w600,
           color: textColor,
         ),
