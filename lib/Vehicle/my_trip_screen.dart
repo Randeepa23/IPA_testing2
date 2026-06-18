@@ -7,6 +7,7 @@ import '../Services/vehicle_api_service.dart';
 import '../Services/api_service.dart';
 import '../Leaves/top_banner.dart';
 import '../ui/dialogs/cancel_trip_dialog.dart';
+import '../ui/dialogs/show_change_vehicle_dialog.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Companion model
@@ -89,8 +90,14 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
   }
 
   List<Map<String, dynamic>> _filteredTrips() {
-    final statusMap = ["PENDING", "APPROVED", "IN_PROGRESS", "COMPLETED"];
-    return trips.where((t) => (t["status"] ?? "") == statusMap[selectedTab]).toList();
+    const statusMap = {
+      0: ["PENDING"],
+      1: ["APPROVED"],
+      2: ["IN_PROGRESS", "VEHICLE_CHANGING"],
+      3: ["COMPLETED"],
+    };
+    final statuses = statusMap[selectedTab] ?? const [];
+    return trips.where((t) => statuses.contains((t["status"] ?? ""))).toList();
   }
 
   Future<bool?> _confirmCancelTrip() => showCancelTripDialog(context);
@@ -99,7 +106,8 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     required Map<String, dynamic> trip,
     required String meterReading,
     required String fuelPercent,
-    required File meterPhoto,
+    required File   meterPhoto,
+    String?         remark,
   }) async {
     final tripId = int.tryParse((trip["id"] ?? 0).toString()) ?? 0;
     if (tripId <= 0) return;
@@ -110,6 +118,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
         odometer:           int.parse(meterReading),
         fuelPercent:        double.parse(fuelPercent),
         photoFile:          meterPhoto,
+        remark:             remark,
       );
       if (res["success"] == true) {
         if (!mounted) return;
@@ -136,7 +145,8 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     required Map<String, dynamic> trip,
     required String meterReading,
     required String fuelPercent,
-    required File meterPhoto,
+    required File   meterPhoto,
+    String?         remark,
   }) async {
     final tripId = int.tryParse((trip["id"] ?? 0).toString()) ?? 0;
     if (tripId <= 0) return;
@@ -147,6 +157,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
         endOdometer:        int.parse(meterReading),
         endFuelPercent:     double.parse(fuelPercent),
         photoFile:          meterPhoto,
+        remark:             remark,
       );
       if (res["success"] == true) {
         if (!mounted) return;
@@ -196,6 +207,72 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     } finally {
       if (mounted) setState(() => loading = false);
     }
+  }
+
+  Future<void> _endCurrentVehicle({
+    required Map<String, dynamic> trip,
+    required int    endMeter,
+    required double endFuel,
+    required File   endPhoto,
+  }) async {
+    final tripId = int.tryParse((trip["id"] ?? 0).toString()) ?? 0;
+    if (tripId <= 0) return;
+    try {
+      setState(() => loading = true);
+      final res = await VehicleApiService.endCurrentVehicle(
+        transportServiceId: tripId,
+        endMeter: endMeter, endFuel: endFuel, endPhoto: endPhoto,
+      );
+      if (res["success"] == true) {
+        if (!mounted) return;
+        await _refreshTrips();
+        if (!mounted) return;
+        TopBanner.show(context,
+            title: "Vehicle Ended",
+            message: "Vehicle A recorded. Now start your new vehicle.",
+            icon: Icons.swap_horiz_rounded, isSuccess: true);
+      } else { throw Exception(res["message"] ?? "End vehicle failed"); }
+    } catch (e) {
+      if (!mounted) return;
+      TopBanner.show(context, title: "End Vehicle Failed",
+          message: e.toString().replaceFirst("Exception: ", ""),
+          icon: Icons.error_outline, isSuccess: false);
+    } finally { if (mounted) setState(() => loading = false); }
+  }
+
+  Future<void> _startNewVehicle({
+    required Map<String, dynamic> trip,
+    required String newVehicleNo,
+    required int    startMeter,
+    required double startFuel,
+    required File   startPhoto,
+    String?         remark,
+    String?         destination,
+  }) async {
+    final tripId = int.tryParse((trip["id"] ?? 0).toString()) ?? 0;
+    if (tripId <= 0) return;
+    try {
+      setState(() => loading = true);
+      final res = await VehicleApiService.startNewVehicle(
+        transportServiceId: tripId, newVehicleNo: newVehicleNo,
+        startMeter: startMeter, startFuel: startFuel,
+        startPhoto: startPhoto, remark: remark, destination: destination,
+      );
+      if (res["success"] == true) {
+        if (!mounted) return;
+        await _refreshTrips();
+        if (!mounted) return;
+        TopBanner.show(context,
+            title: "New Vehicle Started",
+            message: "Now driving $newVehicleNo. Trip in progress.",
+            icon: Icons.check_circle, isSuccess: true);
+      } else { throw Exception(res["message"] ?? "Start new vehicle failed"); }
+    } catch (e) {
+      if (!mounted) return;
+      TopBanner.show(context, title: "Start Vehicle Failed",
+          message: e.toString().replaceFirst("Exception: ", ""),
+          icon: Icons.error_outline, isSuccess: false);
+    } finally { if (mounted) setState(() => loading = false); }
   }
 
   @override
@@ -447,11 +524,19 @@ class TripCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final status       = (data["status"] ?? "").toString();
-    final isPending    = status == "PENDING";
-    final isApproved   = status == "APPROVED";
-    final isInProgress = status == "IN_PROGRESS";
-    final isCompleted  = status == "COMPLETED";
+    final status            = (data["status"] ?? "").toString();
+    final isPending         = status == "PENDING";
+    final isApproved        = status == "APPROVED";
+    final isInProgress      = status == "IN_PROGRESS";
+    final isVehicleChanging = status == "VEHICLE_CHANGING";
+    final isCompleted       = status == "COMPLETED";
+    final changeVehicleNo   = (data["changeVehicleNo"]?.toString() ?? "").trim();
+    final alreadyChanged    = changeVehicleNo.isNotEmpty && !isVehicleChanging;
+    final cStartM    = int.tryParse(data["startMeter"]?.toString()               ?? "");
+    final cOrigEndM  = int.tryParse(data["oldVehicleEndMeter"]?.toString()       ?? "");
+    final cTripEndM  = int.tryParse(data["tripEndOdometer"]?.toString()          ?? "");
+    final cChgStartM = int.tryParse(data["changeVehicleStartMeter"]?.toString()  ?? "");
+    final cChgEndM   = int.tryParse(data["changeVehicleEndMeter"]?.toString()    ?? "");
     final appliedStr   = _fmtApplied([
       data["created_at"], data["requested_at"], data["request_date"],
       data["apply_date"], data["applied_date"],
@@ -488,6 +573,24 @@ class TripCard extends StatelessWidget {
                               fontWeight: FontWeight.w900,
                               fontSize: 14,
                               color: Color(0xFF1E2A3A))),
+                      if (alreadyChanged)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.swap_horiz_rounded,
+                                  size: 12, color: Color(0xFFE65100)),
+                              const SizedBox(width: 4),
+                              Text(
+                                "Changed to: $changeVehicleNo",
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFFE65100)),
+                              ),
+                            ],
+                          ),
+                        ),
                       const SizedBox(height: 2),
                       Text((data["vehicleName"] ?? "").toString(),
                           style: const TextStyle(
@@ -566,6 +669,7 @@ class TripCard extends StatelessWidget {
                             required meterReading,
                             required fuelPercent,
                             required meterPhoto,
+                            remark,
                           }) async {
                             final state = ctx.findAncestorStateOfType<_MyTripsScreenState>();
                             await state?._startTripAndMoveToInProgress(
@@ -573,6 +677,7 @@ class TripCard extends StatelessWidget {
                               meterReading: meterReading,
                               fuelPercent:  fuelPercent,
                               meterPhoto:   meterPhoto,
+                              remark:       remark,
                             );
                           },
                         );
@@ -583,13 +688,159 @@ class TripCard extends StatelessWidget {
 
                 // IN_PROGRESS
                 if (isInProgress) ...[
-                  _infoRow("Trip Code",   (data["tripCode"]    ?? "").toString(), highlight: true),
+                  if (alreadyChanged && (data["changeVehicleTripCode"]?.toString() ?? "").trim().isNotEmpty)
+                    _infoRow("New Trip Code", (data["changeVehicleTripCode"] ?? "").toString(), highlight: true)
+                  else
+                    _infoRow("Trip Code", (data["tripCode"] ?? "").toString(), highlight: true),
                   const SizedBox(height: 8),
                   _infoRow("Reason",      (data["reason"]      ?? "").toString()),
                   const SizedBox(height: 8),
+                  _infoRow("Destination",
+                      (alreadyChanged && (data["changeVehicleDestination"]?.toString() ?? "").trim().isNotEmpty
+                          ? data["changeVehicleDestination"]
+                          : data["destination"] ?? "").toString()),
+                  const SizedBox(height: 8),
+                  _infoRow("Start Meter",
+                      "${alreadyChanged ? (data["changeVehicleStartMeter"] ?? data["startMeter"] ?? "-") : (data["startMeter"] ?? "-")} km"),
+
+                  if (alreadyChanged) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF3E0),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFFFCC80)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.info_outline, size: 15, color: Color(0xFFE65100)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              "Vehicle already changed to $changeVehicleNo",
+                              style: const TextStyle(
+                                  fontSize: 11.5, fontWeight: FontWeight.w700,
+                                  color: Color(0xFFE65100)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  // Companions
+                  if (companions.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    _companionsRow(context, companions),
+                  ],
+
+                  const SizedBox(height: 12),
+                  Builder(
+                    builder: (ctx) {
+                      Widget stopBtn() => _gradientButton(
+                        text:   "Stop Trip",
+                        colors: const [Color(0xFFD10A0A), Color(0xFF5B0000)],
+                        icon:   Icons.stop_circle_outlined,
+                        onTap: () {
+                          showStopTripDialog(
+                            context: ctx,
+                            vehicleNo:   (data["vehicleNo"]   ?? "-").toString(),
+                            destination: (data["destination"] ?? "-").toString(),
+                            isSubmitting: false,
+                            onConfirm: ({
+                              required meterReading,
+                              required fuelPercent,
+                              required meterPhoto,
+                              remark,
+                            }) async {
+                              final state = ctx.findAncestorStateOfType<_MyTripsScreenState>();
+                              await state?._stopTripAndMoveToCompleted(
+                                trip:         data,
+                                meterReading: meterReading,
+                                fuelPercent:  fuelPercent,
+                                meterPhoto:   meterPhoto,
+                                remark:       remark,
+                              );
+                            },
+                          );
+                        },
+                      );
+
+                      if (alreadyChanged) return stopBtn();
+
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: _gradientButton(
+                              text:   "Change Vehicle",
+                              colors: const [Color(0xFFE65100), Color(0xFF8D2F00)],
+                              icon:   Icons.swap_horiz_rounded,
+                              onTap: () {
+                                showEndCurrentVehicleDialog(
+                                  context: ctx,
+                                  currentVehicleNo: (data["vehicleNo"] ?? "-").toString(),
+                                  isSubmitting: false,
+                                  onConfirm: ({
+                                    required endMeter,
+                                    required endFuel,
+                                    required endPhoto,
+                                  }) async {
+                                    final state = ctx.findAncestorStateOfType<_MyTripsScreenState>();
+                                    await state?._endCurrentVehicle(
+                                      trip:     data,
+                                      endMeter: endMeter,
+                                      endFuel:  endFuel,
+                                      endPhoto: endPhoto,
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(child: stopBtn()),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+
+                // VEHICLE_CHANGING
+                if (isVehicleChanging) ...[
+                  _infoRow("Trip Code",   (data["tripCode"]    ?? "").toString(), highlight: true),
+                  const SizedBox(height: 8),
                   _infoRow("Destination", (data["destination"] ?? "").toString()),
                   const SizedBox(height: 8),
-                  _infoRow("Start Meter", "${data["startMeter"] ?? "-"} km"),
+                  _infoRow("Vehicle",     (data["vehicleNo"]   ?? "").toString()),
+                  const SizedBox(height: 8),
+                  _infoRow("End Meter",   "${data["oldVehicleEndMeter"] ?? "-"} km"),
+                  const SizedBox(height: 8),
+                  _infoRow("End Fuel",    "${data["oldVehicleEndFuel"]  ?? "-"} %"),
+
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF8E1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFFFE082)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.swap_horiz_rounded, size: 16, color: Color(0xFFE65100)),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "Vehicle A recorded. Please start your new vehicle to continue the trip.",
+                            style: TextStyle(
+                                fontSize: 11.5, fontWeight: FontWeight.w700,
+                                color: Color(0xFFE65100), height: 1.3),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
 
                   // Companions
                   if (companions.isNotEmpty) ...[
@@ -600,25 +851,31 @@ class TripCard extends StatelessWidget {
                   const SizedBox(height: 12),
                   Builder(
                     builder: (ctx) => _gradientButton(
-                      text:   "Stop Trip & Submit (Enter Meter Reading)",
-                      colors: const [Color(0xFFD10A0A), Color(0xFF5B0000)],
+                      text:   "Start New Vehicle",
+                      colors: const [Color(0xFF1565C0), Color(0xFF003580)],
+                      icon:   Icons.directions_car_outlined,
                       onTap: () {
-                        showStopTripDialog(
+                        showStartNewVehicleDialog(
                           context: ctx,
-                          vehicleNo:   (data["vehicleNo"]   ?? "-").toString(),
-                          destination: (data["destination"] ?? "-").toString(),
                           isSubmitting: false,
+                          originalDestination: (data["destination"] ?? "").toString(),
                           onConfirm: ({
-                            required meterReading,
-                            required fuelPercent,
-                            required meterPhoto,
+                            required newVehicleNo,
+                            required startMeter,
+                            required startFuel,
+                            required startPhoto,
+                            remark,
+                            destination,
                           }) async {
                             final state = ctx.findAncestorStateOfType<_MyTripsScreenState>();
-                            await state?._stopTripAndMoveToCompleted(
+                            await state?._startNewVehicle(
                               trip:         data,
-                              meterReading: meterReading,
-                              fuelPercent:  fuelPercent,
-                              meterPhoto:   meterPhoto,
+                              newVehicleNo: newVehicleNo,
+                              startMeter:   startMeter,
+                              startFuel:    startFuel,
+                              startPhoto:   startPhoto,
+                              remark:       remark,
+                              destination:  destination,
                             );
                           },
                         );
@@ -629,17 +886,68 @@ class TripCard extends StatelessWidget {
 
                 // COMPLETED
                 if (isCompleted) ...[
-                  _infoRow("Trip Code",    (data["tripCode"]    ?? "").toString(), highlight: true),
+                  // Top trip code: show New Trip Code when vehicle was changed
+                  if (alreadyChanged && (data["changeVehicleTripCode"]?.toString() ?? "").trim().isNotEmpty)
+                    _infoRow("New Trip Code", (data["changeVehicleTripCode"] ?? "").toString(), highlight: true)
+                  else
+                    _infoRow("Trip Code", (data["tripCode"] ?? "").toString(), highlight: true),
                   const SizedBox(height: 8),
-                  _infoRow("Reason",       (data["reason"]      ?? "").toString()),
-                  const SizedBox(height: 8),
-                  _infoRow("Destination",  (data["destination"] ?? "").toString()),
-                  const SizedBox(height: 8),
-                  _infoRow("Start Meter",  "${data["tripStartOdometer"] ?? "-"} km"),
-                  const SizedBox(height: 8),
-                  _infoRow("End Meter",    "${data["tripEndOdometer"]   ?? "-"} km"),
-                  const SizedBox(height: 8),
-                  _infoRow("Distance",     "${data["distanceKm"]        ?? "-"} km"),
+                  _infoRow("Destination", (data["destination"] ?? "").toString()),
+
+                  // ── No vehicle change: single odometer range + distance ──
+                  if (!alreadyChanged) ...[
+                    if (cStartM != null && cTripEndM != null) ...[
+                      const SizedBox(height: 8),
+                      _infoRow("Odometer", "$cStartM km  –  $cTripEndM km"),
+                    ],
+                    const SizedBox(height: 8),
+                    _infoRow("Distance", "${data["distanceKm"] ?? "-"} km"),
+                  ],
+
+                  // ── Vehicle changed: Vehicle A odometer + change block ───
+                  if (alreadyChanged) ...[
+                    if (cStartM != null && cOrigEndM != null) ...[
+                      const SizedBox(height: 8),
+                      _infoRow("Odometer", "$cStartM km  –  $cOrigEndM km"),
+                      const SizedBox(height: 8),
+                      _infoRow("Distance", "${cOrigEndM - cStartM} km"),
+                    ],
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF3E0),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFFFCC80)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.swap_horiz_rounded, size: 15, color: Color(0xFFE65100)),
+                              SizedBox(width: 6),
+                              Text("Vehicle Changed Mid Trip",
+                                  style: TextStyle(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w900,
+                                      color: Color(0xFFE65100))),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          _infoRow("Change Destination", (data["changeVehicleDestination"] ?? "").toString()),
+                          if (cChgStartM != null && cChgEndM != null) ...[
+                            const SizedBox(height: 6),
+                            _infoRow("Odometer", "$cChgStartM km  –  $cChgEndM km"),
+                            const SizedBox(height: 6),
+                            _infoRow("Distance",  "${cChgEndM - cChgStartM} km"),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _infoRow("Total Distance", "${data["distanceKm"] ?? "-"} km"),
+                  ],
 
                   // Companions
                   if (companions.isNotEmpty) ...[
@@ -782,7 +1090,7 @@ class TripCard extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(vertical: 8),
             itemCount: list.length,
-            separatorBuilder: (_, __) =>
+            separatorBuilder: (_, _) =>
                 const Divider(height: 1, indent: 72, endIndent: 20),
             itemBuilder: (_, i) {
               final c = list[i];
@@ -822,6 +1130,7 @@ class TripCard extends StatelessWidget {
     required String text,
     required VoidCallback onTap,
     List<Color> colors = const [Color(0xFF1DB954), Color(0xFF0B7A34)],
+    IconData? icon,
   }) {
     return SizedBox(
       width: double.infinity,
@@ -837,16 +1146,29 @@ class TripCard extends StatelessWidget {
                 end: Alignment.bottomRight),
             borderRadius: BorderRadius.circular(10),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.12),
+              BoxShadow(color: Colors.black.withValues(alpha: 0.12),
                   blurRadius: 12, offset: const Offset(0, 6)),
             ],
           ),
           alignment: Alignment.center,
-          child: Text(text,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 12.8)),
+          child: icon != null
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, color: Colors.white, size: 15),
+                    const SizedBox(width: 5),
+                    Text(text,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 12.8)),
+                  ],
+                )
+              : Text(text,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12.8)),
         ),
       ),
     );
@@ -854,10 +1176,11 @@ class TripCard extends StatelessWidget {
 
   Widget _statusPill(String status) {
     final label = {
-      "PENDING":     "Pending",
-      "APPROVED":    "Approved",
-      "IN_PROGRESS": "In-progress",
-      "COMPLETED":   "Completed",
+      "PENDING":          "Pending",
+      "APPROVED":         "Approved",
+      "IN_PROGRESS":      "In-progress",
+      "VEHICLE_CHANGING": "Changing Vehicle",
+      "COMPLETED":        "Completed",
     }[status] ?? status;
 
     Color bg, border, text, iconColor;
@@ -876,6 +1199,10 @@ class TripCard extends StatelessWidget {
         bg = const Color(0xFFE6E6E6); border = const Color(0xFFD0D0D0);
         text = const Color(0xFF7A7A7A); iconColor = const Color(0xFF7A7A7A);
         icon = Icons.schedule; break;
+      case "VEHICLE_CHANGING":
+        bg = const Color(0xFFFFF3E0); border = const Color(0xFFFFCC80);
+        text = const Color(0xFFE65100); iconColor = const Color(0xFFE65100);
+        icon = Icons.swap_horiz_rounded; break;
       default:
         bg = const Color(0xFFCDEED3); border = const Color(0xFF9AD7A6);
         text = const Color(0xFF2E7D32); iconColor = const Color(0xFF2E7D32);

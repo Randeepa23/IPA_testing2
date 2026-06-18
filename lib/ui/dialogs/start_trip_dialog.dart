@@ -11,12 +11,14 @@ Future<void> showStartTripDialog({
   required Future<void> Function({
     required String meterReading,
     required String fuelPercent,
-    required File meterPhoto,
+    required File   meterPhoto,
+    String?         remark,
   }) onConfirm,
 }) async {
-  final meterCtrl = TextEditingController();
-  final fuelCtrl = TextEditingController();
-  final formKey = GlobalKey<FormState>();
+  final meterCtrl  = TextEditingController();
+  final fuelCtrl   = TextEditingController();
+  final remarkCtrl = TextEditingController();
+  final formKey    = GlobalKey<FormState>();
 
   File? photoFile;
   String? photoName;
@@ -302,6 +304,17 @@ Future<void> showStartTripDialog({
                               ),
                             ),
 
+                            const SizedBox(height: 10),
+                            label("Remark (Optional)"),
+                            const SizedBox(height: 6),
+                            TextFormField(
+                              controller: remarkCtrl,
+                              maxLines: 2,
+                              maxLength: 300,
+                              style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+                              decoration: inputFieldStyle("Add any notes about this trip start..."),
+                            ),
+
                             const SizedBox(height: 14),
 
                             StatefulBuilder(
@@ -367,11 +380,11 @@ Future<void> showStartTripDialog({
                                                     setState(() =>
                                                         submitting = true);
                                                     await onConfirm(
-                                                      meterReading:
-                                                          meterCtrl.text.trim(),
-                                                      fuelPercent:
-                                                          fuelCtrl.text.trim(),
-                                                      meterPhoto: photoFile!,
+                                                      meterReading: meterCtrl.text.trim(),
+                                                      fuelPercent:  fuelCtrl.text.trim(),
+                                                      meterPhoto:   photoFile!,
+                                                      remark: remarkCtrl.text.trim().isEmpty
+                                                          ? null : remarkCtrl.text.trim(),
                                                     );
                                                     if (ctx.mounted)
                                                       Navigator.pop(ctx);

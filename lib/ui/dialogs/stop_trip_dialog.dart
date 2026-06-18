@@ -11,12 +11,14 @@ Future<void> showStopTripDialog({
   required Future<void> Function({
     required String meterReading,
     required String fuelPercent,
-    required File meterPhoto,
+    required File   meterPhoto,
+    String?         remark,
   }) onConfirm,
 }) async {
-  final meterCtrl = TextEditingController();
-  final fuelCtrl = TextEditingController();
-  final formKey = GlobalKey<FormState>();
+  final meterCtrl  = TextEditingController();
+  final fuelCtrl   = TextEditingController();
+  final remarkCtrl = TextEditingController();
+  final formKey    = GlobalKey<FormState>();
 
   File? photoFile;
   String? photoName;
@@ -85,7 +87,7 @@ Future<void> showStopTripDialog({
         children: [
           BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-            child: Container(color: Colors.black.withOpacity(0.20)),
+            child: Container(color: Colors.black.withValues(alpha: 0.20)),
           ),
           Center(
             child: Dialog(
@@ -127,7 +129,7 @@ Future<void> showStopTripDialog({
                             Text(
                               "$vehicleNo - $destination",
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.90),
+                                color: Colors.white.withValues(alpha: 0.90),
                                 fontWeight: FontWeight.w700,
                                 fontSize: 11.5,
                               ),
@@ -302,6 +304,17 @@ Future<void> showStopTripDialog({
                               ),
                             ),
 
+                            const SizedBox(height: 10),
+                            label("Remark (Optional)"),
+                            const SizedBox(height: 6),
+                            TextFormField(
+                              controller: remarkCtrl,
+                              maxLines: 2,
+                              maxLength: 300,
+                              style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+                              decoration: inputFieldStyle("Add any notes about this trip end..."),
+                            ),
+
                             const SizedBox(height: 14),
 
                             StatefulBuilder(
@@ -367,11 +380,11 @@ Future<void> showStopTripDialog({
                                                     setState(() =>
                                                         submitting = true);
                                                     await onConfirm(
-                                                      meterReading:
-                                                          meterCtrl.text.trim(),
-                                                      fuelPercent:
-                                                          fuelCtrl.text.trim(),
-                                                      meterPhoto: photoFile!,
+                                                      meterReading: meterCtrl.text.trim(),
+                                                      fuelPercent:  fuelCtrl.text.trim(),
+                                                      meterPhoto:   photoFile!,
+                                                      remark: remarkCtrl.text.trim().isEmpty
+                                                          ? null : remarkCtrl.text.trim(),
                                                     );
                                                     if (ctx.mounted)
                                                       Navigator.pop(ctx);

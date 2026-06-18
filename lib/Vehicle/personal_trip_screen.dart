@@ -193,6 +193,7 @@ Future<bool?> _confirmCancelTrip() async {
     required String meterReading,
     required String fuelPercent,
     required File meterPhoto,
+    String? remark,
   }) async {
     final tripId = int.tryParse((trip["id"] ?? trip["transport_service_id"] ?? "0").toString()) ?? 0;
     if (tripId <= 0) return;
@@ -205,6 +206,7 @@ Future<bool?> _confirmCancelTrip() async {
         odometer: int.parse(meterReading),
         fuelPercent: double.parse(fuelPercent),
         photoFile: meterPhoto,
+        remark: remark,
       );
 
       if (res["success"] == true) {
@@ -241,6 +243,7 @@ Future<bool?> _confirmCancelTrip() async {
     required String meterReading,
     required String fuelPercent,
     required File meterPhoto,
+    String? remark,
   }) async {
     final tripId = int.tryParse((trip["id"] ?? trip["transport_service_id"] ?? "0").toString()) ?? 0;
     if (tripId <= 0) return;
@@ -253,6 +256,7 @@ Future<bool?> _confirmCancelTrip() async {
         endOdometer: int.parse(meterReading),
         endFuelPercent: double.parse(fuelPercent),
         photoFile: meterPhoto,
+        remark: remark,
       );
 
       if (res["success"] == true) {
@@ -662,6 +666,7 @@ class TripCard extends StatelessWidget {
                             required meterReading,
                             required fuelPercent,
                             required meterPhoto,
+                            remark,
                           }) async {
                             final state = ctx.findAncestorStateOfType<_PersonalTripScreenState>();
                             await state?._startTripAndMoveToInProgress(
@@ -669,6 +674,7 @@ class TripCard extends StatelessWidget {
                               meterReading: meterReading,
                               fuelPercent: fuelPercent,
                               meterPhoto: meterPhoto,
+                              remark: remark,
                             );
                           },
                         );
@@ -699,6 +705,7 @@ class TripCard extends StatelessWidget {
                             required meterReading,
                             required fuelPercent,
                             required meterPhoto,
+                            remark,
                           }) async {
                             final state = ctx.findAncestorStateOfType<_PersonalTripScreenState>();
                             await state?._stopTripAndMoveToCompleted(
@@ -706,6 +713,7 @@ class TripCard extends StatelessWidget {
                               meterReading: meterReading,
                               fuelPercent: fuelPercent,
                               meterPhoto: meterPhoto,
+                              remark: remark,
                             );
                           },
                         );
