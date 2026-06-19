@@ -89,7 +89,6 @@ class _GatePassRequestFormScreenState
   String?                   _selectedManagerId;
   bool                      _loadingManagers   = true;
   String?                   _managerError;
-  String?                   _reportingManagerId;
   final Map<int, Future<Map<String, dynamic>?>> _photoFutureCache      = {};
   final Map<int, Future<Map<String, dynamic>?>> _staffPhotoFutureCache = {};
 
@@ -134,24 +133,35 @@ class _GatePassRequestFormScreenState
     final res = await VehicleApiService.getDefaultManagers(employeeId: int.parse(empId));
     if (res['success'] != true) throw Exception(res['message'] ?? 'Failed to load manager');
 
-    final data        = res['data'] ?? {};
-    final raw         = List.from(data['managers'] ?? []);
-    final resolvedId  = data['reporting_manager_id']?.toString();
+    final data = res['data'] ?? {};
+    final raw  = List.from(data['managers'] ?? []);
 
-    // ── KEY FIX: use the API's resolved ID, not widget.user ──────────────
-    // The API already walked the fallback chain:
-    // reporting manager → HR (10) → GM (14) → MD (11)
-    // So resolvedId is the best available manager right now.
-    _reportingManagerId = resolvedId;
+    // The user's DIRECT reporting manager ID — skip this level for gate pass.
+    // Gate passes go to HR/GM, not the direct reporting manager.
+    final directManagerId = (
+      widget.user['reportingManagerId'] ??
+      widget.user['reporting_manager_id'] ??
+      widget.user['reportingManager'] ??
+      ''
+    ).toString().trim();
 
-    final list = raw.map<Map<String, String>>((e) => {
+    final allManagers = raw.map<Map<String, String>>((e) => {
       'id'  : e['id'].toString(),
       'name': (e['name'] ?? '').toString(),
     }).toList();
 
+    // Remove the direct reporting manager, then take the FIRST remaining
+    // (HR/GM/MD) — same single-manager pattern as leave_form.dart.
+    final afterSkip = directManagerId.isNotEmpty
+        ? allManagers.where((m) => m['id'] != directManagerId).toList()
+        : allManagers;
+
+    final displayList = afterSkip.isNotEmpty ? [afterSkip.first] : <Map<String, String>>[];
+    final selected    = displayList.isNotEmpty ? displayList.first['id'] : null;
+
     setState(() {
-      _managers          = list;
-      _selectedManagerId = resolvedId; // auto-select the resolved manager
+      _managers          = displayList;   // exactly one manager shown, auto-selected
+      _selectedManagerId = selected;
       _loadingManagers   = false;
     });
   } catch (e) {
@@ -914,10 +924,8 @@ class _GatePassRequestFormScreenState
       );
     }
 
-    // Filter managers to only show the one matching the resolved reporting manager ID
-    final visible = _managers
-        .where((m) => m['id'].toString() == _reportingManagerId)
-        .toList();
+    // _managers is already filtered to exclude the direct reporting manager
+    final visible = _managers;
 
     if (visible.isEmpty) {
       return const Padding(
