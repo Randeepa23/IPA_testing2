@@ -13,6 +13,7 @@ import 'AirportParking/airport_parking_screen.dart';
 import 'users/gate_pass_screen.dart';
 import '../users/vehicle_screen.dart';
 import '../users/personal_vehicle_screen.dart' as pvs;
+import 'ITSupport/it_support_home_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String username;
@@ -195,6 +196,18 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
       _ServiceItem(
+        image: 'assets/itSupport.png',
+        label: "IT Support Desk",
+        description: "Raise and track IT support tickets",
+        disabled: false,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => ITSupportHomeScreen(user: user)),
+          );
+        },
+      ),
+      _ServiceItem(
         image: 'assets/report.png',
         label: "Reports",
         description: "View and export HR and operational reports",
@@ -238,13 +251,6 @@ class _HomeScreenState extends State<HomeScreen> {
         description: "Get assistance and user guide",
         disabled: false,
         onTap: () => showBottomMessage("Help is coming soon 🚧"),
-      ),
-      _ServiceItem(
-        image: 'assets/itSupport.png',
-        label: "IT Support",
-        description: "Raise and track IT support tickets",
-        disabled: true,
-        onTap: () => showBottomMessage("IT Support is coming soon 🚧"),
       ),
       _ServiceItem(
         image: 'assets/project.png',
