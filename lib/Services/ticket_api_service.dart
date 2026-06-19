@@ -24,18 +24,19 @@ class TicketApiService {
     return 'Something went wrong. Please try again.';
   }
 
-  static Future<Map<String, dynamic>> getItAgentIds() async {
+  static Future<List<String>> getItAgentIds() async {
     try {
       final url = Uri.parse("$baseUrl/get_it_agent_ids.php");
       final res = await http
           .get(url, headers: {"Accept": "application/json"})
           .timeout(const Duration(seconds: 15));
-      if (res.body.trim().isEmpty) throw Exception('No response from server.');
-      return Map<String, dynamic>.from(jsonDecode(res.body));
-    } on TimeoutException {
-      throw Exception('Request timed out. Please check your connection and retry.');
-    } catch (e) {
-      throw Exception(_friendlyError(e));
+      if (res.body.trim().isEmpty) return [];
+      final decoded = Map<String, dynamic>.from(jsonDecode(res.body));
+      if (decoded["success"] != true) return [];
+      return List<String>.from(
+          (decoded["agent_ids"] as List? ?? []).map((e) => e.toString()));
+    } catch (_) {
+      return [];
     }
   }
 
@@ -244,6 +245,35 @@ class TicketApiService {
       final decoded = Map<String, dynamic>.from(jsonDecode(res.body));
       if (decoded["success"] != true) {
         throw Exception(decoded["message"] ?? "Failed to resolve ticket");
+      }
+      return decoded;
+    } on TimeoutException {
+      throw Exception('Request timed out. Please check your connection and retry.');
+    } catch (e) {
+      throw Exception(_friendlyError(e));
+    }
+  }
+
+  static Future<Map<String, dynamic>> cancelTicket({
+    required int    ticketId,
+    required String employeeId,
+  }) async {
+    try {
+      final url = Uri.parse("$baseUrl/cancel_ticket.php");
+      final res = await http
+          .post(
+            url,
+            headers: {"Content-Type": "application/json", "Accept": "application/json"},
+            body: jsonEncode({
+              "ticket_id"   : ticketId,
+              "employee_id" : int.tryParse(employeeId) ?? 0,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+      if (res.body.trim().isEmpty) throw Exception('No response from server.');
+      final decoded = Map<String, dynamic>.from(jsonDecode(res.body));
+      if (decoded["success"] != true) {
+        throw Exception(decoded["message"] ?? "Failed to cancel ticket");
       }
       return decoded;
     } on TimeoutException {

@@ -4,6 +4,7 @@ import '../Services/ticket_api_service.dart';
 import '../Services/api_service.dart';
 import '../Leaves/top_banner.dart';
 import '../ui/dialogs/resolve_ticket_dialog.dart';
+import '../ui/dialogs/cancel_ticket_dialog.dart';
 import 'my_tickets_screen.dart' show ticketStatusPill;
 
 class TicketConversationScreen extends StatefulWidget {
@@ -29,6 +30,7 @@ class _TicketConversationScreenState extends State<TicketConversationScreen> {
   bool _loadingMessages = true;
   bool _sendingMessage  = false;
   bool _resolving       = false;
+  bool _cancelling      = false;
   String? _detailError;
 
   final _msgController  = TextEditingController();
@@ -155,6 +157,41 @@ class _TicketConversationScreenState extends State<TicketConversationScreen> {
           isSuccess: false);
     } finally {
       if (mounted) setState(() => _sendingMessage = false);
+    }
+  }
+
+  Future<void> _cancelTicket() async {
+    final detail = _detail ?? {};
+    final title  = (detail["title"] ?? "Ticket").toString();
+
+    final confirmed = await showCancelTicketDialog(
+      context:     context,
+      ticketTitle: title,
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _cancelling = true);
+    try {
+      await TicketApiService.cancelTicket(
+        ticketId:   widget.ticketId,
+        employeeId: _employeeId(),
+      );
+      if (!mounted) return;
+      TopBanner.show(context,
+          title: 'Ticket Cancelled',
+          message: 'Your support ticket has been removed.',
+          icon: Icons.delete_outline_rounded,
+          isSuccess: true);
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      TopBanner.show(context,
+          title: 'Failed',
+          message: e.toString().replaceFirst("Exception: ", ""),
+          icon: Icons.error_outline,
+          isSuccess: false);
+    } finally {
+      if (mounted) setState(() => _cancelling = false);
     }
   }
 
@@ -428,7 +465,10 @@ class _TicketConversationScreenState extends State<TicketConversationScreen> {
           if (_isResolved)
             _ResolvedBanner()
           else if (!widget.isAgent && _ticketStatus == 'open')
-            const _WaitingForAgentBanner()
+            _WaitingForAgentBanner(
+              onCancel:   _cancelTicket,
+              cancelling: _cancelling,
+            )
           else
             _InputBar(
               controller: _msgController,
@@ -940,27 +980,65 @@ class _ResolvedBanner extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _WaitingForAgentBanner extends StatelessWidget {
-  const _WaitingForAgentBanner();
+  final VoidCallback onCancel;
+  final bool cancelling;
+
+  const _WaitingForAgentBanner({
+    required this.onCancel,
+    required this.cancelling,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          Icon(Icons.hourglass_top_rounded, size: 16, color: Color(0xFF8A6D3B)),
-          SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              'Waiting for an IT agent to respond. You can reply once they accept your ticket.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12.5,
-                color: Color(0xFF8A6D3B),
-                fontWeight: FontWeight.w600,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(Icons.hourglass_top_rounded,
+                  size: 15, color: Color(0xFF8A6D3B)),
+              SizedBox(width: 7),
+              Flexible(
+                child: Text(
+                  'Waiting for an IT agent to respond. You can reply once they accept your ticket.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: Color(0xFF8A6D3B),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: cancelling ? null : onCancel,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFD32F2F),
+                side: const BorderSide(color: Color(0xFFEF9A9A), width: 1.2),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 11),
+                backgroundColor: const Color(0xFFFFF5F5),
+              ),
+              icon: cancelling
+                  ? const SizedBox(
+                      width: 14, height: 14,
+                      child: CircularProgressIndicator(
+                          color: Color(0xFFD32F2F), strokeWidth: 2))
+                  : const Icon(Icons.cancel_outlined, size: 16),
+              label: Text(
+                cancelling ? 'Cancelling…' : 'Cancel Ticket',
+                style: const TextStyle(
+                    fontWeight: FontWeight.w800, fontSize: 13),
               ),
             ),
           ),

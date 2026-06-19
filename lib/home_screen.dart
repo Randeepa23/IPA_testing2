@@ -1,7 +1,10 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:test_app/Leaves/dashbord_screen.dart';
 import 'login_screen.dart';
 import 'Leaves/top_banner.dart';
+import 'Leaves/reliaver_request_screen.dart';
+import 'Leaves/leave_request_screen.dart';
 import 'vehicle_home_screen.dart';
 import 'ui/dialogs/logout_dialog.dart';
 import 'ui/dialogs/privacy_notice_dialog.dart';
@@ -14,6 +17,8 @@ import 'users/gate_pass_screen.dart';
 import '../users/vehicle_screen.dart';
 import '../users/personal_vehicle_screen.dart' as pvs;
 import 'ITSupport/it_support_home_screen.dart';
+import 'ITSupport/ticket_conversation_screen.dart';
+import 'Services/ticket_api_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final String username;
@@ -69,6 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _setupFcmListeners();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final msg = widget.successMessage;
       if (msg != null && msg.trim().isNotEmpty) {
@@ -450,6 +456,115 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  void _setupFcmListeners() {
+    // Foreground tap — app is open
+    FirebaseMessaging.onMessage.listen((message) {
+      // OS shows the banner; nothing extra needed
+    });
+
+    // Tap while app is in background
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
+
+    // Tap from terminated state
+    FirebaseMessaging.instance.getInitialMessage().then((message) {
+      if (message != null) _handleNotificationTap(message);
+    });
+  }
+
+  void _handleNotificationTap(RemoteMessage message) async {
+    if (!mounted) return;
+    final type = message.data["type"];
+
+    switch (type) {
+      // ── LEAVE MANAGEMENT ────────────────────────────────────────────────────
+      case "reliever_request":
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => RelieverRequestView(user: widget.user)));
+        break;
+
+      case "reliever_accepted":
+      case "leave_approved":
+      case "leave_rejected":
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => DashboardScreen(user: widget.user)));
+        break;
+
+      case "manager_leave_approval":
+        final managerId = (widget.user["employee_id"] ??
+                widget.user["employeeId"] ??
+                widget.user["id"] ?? "")
+            .toString();
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => LeaveRequestScreen(managerId: managerId)));
+        break;
+
+      // ── GATE PASS ──────────────────────────────────────────────────────────
+      case "gate_pass_approval":
+      case "gate_pass_companion":
+      case "gate_pass_approved":
+      case "gate_pass_rejected":
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => GatePassScreen(user: widget.user)));
+        break;
+
+      // ── OFFICE & PERSONAL VEHICLE ───────────────────────────────────────────
+      case "vehicle_request_approval":
+      case "vehicle_request_companion":
+      case "vehicle_approved":
+      case "vehicle_rejected":
+      case "personal_vehicle_approval":
+      case "personal_vehicle_forwarded":
+      case "personal_vehicle_gm_approval":
+      case "personal_vehicle_approved":
+      case "vehicle_changed_mid_trip":
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => VehicleHomeScreen(user: widget.user)));
+        break;
+
+      // ── IT SUPPORT TICKETS ─────────────────────────────────────────────────
+      case "new_ticket":
+      case "ticket_reply":
+      case "ticket_resolved":
+        final ticketId =
+            int.tryParse((message.data["ticketId"] ?? "").toString());
+        if (ticketId != null && ticketId > 0) {
+          await _openTicketConversation(ticketId);
+        } else {
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => ITSupportHomeScreen(user: widget.user)));
+        }
+        break;
+
+      default:
+        debugPrint("Unhandled notification type: $type");
+    }
+  }
+
+  Future<void> _openTicketConversation(int ticketId) async {
+    bool isAgent = false;
+    try {
+      final agentIds = await TicketApiService.getItAgentIds();
+      final empId = (widget.user["employee_id"] ??
+              widget.user["employeeId"] ??
+              widget.user["id"] ?? "")
+          .toString()
+          .trim();
+      isAgent = agentIds.contains(empId);
+    } catch (_) {}
+
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TicketConversationScreen(
+          ticketId: ticketId,
+          user:     widget.user,
+          isAgent:  isAgent,
         ),
       ),
     );

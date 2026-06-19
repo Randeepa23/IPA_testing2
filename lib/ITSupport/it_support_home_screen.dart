@@ -30,8 +30,7 @@ class _ITSupportHomeScreenState extends State<ITSupportHomeScreen> {
 
   Future<void> _checkRole() async {
     try {
-      final res = await TicketApiService.getItAgentIds();
-      final ids = List<String>.from(res["agent_ids"] ?? []);
+      final ids = await TicketApiService.getItAgentIds();
       final empId = _employeeId();
       if (mounted) {
         setState(() {
