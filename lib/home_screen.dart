@@ -231,7 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
         image: 'assets/meeting&event.png',
         label: "Meeting & Events",
         description: "Schedule and manage meetings and events",
-        disabled: true,
+        disabled: false,
         onTap: () {
           Navigator.push(
             context,
@@ -524,6 +524,13 @@ class _HomeScreenState extends State<HomeScreen> {
       case "vehicle_changed_mid_trip":
         Navigator.push(context,
             MaterialPageRoute(builder: (_) => VehicleHomeScreen(user: widget.user)));
+        break;
+
+      // ── MEETING & EVENTS ───────────────────────────────────────────────────
+      case "meeting_invite":
+      case "meeting_cancelled":
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => MeetingDashboardScreen(user: widget.user)));
         break;
 
       // ── IT SUPPORT TICKETS ─────────────────────────────────────────────────

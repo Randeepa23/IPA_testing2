@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:test_app/Services/api_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'exceptions/app_exception.dart';
 import 'create_new_password.dart';
 import 'forgot_password_screen.dart';
 import 'home_screen.dart';
@@ -255,19 +256,10 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } catch (e) {
         debugPrint("LOGIN ERROR: $e");
-        final msg = e.toString().toLowerCase();
-        final isCredentialError = msg.contains("invalid") ||
-            msg.contains("password") ||
-            msg.contains("credentials") ||
-            msg.contains("username") ||
-            msg.contains("unauthorized") ||
-            msg.contains("incorrect") ||
-            msg.contains("wrong");
+        final err = AppException.handle(e);
         setState(() {
           _isLoggingIn = false;
-          _loginError = isCredentialError
-              ? "Incorrect username or password. Please try again."
-              : "Unable to connect. Please check your internet connection and try again.";
+          _loginError = err.message;
         });
       }
     }
