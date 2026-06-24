@@ -1,8 +1,11 @@
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../Constants/app_colors.dart';
 import '../Services/api_service.dart';
 import '../Services/meeting_and_event_service.dart';
+import '../ui/dialogs/meeting_event_dialogs.dart';
 
 class CreateEventScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -25,10 +28,14 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   TimeOfDay? startTime;
   TimeOfDay? endTime;
 
-  String meetingType = "Meeting"; // Meeting | Event
+  String meetingType = "Meeting"; // Meeting | Event | Training
   String locationType = "physical"; // physical | online
   bool isLoading = false;
   bool isLoadingMembers = false;
+
+  // Feature 2 — PDF attachment
+  PlatformFile? _attachedFile;
+  bool _isAttachingFile = false;
 
   List<Map<String, String>> allStaffMembers = [];
   final Set<String> selectedParticipantIds = {};
@@ -57,7 +64,6 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     );
   }
 
-  // 📅 Pick Date
   Future<void> pickDate() async {
     DateTime? picked = await showDatePicker(
       context: context,
@@ -65,10 +71,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       firstDate: DateTime.now(),
       lastDate: DateTime(2100),
     );
-
-    if (picked != null) {
-      setState(() => selectedDate = picked);
-    }
+    if (picked != null) setState(() => selectedDate = picked);
   }
 
   Future<void> _pickStartTime() async {
@@ -76,12 +79,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       context: context,
       initialTime: startTime ?? TimeOfDay.now(),
     );
-
-    if (picked != null) {
-      setState(() {
-        startTime = picked;
-      });
-    }
+    if (picked != null) setState(() => startTime = picked);
   }
 
   Future<void> _pickEndTime() async {
@@ -89,73 +87,65 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       context: context,
       initialTime: endTime ?? startTime ?? TimeOfDay.now(),
     );
+    if (picked != null) setState(() => endTime = picked);
+  }
 
-    if (picked != null) {
-      setState(() {
-        endTime = picked;
-      });
+  Future<void> _pickPdfFile() async {
+    setState(() => _isAttachingFile = true);
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+        withData: false,
+        withReadStream: false,
+      );
+      if (result != null && result.files.isNotEmpty) {
+        setState(() => _attachedFile = result.files.first);
+      }
+    } finally {
+      if (mounted) setState(() => _isAttachingFile = false);
     }
   }
 
-Future<void> _loadStaffMembers() async {
-  setState(() => isLoadingMembers = true);
+  Future<void> _loadStaffMembers() async {
+    setState(() => isLoadingMembers = true);
+    try {
+      final res = await MeetingAndEventService.getAllStaff();
+      if (res['success'] != true) throw Exception("API failed");
 
-  try {
-    final res = await MeetingAndEventService.getAllStaff();
+      final List members = res['members'] ?? [];
+      final list = members
+          .map<Map<String, String>>((e) {
+            final item = Map<String, dynamic>.from(e);
+            final id = (item["id"] ?? item["employee_id"] ?? "").toString();
+            final name = (item["name"] ?? "Unknown").toString();
+            final jobTitle = (item["job_title"] ?? "").toString();
+            if (id.trim().isEmpty) return {};
+            return {"id": id, "name": name, "job_title": jobTitle};
+          })
+          .where((m) => m.isNotEmpty)
+          .toList();
 
-    if (res['success'] != true) {
-      throw Exception("API failed");
-    }
-
-    final List members = res['members'] ?? [];
-
-    final list = members
-        .map<Map<String, String>>((e) {
-          final item = Map<String, dynamic>.from(e);
-
-          final id = (item["id"] ?? item["employee_id"] ?? "").toString();
-          final name = (item["name"] ?? "Unknown").toString();
-          final jobTitle = (item["job_title"] ?? "").toString();
-
-          if (id.trim().isEmpty) return {};
-
-          return {
-            "id": id,
-            "name": name,
-            "job_title": jobTitle, // ✅ added
-          };
-        })
-        .where((m) => m.isNotEmpty)
-        .toList();
-
-    if (!mounted) return;
-
+      if (!mounted) return;
       setState(() {
         _photoFutureCache.clear();
         allStaffMembers = list;
       });
-
-  } catch (e) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Failed to load staff members")),
-    );
-  } finally {
-    if (mounted) {
-      setState(() => isLoadingMembers = false);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to load staff members")),
+      );
+    } finally {
+      if (mounted) setState(() => isLoadingMembers = false);
     }
   }
-}
 
   DateTime? _toDateTime(TimeOfDay? time) {
     if (selectedDate == null || time == null) return null;
     return DateTime(
-      selectedDate!.year,
-      selectedDate!.month,
-      selectedDate!.day,
-      time.hour,
-      time.minute,
+      selectedDate!.year, selectedDate!.month, selectedDate!.day,
+      time.hour, time.minute,
     );
   }
 
@@ -165,7 +155,6 @@ Future<void> _loadStaffMembers() async {
   }
 
   int? _resolveUserId() {
-    // Primary expected key from login/user payload.
     final topLevel = _parseInt(widget.user["employee_id"]) ??
         _parseInt(widget.user["employeeId"]) ??
         _parseInt(widget.user["id"]) ??
@@ -174,14 +163,12 @@ Future<void> _loadStaffMembers() async {
         _parseInt(widget.user["staff_id"]);
     if (topLevel != null) return topLevel;
 
-    // Some APIs wrap user details in nested objects.
     final nestedCandidates = [
       widget.user["user"],
       widget.user["employee"],
       widget.user["data"],
       widget.user["profile"],
     ];
-
     for (final candidate in nestedCandidates) {
       if (candidate is Map) {
         final nested = Map<String, dynamic>.from(candidate);
@@ -194,7 +181,6 @@ Future<void> _loadStaffMembers() async {
         if (nestedId != null) return nestedId;
       }
     }
-
     return null;
   }
 
@@ -202,17 +188,19 @@ Future<void> _loadStaffMembers() async {
     final from = _toDateTime(startTime);
     final to = _toDateTime(endTime);
     if (from == null || to == null || !to.isAfter(from)) return "-";
-
     final diff = to.difference(from);
     final hours = diff.inHours;
     final minutes = diff.inMinutes % 60;
-
     if (hours > 0 && minutes > 0) return "${hours}h ${minutes}m";
     if (hours > 0) return "${hours}h";
     return "${minutes}m";
   }
 
-  // 🚀 Submit Event
+  String _defaultLocation() {
+    if (meetingType == "Training") return "Training Room";
+    return "Meeting Room";
+  }
+
   Future<void> createEvent() async {
     if (!_formKey.currentState!.validate()) return;
     if (selectedParticipantIds.isEmpty) {
@@ -232,14 +220,13 @@ Future<void> _loadStaffMembers() async {
     }
 
     final from = _toDateTime(startTime);
-    final to = _toDateTime(endTime);
+    final to   = _toDateTime(endTime);
     if (selectedDate == null || from == null || to == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Select date, start time and end time")),
       );
       return;
     }
-
     if (!to.isAfter(from)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("End time must be after start time")),
@@ -247,28 +234,68 @@ Future<void> _loadStaffMembers() async {
       return;
     }
 
+    // Show confirmation dialog — actual submit happens in onConfirm
+    await showMeetingSubmitDialog(
+      context: context,
+      type:             meetingType,
+      title:            titleController.text.trim(),
+      dateTxt:          DateFormat('yyyy-MM-dd').format(selectedDate!),
+      startTimeTxt:     startTime!.format(context),
+      endTimeTxt:       endTime!.format(context),
+      duration:         _computedDurationText(),
+      location:         locationType == "physical"
+                            ? locationController.text.trim()
+                            : meetingLinkController.text.trim(),
+      participantCount: selectedParticipantIds.length,
+      attachmentName:   _attachedFile?.name,
+      onConfirm:        () => _doSubmit(userId),
+    );
+  }
+
+  Future<void> _doSubmit(int userId) async {
     setState(() => isLoading = true);
 
-    String formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate!);
-    final String formattedStartTime =
+    final formattedDate      = DateFormat('yyyy-MM-dd').format(selectedDate!);
+    final formattedStartTime =
         "${startTime!.hour.toString().padLeft(2, '0')}:${startTime!.minute.toString().padLeft(2, '0')}:00";
-    final String formattedEndTime =
+    final formattedEndTime   =
         "${endTime!.hour.toString().padLeft(2, '0')}:${endTime!.minute.toString().padLeft(2, '0')}:00";
+    final resolvedLocation   = locationType == "physical"
+        ? locationController.text.trim()
+        : meetingLinkController.text.trim();
+
     try {
-      final response = await MeetingAndEventService.createMeeting(
-        type: meetingType.toLowerCase(),
-        title: titleController.text.trim(),
-        description: descriptionController.text.trim(),
-        meetingDate: formattedDate,
-        startTime: formattedStartTime,
-        endTime: formattedEndTime,
-        locationType: locationType,
-        location: locationType == "physical"
-            ? locationController.text.trim()
-            : meetingLinkController.text.trim(),
-        membersIds: selectedParticipantIds.toList(),
-        createdBy: userId,
-      );
+      Map<String, dynamic> response;
+
+      if (_attachedFile != null && _attachedFile!.path != null) {
+        response = await MeetingAndEventService.createMeetingWithAttachment(
+          type:             meetingType.toLowerCase(),
+          title:            titleController.text.trim(),
+          description:      descriptionController.text.trim(),
+          meetingDate:      formattedDate,
+          startTime:        formattedStartTime,
+          endTime:          formattedEndTime,
+          locationType:     locationType,
+          location:         resolvedLocation,
+          membersIds:       selectedParticipantIds.toList(),
+          createdBy:        userId,
+          attachmentFile:   File(_attachedFile!.path!),
+          attachmentName:   _attachedFile!.name,
+        );
+      } else {
+        response = await MeetingAndEventService.createMeeting(
+          type:         meetingType.toLowerCase(),
+          title:        titleController.text.trim(),
+          description:  descriptionController.text.trim(),
+          meetingDate:  formattedDate,
+          startTime:    formattedStartTime,
+          endTime:      formattedEndTime,
+          locationType: locationType,
+          location:     resolvedLocation,
+          membersIds:   selectedParticipantIds.toList(),
+          createdBy:    userId,
+        );
+      }
 
       if (!mounted) return;
       setState(() => isLoading = false);
@@ -292,7 +319,6 @@ Future<void> _loadStaffMembers() async {
     }
   }
 
-  // 🎨 UI
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -303,17 +329,23 @@ Future<void> _loadStaffMembers() async {
           key: _formKey,
           child: Column(
             children: [
-              // Meeting / Event type
+              // Meeting / Event / Training type
               DropdownButtonFormField<String>(
                 value: meetingType,
                 decoration: const InputDecoration(labelText: "Title Type"),
                 items: const [
                   DropdownMenuItem(value: "Meeting", child: Text("Meeting")),
                   DropdownMenuItem(value: "Event", child: Text("Event")),
+                  DropdownMenuItem(value: "Training", child: Text("Training")),
                 ],
                 onChanged: (v) {
                   if (v == null) return;
-                  setState(() => meetingType = v);
+                  setState(() {
+                    meetingType = v;
+                    if (locationType == "physical") {
+                      locationController.text = _defaultLocation();
+                    }
+                  });
                 },
               ),
 
@@ -332,6 +364,52 @@ Future<void> _loadStaffMembers() async {
               TextFormField(
                 controller: descriptionController,
                 decoration: const InputDecoration(labelText: "Description"),
+              ),
+
+              const SizedBox(height: 10),
+
+              // PDF Attachment (Feature 2)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Attachment (Optional)",
+                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: _isAttachingFile
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.attach_file, size: 18),
+                          label: Text(
+                            _attachedFile == null
+                                ? "Attach PDF Document"
+                                : _attachedFile!.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                          onPressed: _isAttachingFile ? null : _pickPdfFile,
+                        ),
+                      ),
+                      if (_attachedFile != null) ...[
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.close, size: 18, color: Colors.red),
+                          tooltip: "Remove attachment",
+                          onPressed: () => setState(() => _attachedFile = null),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
               ),
 
               const SizedBox(height: 10),
@@ -398,7 +476,7 @@ Future<void> _loadStaffMembers() async {
                       onChanged: (value) {
                         setState(() {
                           locationType = value.toString();
-                          locationController.text = "Meeting Room";
+                          locationController.text = _defaultLocation();
                           meetingLinkController.clear();
                         });
                       },
@@ -492,7 +570,6 @@ Future<void> _loadStaffMembers() async {
                                 final url = (snap.data?["fileUrl"] ?? "")
                                     .toString()
                                     .trim();
-
                                 if (snap.connectionState == ConnectionState.waiting) {
                                   return const CircleAvatar(
                                     radius: 18,
@@ -508,7 +585,6 @@ Future<void> _loadStaffMembers() async {
                                     ),
                                   );
                                 }
-
                                 if (url.isNotEmpty) {
                                   return CircleAvatar(
                                     radius: 18,
@@ -516,15 +592,10 @@ Future<void> _loadStaffMembers() async {
                                     backgroundImage: NetworkImage(url),
                                   );
                                 }
-
                                 return const CircleAvatar(
                                   radius: 18,
                                   backgroundColor: Color(0xFFEAF1FF),
-                                  child: Icon(
-                                    Icons.person,
-                                    size: 18,
-                                    color: Colors.black54,
-                                  ),
+                                  child: Icon(Icons.person, size: 18, color: Colors.black54),
                                 );
                               },
                             ),
@@ -564,7 +635,7 @@ Future<void> _loadStaffMembers() async {
 
               const SizedBox(height: 20),
 
-              // Button
+              // Submit button
               SizedBox(
                 width: double.infinity,
                 child: DecoratedBox(

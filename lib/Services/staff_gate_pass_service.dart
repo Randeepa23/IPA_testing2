@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class StaffGatePassService {
-  //static const String _baseUrl = "http://10.0.2.2/mobile-api/gatepass";
-  static const String _baseUrl = "https://exploresuite.lk/mobile-api/gatepass";
+  static const String _baseUrl = "http://10.0.2.2/mobile-api/gatepass";
+  //static const String _baseUrl = "https://exploresuite.lk/mobile-api/gatepass";
 
   static String _friendlyError(dynamic e) {
     final msg = e.toString();

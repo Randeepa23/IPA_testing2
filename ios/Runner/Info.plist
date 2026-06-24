@@ -54,5 +54,10 @@
 	<true/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>We use Face ID for secure login</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+		<string>fetch</string>
+	</array>
 </dict>
 </plist>
