@@ -206,15 +206,19 @@ class _LoginScreenState extends State<LoginScreen> {
           await FirebaseMessaging.instance.requestPermission();
 
           // Save FCM token to server (non-critical — failure doesn't block login)
-          final fcmToken = await FirebaseMessaging.instance.getToken();
-          debugPrint("FCM getToken() result: $fcmToken");
-          if (fcmToken != null) {
-            NotificationService.saveFcmToken(
-              employeeId: user["employeeId"].toString(),
-              fcmToken: fcmToken,
-            );
-          } else {
-            debugPrint("FCM: getToken() returned null — check google-services.json and Firebase setup");
+          try {
+            final fcmToken = await FirebaseMessaging.instance.getToken();
+            debugPrint("FCM getToken() result: $fcmToken");
+            if (fcmToken != null) {
+              NotificationService.saveFcmToken(
+                employeeId: user["employeeId"].toString(),
+                fcmToken: fcmToken,
+              );
+            } else {
+              debugPrint("FCM: getToken() returned null — check google-services.json and Firebase setup");
+            }
+          } catch (e) {
+            debugPrint("FCM: token fetch skipped — $e");
           }
 
           // Check if user is logging in with default HR password (first-time login)
