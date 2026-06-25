@@ -757,10 +757,15 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} '
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
 
-    // ── Parse booking end date ────────────────────────────────────────────────
+    // ── Parse booking start & end dates ──────────────────────────────────────
+    final startDateRaw = (bookingData?['start_date'] as String? ?? '').trim();
     final endDateRaw = (bookingData?['end_date'] as String? ?? '').trim();
+    DateTime? originalStartDate;
     DateTime? originalEndDate;
     try {
+      if (startDateRaw.isNotEmpty) {
+        originalStartDate = DateTime.parse(startDateRaw.replaceFirst(' ', 'T'));
+      }
       if (endDateRaw.isNotEmpty) {
         originalEndDate = DateTime.parse(endDateRaw.replaceFirst(' ', 'T'));
       }
@@ -771,7 +776,17 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
         double.tryParse((bookingData?['total_price'] as String? ?? '0').trim()) ??
             0.0;
 
-    // ── Late-fee calculation ──────────────────────────────────────────────────
+    // ── Fetch per-day rate from API; fall back to total_price ÷ days ─────────
+    double perDayCharge = originalPrice;
+    final rateResult = await AirportParkingService.getPerDayRate();
+    if (rateResult.status && rateResult.rate != null) {
+      perDayCharge = rateResult.rate!;
+    } else if (originalStartDate != null && originalEndDate != null) {
+      final bookedDays = originalEndDate.difference(originalStartDate).inDays;
+      if (bookedDays > 0) perDayCharge = originalPrice / bookedDays;
+    }
+
+    // ── Late-fee calculation (% of per-day charge, not total price) ───────────
     double lateHours = 0;
     double lateFeeAmount = 0;
     double totalPriceFinal = originalPrice;
@@ -788,10 +803,10 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
           lateFeeAmount = 0;
         } else if (lateHours <= 8) {
           lateLabel = '50% Surcharge  (2 – 8 hrs)';
-          lateFeeAmount = originalPrice * 0.5;
+          lateFeeAmount = perDayCharge * 0.5;
         } else {
           lateLabel = '100% Full Day Charge  (> 8 hrs)';
-          lateFeeAmount = originalPrice;
+          lateFeeAmount = perDayCharge;
         }
         totalPriceFinal = originalPrice + lateFeeAmount;
       }
@@ -849,6 +864,8 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
           _detailRow(Icons.timer_outlined, 'Late By', fmtHours(lateHours)),
           const SizedBox(height: 8),
           _detailRow(Icons.percent_rounded, 'Surcharge', lateLabel),
+          const SizedBox(height: 8),
+          _detailRow(Icons.today_rounded, 'Per Day Rate', fmtLKR(perDayCharge)),
           const SizedBox(height: 8),
           _detailRow(
             Icons.add_circle_outline_rounded,
