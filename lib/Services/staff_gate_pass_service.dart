@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:test_app/app_config.dart';
 
 class StaffGatePassService {
-  //static const String _baseUrl = "http://10.0.2.2/mobile-api/gatepass";
-  static const String _baseUrl = "https://exploresuite.lk/mobile-api/gatepass";
+  
+  // ── Base URL for Staff Gate Pass API ────────────────────────────────
+  static const String _baseUrl = "${AppConfig.baseUrl}/gatepass";
 
   static String _friendlyError(dynamic e) {
     final msg = e.toString();
