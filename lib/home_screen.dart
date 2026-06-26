@@ -8,6 +8,7 @@ import 'Leaves/leave_request_screen.dart';
 import 'vehicle_home_screen.dart';
 import 'ui/dialogs/logout_dialog.dart';
 import 'ui/dialogs/privacy_notice_dialog.dart';
+import 'ui/dialogs/biometric_enable_dialog.dart';
 import 'Reports/reports_screen.dart';
 import '../QRCode/Vehicle_qr_screen.dart';
 import '../users/biometric_enabled_screen.dart';
@@ -123,6 +124,9 @@ class _HomeScreenState extends State<HomeScreen> {
     await Future.delayed(const Duration(milliseconds: 350));
     if (!mounted) return;
     await showPrivacyNoticeDialog(context);
+
+    if (!mounted) return;
+    await showBiometricEnableDialogIfNeeded(context);
   }
 
   String get _greeting {

@@ -66,13 +66,10 @@ class _LoginScreenState extends State<LoginScreen> {
     Future<void> _checkBiometric() async {
       final prefs = await SharedPreferences.getInstance();
       final enabled = prefs.getBool('biometric_enabled') ?? false;
-
       final canUse = await _biometricService.canUseBiometric();
 
       if (enabled && canUse) {
-        setState(() {
-          _showBiometric = true;
-        });
+        if (mounted) setState(() => _showBiometric = true);
       }
     }
 
