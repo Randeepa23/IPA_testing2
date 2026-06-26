@@ -139,7 +139,8 @@ class AirportParkingService {
 
   /// Validate the reference format: [letters/numbers]-AP-[letters/numbers].
   static bool isValidReference(String reference) {
-    final regex = RegExp(r'^[A-Z0-9]+-AP-[A-Z0-9]+$');
+    // Accepts both old format (G8-AP-17) and new format (G5-AP-01-0626)
+    final regex = RegExp(r'^[A-Z0-9]+-AP-[A-Z0-9]+(-[0-9]{4})?$');
     return regex.hasMatch(reference.trim().toUpperCase());
   }
 
