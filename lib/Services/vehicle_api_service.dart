@@ -584,6 +584,7 @@ class VehicleApiService {
     required int    endMeter,
     required double endFuel,
     required File   endPhoto,
+    String?         remark,
   }) async {
     try {
       final uri = Uri.parse("$baseUrl/end_current_vehicle.php");
@@ -591,6 +592,7 @@ class VehicleApiService {
       req.fields["transport_service_id"] = transportServiceId.toString();
       req.fields["end_meter"]            = endMeter.toString();
       req.fields["end_fuel"]             = endFuel.toString();
+      if (remark != null && remark.isNotEmpty) req.fields["end_vehicle_remark"] = remark;
       req.files.add(await http.MultipartFile.fromPath("photo", endPhoto.path));
       final streamed = await req.send().timeout(const Duration(seconds: 30));
       final body = await streamed.stream.bytesToString();
