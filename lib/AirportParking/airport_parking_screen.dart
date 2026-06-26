@@ -24,6 +24,7 @@ class AirportParkingScreen extends StatefulWidget {
 class _AirportParkingScreenState extends State<AirportParkingScreen> {
   final TextEditingController gNumberController = TextEditingController();
   final TextEditingController apNumberController = TextEditingController();
+  final TextEditingController datePartController = TextEditingController();
 
   bool isLoading = false;
   bool isUpdatingStatus = false;
@@ -53,13 +54,17 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
     ScreenProtector.protectDataLeakageOn();
     gNumberController.dispose();
     apNumberController.dispose();
+    datePartController.dispose();
     super.dispose();
   }
 
   String get _composedReference {
     final firstPart = gNumberController.text.trim().toUpperCase();
     final lastPart = apNumberController.text.trim().toUpperCase();
-    return "$firstPart-AP-$lastPart";
+    final datePart = datePartController.text.trim().toUpperCase();
+    // Date code is optional — supports both old (G8-AP-17) and new (G5-AP-01-0626) formats
+    if (datePart.isEmpty) return "$firstPart-AP-$lastPart";
+    return "$firstPart-AP-$lastPart-$datePart";
   }
 
   Future<void> _search() async {
@@ -68,7 +73,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
 
     if (g.isEmpty || ap.isEmpty) {
       setState(() {
-        errorMessage = "Please fill in both reference parts.";
+        errorMessage = "Please fill in Slot and Number.";
         invoiceFile = null;
         loadedReference = null;
         bookingData = null;
@@ -757,10 +762,15 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} '
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
 
-    // ── Parse booking end date ────────────────────────────────────────────────
+    // ── Parse booking start & end dates ──────────────────────────────────────
+    final startDateRaw = (bookingData?['start_date'] as String? ?? '').trim();
     final endDateRaw = (bookingData?['end_date'] as String? ?? '').trim();
+    DateTime? originalStartDate;
     DateTime? originalEndDate;
     try {
+      if (startDateRaw.isNotEmpty) {
+        originalStartDate = DateTime.parse(startDateRaw.replaceFirst(' ', 'T'));
+      }
       if (endDateRaw.isNotEmpty) {
         originalEndDate = DateTime.parse(endDateRaw.replaceFirst(' ', 'T'));
       }
@@ -771,7 +781,17 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
         double.tryParse((bookingData?['total_price'] as String? ?? '0').trim()) ??
             0.0;
 
-    // ── Late-fee calculation ──────────────────────────────────────────────────
+    // ── Fetch per-day rate from API; fall back to total_price ÷ days ─────────
+    double perDayCharge = originalPrice;
+    final rateResult = await AirportParkingService.getPerDayRate();
+    if (rateResult.status && rateResult.rate != null) {
+      perDayCharge = rateResult.rate!;
+    } else if (originalStartDate != null && originalEndDate != null) {
+      final bookedDays = originalEndDate.difference(originalStartDate).inDays;
+      if (bookedDays > 0) perDayCharge = originalPrice / bookedDays;
+    }
+
+    // ── Late-fee calculation (% of per-day charge, not total price) ───────────
     double lateHours = 0;
     double lateFeeAmount = 0;
     double totalPriceFinal = originalPrice;
@@ -788,10 +808,10 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
           lateFeeAmount = 0;
         } else if (lateHours <= 8) {
           lateLabel = '50% Surcharge  (2 – 8 hrs)';
-          lateFeeAmount = originalPrice * 0.5;
+          lateFeeAmount = perDayCharge * 0.5;
         } else {
           lateLabel = '100% Full Day Charge  (> 8 hrs)';
-          lateFeeAmount = originalPrice;
+          lateFeeAmount = perDayCharge;
         }
         totalPriceFinal = originalPrice + lateFeeAmount;
       }
@@ -849,6 +869,8 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
           _detailRow(Icons.timer_outlined, 'Late By', fmtHours(lateHours)),
           const SizedBox(height: 8),
           _detailRow(Icons.percent_rounded, 'Surcharge', lateLabel),
+          const SizedBox(height: 8),
+          _detailRow(Icons.today_rounded, 'Per Day Rate', fmtLKR(perDayCharge)),
           const SizedBox(height: 8),
           _detailRow(
             Icons.add_circle_outline_rounded,
@@ -1098,7 +1120,9 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              // ── Slot (e.g. G5) ──
               Expanded(
+                flex: 3,
                 child: TextFormField(
                   controller: gNumberController,
                   keyboardType: TextInputType.text,
@@ -1114,10 +1138,10 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                     letterSpacing: 1.2,
                   ),
                   decoration: InputDecoration(
-                    labelText: "First Part",
-                    hintText: "B4",
+                    labelText: "Slot",
+                    hintText: "G5",
                     labelStyle:
-                        const TextStyle(color: _textMuted, fontSize: 13),
+                        const TextStyle(color: _textMuted, fontSize: 12),
                     filled: true,
                     fillColor: const Color(0xFFF8FAFC),
                     enabledBorder: OutlineInputBorder(
@@ -1131,29 +1155,28 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                           const BorderSide(color: _blue1, width: 1.2),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 14),
+                        horizontal: 10, vertical: 14),
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text(
-                  "– AP –",
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: _textDark,
-                  ),
-                ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 5),
+                child: Text("–AP–",
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: _textDark)),
               ),
+              // ── Number (e.g. 01) ──
               Expanded(
+                flex: 2,
                 child: TextFormField(
                   controller: apNumberController,
                   keyboardType: TextInputType.text,
                   textCapitalization: TextCapitalization.characters,
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
-                    LengthLimitingTextInputFormatter(8),
+                    LengthLimitingTextInputFormatter(4),
                     _UpperCaseTextFormatter(),
                   ],
                   style: const TextStyle(
@@ -1162,10 +1185,55 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                     letterSpacing: 1.2,
                   ),
                   decoration: InputDecoration(
-                    labelText: "Last Part",
+                    labelText: "No.",
                     hintText: "01",
                     labelStyle:
-                        const TextStyle(color: _textMuted, fontSize: 13),
+                        const TextStyle(color: _textMuted, fontSize: 12),
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: _blue1, width: 1.2),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 14),
+                  ),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 5),
+                child: Text("–",
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: _textDark)),
+              ),
+              // ── Date code (e.g. 0626) ──
+              Expanded(
+                flex: 3,
+                child: TextFormField(
+                  controller: datePartController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
+                    LengthLimitingTextInputFormatter(4),
+                  ],
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: _textDark,
+                    letterSpacing: 1.2,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: "Date Code",
+                    hintText: "0626",
+                    labelStyle:
+                        const TextStyle(color: _textMuted, fontSize: 12),
                     filled: true,
                     fillColor: const Color(0xFFF8FAFC),
                     enabledBorder: OutlineInputBorder(
@@ -1179,7 +1247,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                           const BorderSide(color: _blue2, width: 1.5),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 14),
+                        horizontal: 10, vertical: 14),
                   ),
                 ),
               ),
@@ -1190,7 +1258,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
           Padding(
             padding: const EdgeInsets.only(left: 4),
             child: Text(
-              "Example: B4-AP-01 or G7-AP-05",
+              "Example: G5-AP-01-0626  or  G8-AP-17",
               style: TextStyle(
                 fontSize: 11.5,
                 color: _textMuted.withOpacity(0.85),
@@ -1356,7 +1424,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    "Reference numbers must be in the format X-AP-Y, for example B4-AP-01 or G7-AP-05.",
+                    "New format: G5-AP-01-0626  |  Existing format: G8-AP-17",
                     style: TextStyle(
                       fontSize: 12.5,
                       height: 1.45,

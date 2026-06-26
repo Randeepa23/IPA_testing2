@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:test_app/app_config.dart';
 
 class MeetingAndEventService {
 
-  static const String baseUrl = "http://10.0.2.2/mobile-api/meetings";
-  //static const String baseUrl = "https://exploresuite.lk/mobile-api/meetings";
+  static const String baseUrl = "${AppConfig.baseUrl}/meetings";
 
   // Get All Staff API (use this in CreateEventScreen)
   static Future<Map<String, dynamic>> getAllStaff() async {

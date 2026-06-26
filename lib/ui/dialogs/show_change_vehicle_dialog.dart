@@ -46,11 +46,13 @@ Future<void> showEndCurrentVehicleDialog({
     required int    endMeter,
     required double endFuel,
     required File   endPhoto,
+    String?         remark,
   }) onConfirm,
 }) async {
-  final meterCtrl = TextEditingController();
-  final fuelCtrl  = TextEditingController();
-  final formKey   = GlobalKey<FormState>();
+  final meterCtrl  = TextEditingController();
+  final fuelCtrl   = TextEditingController();
+  final remarkCtrl = TextEditingController();
+  final formKey    = GlobalKey<FormState>();
 
   bool isImageFile(String? name) {
     if (name == null) return false;
@@ -278,6 +280,17 @@ Future<void> showEndCurrentVehicleDialog({
                                       color: theme.hintColor, height: 1.25),
                                 ),
 
+                                const SizedBox(height: 10),
+                                fieldLabel("Remark (Optional)"),
+                                const SizedBox(height: 6),
+                                TextFormField(
+                                  controller: remarkCtrl,
+                                  maxLines: 2,
+                                  maxLength: 300,
+                                  style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+                                  decoration: inputStyle("Add any notes about ending this vehicle..."),
+                                ),
+
                                 const SizedBox(height: 14),
                                 Row(
                                   children: [
@@ -325,6 +338,8 @@ Future<void> showEndCurrentVehicleDialog({
                                                       endMeter: int.parse(meterCtrl.text.trim()),
                                                       endFuel:  double.parse(fuelCtrl.text.trim()),
                                                       endPhoto: photo!,
+                                                      remark: remarkCtrl.text.trim().isEmpty
+                                                          ? null : remarkCtrl.text.trim(),
                                                     );
                                                     if (ctx.mounted) Navigator.pop(ctx);
                                                   },

@@ -8,6 +8,7 @@ import 'Leaves/leave_request_screen.dart';
 import 'vehicle_home_screen.dart';
 import 'ui/dialogs/logout_dialog.dart';
 import 'ui/dialogs/privacy_notice_dialog.dart';
+import 'ui/dialogs/biometric_enable_dialog.dart';
 import 'Reports/reports_screen.dart';
 import '../QRCode/Vehicle_qr_screen.dart';
 import '../users/biometric_enabled_screen.dart';
@@ -19,6 +20,7 @@ import '../users/personal_vehicle_screen.dart' as pvs;
 import 'ITSupport/it_support_home_screen.dart';
 import 'ITSupport/ticket_conversation_screen.dart';
 import 'Services/ticket_api_service.dart';
+import 'package:test_app/Services/api_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final String username;
@@ -43,6 +45,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _privacyNoticeShown = false;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = "";
+  String? _profilePhotoUrl;
+  bool _photoLoading = false;
   // Check the user is in the list of HR management
   bool get isHrManagement {
     final id = (widget.user["employeeId"] ?? widget.user["employeeId"])
@@ -71,10 +75,31 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  Future<void> _loadProfilePhoto() async {
+    if (!mounted) return;
+    setState(() => _photoLoading = true);
+    String? url;
+    try {
+      final employeeId = (widget.user["employeeId"] ?? widget.user["employee_id"] ?? widget.user["id"])?.toString() ?? "";
+      if (employeeId.isNotEmpty) {
+        final photo = await ApiService.getProfilePhoto(employeeId: int.parse(employeeId));
+        url = (photo?["fileUrl"] as String?)?.trim();
+      }
+    } catch (_) {
+      url = null;
+    }
+    if (!mounted) return;
+    setState(() {
+      _profilePhotoUrl = url;
+      _photoLoading = false;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     _setupFcmListeners();
+    _loadProfilePhoto();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final msg = widget.successMessage;
       if (msg != null && msg.trim().isNotEmpty) {
@@ -99,6 +124,9 @@ class _HomeScreenState extends State<HomeScreen> {
     await Future.delayed(const Duration(milliseconds: 350));
     if (!mounted) return;
     await showPrivacyNoticeDialog(context);
+
+    if (!mounted) return;
+    await showBiometricEnableDialogIfNeeded(context);
   }
 
   String get _greeting {
@@ -323,35 +351,92 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
+                    child: Row(
                       children: [
-                        Text(
-                          'Hello, $name',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black,
+                        // ── Profile photo ──────────────────────────────────
+                        ClipOval(
+                          child: SizedBox(
+                            width: 40,
+                            height: 40,
+                            child: (_profilePhotoUrl != null && _profilePhotoUrl!.isNotEmpty)
+                                ? Image.network(
+                                    _profilePhotoUrl!,
+                                    fit: BoxFit.cover,
+                                    gaplessPlayback: true,
+                                    loadingBuilder: (_, child, progress) {
+                                      if (progress == null) return child;
+                                      return Container(
+                                        color: const Color(0xFFEEF4FF),
+                                        alignment: Alignment.center,
+                                        child: const SizedBox(
+                                          width: 14,
+                                          height: 14,
+                                          child: CircularProgressIndicator(
+                                            color: blue,
+                                            strokeWidth: 2,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    errorBuilder: (_, _, _) => Container(
+                                      color: const Color(0xFFEEF4FF),
+                                      child: const Icon(Icons.person, size: 22, color: blue),
+                                    ),
+                                  )
+                                : _photoLoading
+                                    ? Container(
+                                        color: const Color(0xFFEEF4FF),
+                                        alignment: Alignment.center,
+                                        child: const SizedBox(
+                                          width: 14,
+                                          height: 14,
+                                          child: CircularProgressIndicator(
+                                            color: blue,
+                                            strokeWidth: 2,
+                                          ),
+                                        ),
+                                      )
+                                    : Container(
+                                        color: const Color(0xFFEEF4FF),
+                                        child: const Icon(Icons.person, size: 22, color: blue),
+                                      ),
                           ),
                         ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _greeting,
-                              style: TextStyle(
-                                color: const Color(0xFF000000)
-                                    .withValues(alpha: 0.78),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
+                        const SizedBox(width: 10),
+                        // ── Name + greeting ────────────────────────────────
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Hello, $name',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 4),
-                            const _GreetingEmoji(),
-                          ],
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    _greeting,
+                                    style: TextStyle(
+                                      color: const Color(0xFF000000)
+                                          .withValues(alpha: 0.78),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const _GreetingEmoji(),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -371,6 +456,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 8),
 
+              _buildEmployeeCard(),
+              
               const Text(
                 "Services",
                 style: TextStyle(
@@ -627,6 +714,83 @@ class _HomeScreenState extends State<HomeScreen> {
         Navigator.of(context).pop();
       }
     });
+  }
+
+  Widget _infoCell(String label, String value, IconData icon) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 14, color: const Color(0xFF8A9BB0)),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF8A97AD),
+                  letterSpacing: 0.2,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value.isEmpty ? '—' : value,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E2A3A),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmployeeCard() {
+    final u = widget.user;
+    final designation = (u['designation'] ?? u['jobTitle'] ?? u['job_title'] ?? '').toString();
+    final empNo       = (u['employeeCode'] ?? u['employee_code'] ?? u['employeeId'] ?? '').toString();
+    final department  = (u['department'] ?? '').toString();
+    final contact     = (u['phone'] ?? u['contact'] ?? u['mobile'] ?? '').toString();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4F7FF),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFDDE5F8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _infoCell('Designation', designation, Icons.work_outline_rounded)),
+              const SizedBox(width: 20),
+              Expanded(child: _infoCell('Employee No.', empNo, Icons.tag_rounded)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _infoCell('Department', department, Icons.apartment_rounded)),
+              const SizedBox(width: 20),
+              Expanded(child: _infoCell('Contact No.', contact, Icons.phone_outlined)),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _serviceCard({

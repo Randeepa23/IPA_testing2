@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:test_app/app_config.dart';
 
 class VehicleApiService {
 
-  //Android Emulator → PC localhost
-  static const String baseUrl = "http://10.0.2.2/mobile-api/vehicle";
-  //static const String baseUrl = "https://exploresuite.lk/mobile-api/vehicle";
+  // ── Base URL for Vehicle API ────────────────────────────────────────────────
+  static const String baseUrl = "${AppConfig.baseUrl}/vehicle";
 
   static String? _googlePlacesApiKeyCache;
 
@@ -584,6 +584,7 @@ class VehicleApiService {
     required int    endMeter,
     required double endFuel,
     required File   endPhoto,
+    String?         remark,
   }) async {
     try {
       final uri = Uri.parse("$baseUrl/end_current_vehicle.php");
@@ -591,6 +592,7 @@ class VehicleApiService {
       req.fields["transport_service_id"] = transportServiceId.toString();
       req.fields["end_meter"]            = endMeter.toString();
       req.fields["end_fuel"]             = endFuel.toString();
+      if (remark != null && remark.isNotEmpty) req.fields["end_vehicle_remark"] = remark;
       req.files.add(await http.MultipartFile.fromPath("photo", endPhoto.path));
       final streamed = await req.send().timeout(const Duration(seconds: 30));
       final body = await streamed.stream.bytesToString();

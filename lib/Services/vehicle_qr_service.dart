@@ -2,11 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../Models/vehicle_q_model.dart';
+import 'package:test_app/app_config.dart';
 
 class VehicleQrService {
-
-  static const String baseUrl= "http://10.0.2.2/mobile-api/api";
-  //static const String baseUrl = "https://exploresuite.lk/mobile-api/api";
+  
+  // ── Base URL for Vehicle QR API ────────────────────────────────────────────────
+  static const String baseUrl = "${AppConfig.baseUrl}/api";
 
   static const String exploredrive = 'https://srilankaautorentals.com/api';
 

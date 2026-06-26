@@ -34,24 +34,22 @@ class _MeetingDashboardScreenState extends State<MeetingDashboardScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black87),
-        title: Text(
-          _tab == 0 ? "New Event" : "Meeting & Events",
-          style: const TextStyle(
+        title: const Text(
+          "Meeting & Events",
+          style: TextStyle(
               fontSize: 16, fontWeight: FontWeight.w700, color: Colors.black87),
         ),
       ),
       body: Column(
         children: [
           // ── Tab cards ──────────────────────────────────────────────────────
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
             child: Row(
               children: [
-                SizedBox(
-                  width: 130,
+                Expanded(
                   child: _tabCard(
-                    label: "New\nEvent",
+                    label: "New Event",
                     icon: Icons.add_circle_outline,
                     isActive: _tab == 0,
                     onTap: () => setState(() => _tab = 0),
@@ -59,10 +57,9 @@ class _MeetingDashboardScreenState extends State<MeetingDashboardScreen> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                SizedBox(
-                  width: 130,
+                Expanded(
                   child: _tabCard(
-                    label: "My\nEvents",
+                    label: "My Events",
                     icon: Icons.event_note_outlined,
                     isActive: _tab == 1,
                     onTap: () => setState(() => _tab = 1),
@@ -103,32 +100,45 @@ class _MeetingDashboardScreenState extends State<MeetingDashboardScreen> {
     required VoidCallback onTap,
     required Color activeColor,
   }) {
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        height: 52,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        height: 46,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         decoration: BoxDecoration(
           color: isActive ? activeColor : Colors.white,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-              color: isActive ? activeColor : const Color(0xFFE1E6EF)),
+            color: isActive ? activeColor : const Color(0xFFE1E6EF),
+            width: 1.5,
+          ),
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: activeColor.withValues(alpha: 0.28),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : [],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 17,
-                color: isActive ? Colors.white : Colors.black87),
-            const SizedBox(width: 5),
-            Flexible(
-              child: Text(label,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: isActive ? Colors.white : Colors.black87,
-                  )),
+            Icon(
+              icon,
+              size: 20,
+              color: isActive ? Colors.white : Colors.black54,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: isActive ? Colors.white : Colors.black87,
+              ),
             ),
           ],
         ),
@@ -1109,45 +1119,56 @@ class _MyEventsTabState extends State<_MyEventsTab> {
   }
 
   Widget _buildTabBar() {
-    const statuses = [0, 1];
-    final labels = ["My Events (${_created.length})", "Invited (${_invited.length})"];
+    final labels = [
+      "My Events (${_created.length})",
+      "Invited (${_invited.length})",
+    ];
     return Container(
       color: const Color(0xFFF5F7FA),
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-      child: SizedBox(
-        height: 38,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          padding: EdgeInsets.zero,
-          itemCount: 2,
-          separatorBuilder: (context, i) => const SizedBox(width: 8),
-          itemBuilder: (_, i) {
-            final active = _tab == statuses[i];
-            return GestureDetector(
-              onTap: () => setState(() => _tab = i),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                padding: const EdgeInsets.symmetric(horizontal: 18),
-                decoration: BoxDecoration(
-                  color: active ? const Color(0xFF1565C0) : Colors.white,
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                      color: active ? const Color(0xFF1565C0) : const Color(0xFFE1E6EF)),
-                  boxShadow: active
-                      ? [BoxShadow(
-                          color: const Color(0xFF1565C0).withOpacity(0.25),
-                          blurRadius: 8, offset: const Offset(0, 4))]
-                      : [],
-                ),
-                child: Center(
-                  child: Text(labels[i],
+      child: Center(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(2, (i) {
+            final active = _tab == i;
+            return Padding(
+              padding: EdgeInsets.only(left: i == 0 ? 0 : 8),
+              child: GestureDetector(
+                onTap: () => setState(() => _tab = i),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  height: 36,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: active ? const Color(0xFF1565C0) : Colors.white,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: active ? const Color(0xFF1565C0) : const Color(0xFFE1E6EF),
+                    ),
+                    boxShadow: active
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFF1565C0).withValues(alpha: 0.25),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ]
+                        : [],
+                  ),
+                  child: Center(
+                    child: Text(
+                      labels[i],
                       style: TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.w800,
-                          color: active ? Colors.white : const Color(0xFF334155))),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: active ? Colors.white : const Color(0xFF334155),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             );
-          },
+          }),
         ),
       ),
     );

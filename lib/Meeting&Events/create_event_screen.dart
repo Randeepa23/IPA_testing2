@@ -65,27 +65,57 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   }
 
   Future<void> pickDate() async {
-    DateTime? picked = await showDatePicker(
+    final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: selectedDate ?? DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime(2100),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: Color(0xFF1565C0), onPrimary: Colors.white,
+            surface: Colors.white, onSurface: Color(0xFF1E2A3A),
+          ),
+          dialogTheme: const DialogThemeData(backgroundColor: Colors.white),
+        ),
+        child: child!,
+      ),
     );
     if (picked != null) setState(() => selectedDate = picked);
   }
 
   Future<void> _pickStartTime() async {
-    TimeOfDay? picked = await showTimePicker(
+    final picked = await showTimePicker(
       context: context,
       initialTime: startTime ?? TimeOfDay.now(),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: Color(0xFF1565C0), onPrimary: Colors.white,
+            surface: Colors.white, onSurface: Color(0xFF1E2A3A),
+          ),
+          dialogTheme: const DialogThemeData(backgroundColor: Colors.white),
+        ),
+        child: child!,
+      ),
     );
     if (picked != null) setState(() => startTime = picked);
   }
 
   Future<void> _pickEndTime() async {
-    TimeOfDay? picked = await showTimePicker(
+    final picked = await showTimePicker(
       context: context,
       initialTime: endTime ?? startTime ?? TimeOfDay.now(),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: Color(0xFF1565C0), onPrimary: Colors.white,
+            surface: Colors.white, onSurface: Color(0xFF1E2A3A),
+          ),
+          dialogTheme: const DialogThemeData(backgroundColor: Colors.white),
+        ),
+        child: child!,
+      ),
     );
     if (picked != null) setState(() => endTime = picked);
   }
@@ -319,6 +349,41 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     }
   }
 
+  Widget _fieldLabel(String label) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text(
+          label,
+          style: const TextStyle(
+              fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF1E2A3A)),
+        ),
+      );
+
+  InputDecoration _inputDecoration(String hint, {IconData? icon, Widget? suffix}) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+      prefixIcon: icon != null ? Icon(icon, color: Colors.grey.shade600, size: 20) : null,
+      suffixIcon: suffix,
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.grey.shade300, width: 1)),
+      focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF1565C0), width: 1.4)),
+      errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFD32F2F), width: 1.2)),
+      focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFD32F2F), width: 1.4)),
+      errorStyle: const TextStyle(
+          color: Color(0xFFD32F2F), fontWeight: FontWeight.w700, fontSize: 12),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -412,52 +477,104 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 ],
               ),
 
-              const SizedBox(height: 10),
+              const SizedBox(height: 14),
 
               // Date
-              ListTile(
-                title: Text(selectedDate == null
-                    ? "Select Date"
-                    : DateFormat('yyyy-MM-dd').format(selectedDate!)),
-                trailing: const Icon(Icons.calendar_today),
+              _fieldLabel('Date *'),
+              TextFormField(
+                readOnly: true,
+                style: const TextStyle(color: Colors.black, fontSize: 14),
+                controller: TextEditingController(
+                  text: selectedDate == null
+                      ? ''
+                      : DateFormat('yyyy-MM-dd').format(selectedDate!),
+                ),
+                decoration: _inputDecoration(
+                  'Select date',
+                  icon: Icons.calendar_today,
+                  suffix: Icon(Icons.calendar_today, size: 18, color: Colors.grey.shade600),
+                ),
+                validator: (_) => selectedDate == null ? 'Required' : null,
                 onTap: pickDate,
               ),
 
-              // Time range
-              ListTile(
-                title: Text(
-                  startTime == null ? "Select Start Time" : startTime!.format(context),
-                ),
-                trailing: const Icon(Icons.access_time),
-                onTap: _pickStartTime,
+              const SizedBox(height: 14),
+
+              // Start & End time side by side
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _fieldLabel('Start Time *'),
+                        TextFormField(
+                          readOnly: true,
+                          style: const TextStyle(color: Colors.black, fontSize: 14),
+                          controller: TextEditingController(
+                            text: startTime == null ? '' : startTime!.format(context),
+                          ),
+                          decoration: _inputDecoration(
+                            'Start',
+                            suffix: Icon(Icons.access_time, size: 18,
+                                color: Colors.grey.shade600),
+                          ),
+                          validator: (_) => startTime == null ? 'Required' : null,
+                          onTap: _pickStartTime,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _fieldLabel('End Time *'),
+                        TextFormField(
+                          readOnly: true,
+                          style: const TextStyle(color: Colors.black, fontSize: 14),
+                          controller: TextEditingController(
+                            text: endTime == null ? '' : endTime!.format(context),
+                          ),
+                          decoration: _inputDecoration(
+                            'End',
+                            suffix: Icon(Icons.timelapse, size: 18,
+                                color: Colors.grey.shade600),
+                          ),
+                          validator: (_) => endTime == null ? 'Required' : null,
+                          onTap: _pickEndTime,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
 
-              ListTile(
-                title: Text(
-                  endTime == null ? "Select End Time" : endTime!.format(context),
-                ),
-                trailing: const Icon(Icons.timelapse),
-                onTap: _pickEndTime,
-              ),
-
-              const SizedBox(height: 6),
+              const SizedBox(height: 12),
               Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: const Color(0xFFEAF1FF),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
                       "Duration",
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1565C0)),
                     ),
                     Text(
                       _computedDurationText(),
-                      style: const TextStyle(fontWeight: FontWeight.w800),
+                      style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF1565C0)),
                     ),
                   ],
                 ),

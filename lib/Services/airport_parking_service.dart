@@ -94,6 +94,18 @@ class ReceiptSaveResult {
   });
 }
 
+class PerDayRateResult {
+  final bool status;
+  final double? rate;
+  final String message;
+
+  const PerDayRateResult({
+    required this.status,
+    required this.message,
+    this.rate,
+  });
+}
+
 class AirportParkingService {
   static const String _baseUrl =
       "https://exploresuite.lk/mobile-api/airport-parking/get-invoice.php";
@@ -109,7 +121,10 @@ class AirportParkingService {
 
   static const String _customerStatusUrl =
       "https://airportparking.lk/api/get_customer_status.php";
-      
+
+  static const String _perDayRateUrl =
+      "https://airportparking.lk/api/get-per-day-rate.php";
+
   static const String _checkReceiptUrl =
       "https://airportparking.lk/api/check_payment_receipt.php";
 
@@ -124,7 +139,8 @@ class AirportParkingService {
 
   /// Validate the reference format: [letters/numbers]-AP-[letters/numbers].
   static bool isValidReference(String reference) {
-    final regex = RegExp(r'^[A-Z0-9]+-AP-[A-Z0-9]+$');
+    // Accepts both old format (G8-AP-17) and new format (G5-AP-01-0626)
+    final regex = RegExp(r'^[A-Z0-9]+-AP-[A-Z0-9]+(-[0-9]{4})?$');
     return regex.hasMatch(reference.trim().toUpperCase());
   }
 
@@ -308,6 +324,58 @@ class AirportParkingService {
       );
     } catch (e) {
       return UpdateStatusResult(
+        status: false,
+        message: 'Something went wrong: $e',
+      );
+    }
+  }
+
+  /// Fetch the company's current per-day parking rate from the database.
+  static Future<PerDayRateResult> getPerDayRate() async {
+    try {
+      final response = await http
+          .get(Uri.parse(_perDayRateUrl))
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode != 200) {
+        return PerDayRateResult(
+          status: false,
+          message: 'Server error (${response.statusCode}).',
+        );
+      }
+
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      if (json['status'] != 'success') {
+        return PerDayRateResult(
+          status: false,
+          message: (json['message'] as String?) ?? 'Failed to fetch rate.',
+        );
+      }
+
+      final data = json['data'] as List?;
+      if (data == null || data.isEmpty) {
+        return const PerDayRateResult(
+          status: false,
+          message: 'No rate data found.',
+        );
+      }
+
+      final rate = double.tryParse(data[0]['price']?.toString() ?? '');
+      if (rate == null || rate <= 0) {
+        return const PerDayRateResult(
+          status: false,
+          message: 'Invalid rate value in response.',
+        );
+      }
+
+      return PerDayRateResult(status: true, rate: rate, message: 'OK');
+    } on SocketException {
+      return const PerDayRateResult(
+        status: false,
+        message: 'No internet connection.',
+      );
+    } catch (e) {
+      return PerDayRateResult(
         status: false,
         message: 'Something went wrong: $e',
       );

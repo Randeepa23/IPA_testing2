@@ -214,6 +214,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     required int    endMeter,
     required double endFuel,
     required File   endPhoto,
+    String?         remark,
   }) async {
     final tripId = int.tryParse((trip["id"] ?? 0).toString()) ?? 0;
     if (tripId <= 0) return;
@@ -222,6 +223,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
       final res = await VehicleApiService.endCurrentVehicle(
         transportServiceId: tripId,
         endMeter: endMeter, endFuel: endFuel, endPhoto: endPhoto,
+        remark: remark,
       );
       if (res["success"] == true) {
         if (!mounted) return;
@@ -785,6 +787,7 @@ class TripCard extends StatelessWidget {
                                     required endMeter,
                                     required endFuel,
                                     required endPhoto,
+                                    remark,
                                   }) async {
                                     final state = ctx.findAncestorStateOfType<_MyTripsScreenState>();
                                     await state?._endCurrentVehicle(
@@ -792,6 +795,7 @@ class TripCard extends StatelessWidget {
                                       endMeter: endMeter,
                                       endFuel:  endFuel,
                                       endPhoto: endPhoto,
+                                      remark:   remark,
                                     );
                                   },
                                 );
