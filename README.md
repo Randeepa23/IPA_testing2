@@ -20,7 +20,7 @@
 
 ## 📖 Overview
 
-**Explore Enterprise Suite** is an internal enterprise mobile application developed for Explore Vacations Sri Lanka. It replaces fragmented paper-based and email-driven workflows with a unified, digital-first platform — enabling employees, managers, and operations teams to collaborate efficiently from their mobile devices.
+**Explore Enterprise Suite** is an internal enterprise mobile application developed for Explore Vacations & Travels. It replaces fragmented paper-based and email-driven workflows with a unified, digital-first platform — enabling employees, managers, and operations teams to collaborate efficiently from their mobile devices.
 
 The app delivers real-time visibility, role-based access control, and end-to-end workflow automation across critical business functions including HR leave management, fleet operations, gate pass management, IT support ticketing, meetings, and more.
 
@@ -167,7 +167,21 @@ cd explore-enterprise-suite
 flutter pub get
 ```
 
-**3. Firebase setup**
+**3. Configure environment**
+
+Open `lib/app_config.dart` and set the API base URL:
+
+```dart
+class AppConfig {
+  // LOCAL development
+  static const String baseUrl = "http://192.168.1.x/mobile-api";
+
+  // LIVE / Production — uncomment to switch
+  // static const String baseUrl = "https://exploresuite.lk/mobile-api";
+}
+```
+
+**4. Firebase setup**
 
 Place your `google-services.json` (Android) in `android/app/` and configure `firebase_options.dart` with your Firebase project credentials.
 
@@ -193,39 +207,12 @@ flutter build ios --release
 
 ---
 
-## 🌐 Environment Configuration
-
-The app supports two environments toggled in `lib/app_config.dart`:
-
-| Environment | URL |
-|------------|-----|
-| Local | `http://192.168.1.x/mobile-api` |
-| Production | `https://exploresuite.lk/mobile-api` |
-
-Comment / uncomment the relevant line before building.
-
----
-
 ## 🔔 Push Notifications
 
 Firebase Cloud Messaging (FCM) is integrated for real-time push notifications. The app handles:
 - **Foreground messages** — displayed as in-app banners
 - **Background messages** — handled by the OS notification system
 - **Notification routing** — deep link to the relevant screen on tap
-
----
-
-## 👥 Role-Based Access
-
-| Feature | All Employees | Managers / HODs | HR Management | Airport Parking Staff |
-|---------|:---:|:---:|:---:|:---:|
-| Apply Leave | ✅ | ✅ | ✅ | ✅ |
-| Approve Leaves | ❌ | ✅ | ✅ | ❌ |
-| Vehicle Request | ✅ | ✅ | ✅ | ✅ |
-| Gate Pass | ✅ | ✅ | ✅ | ✅ |
-| IT Support | ✅ | ✅ | ✅ | ✅ |
-| Reports | ❌ | ❌ | ✅ | ❌ |
-| Airport Parking | ❌ | ❌ | ❌ | ✅ |
 
 ---
 
