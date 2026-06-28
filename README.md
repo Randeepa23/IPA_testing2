@@ -20,7 +20,7 @@
 
 ## 📖 Overview
 
-**Explore Enterprise Suite** is an internal enterprise mobile application developed for [Your Company Name]. It replaces fragmented paper-based and email-driven workflows with a unified, digital-first platform — enabling employees, managers, and operations teams to collaborate efficiently from their mobile devices.
+**Explore Enterprise Suite** is an internal enterprise mobile application developed for Explore Vacations Sri Lanka. It replaces fragmented paper-based and email-driven workflows with a unified, digital-first platform — enabling employees, managers, and operations teams to collaborate efficiently from their mobile devices.
 
 The app delivers real-time visibility, role-based access control, and end-to-end workflow automation across critical business functions including HR leave management, fleet operations, gate pass management, IT support ticketing, meetings, and more.
 
