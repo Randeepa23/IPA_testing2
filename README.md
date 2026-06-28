@@ -18,6 +18,14 @@
 
 ---
 
+## 📖 Overview
+
+**Explore Enterprise Suite** is an internal enterprise mobile application developed for Explore Vacations & Travels. It replaces fragmented paper-based and email-driven workflows with a unified, digital-first platform — enabling employees, managers, and operations teams to collaborate efficiently from their mobile devices.
+
+The app delivers real-time visibility, role-based access control, and end-to-end workflow automation across critical business functions including HR leave management, fleet operations, gate pass management, IT support ticketing, meetings, and more.
+
+---
+
 📸 Screenshots
 
 <p align="center">
@@ -27,13 +35,6 @@
   <img src="assets/sample/leave-dashboard.png" alt="Home Screen" width="150" style="border-radius:16px; margin:8px;"/>
   <img src="assets/sample/setting.png" alt="Home Screen" width="150" style="border-radius:16px; margin:8px;"/>
 </p>
-
----
-## 📖 Overview
-
-**Explore Enterprise Suite** is an internal enterprise mobile application developed for Explore Vacations & Travels. It replaces fragmented paper-based and email-driven workflows with a unified, digital-first platform — enabling employees, managers, and operations teams to collaborate efficiently from their mobile devices.
-
-The app delivers real-time visibility, role-based access control, and end-to-end workflow automation across critical business functions including HR leave management, fleet operations, gate pass management, IT support ticketing, meetings, and more.
 
 ---
 
