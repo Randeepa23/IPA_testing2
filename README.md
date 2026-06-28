@@ -18,6 +18,13 @@
 
 ---
 
+📸 Screenshots
+
+<p align="center">
+  <img src="assets/sample/home-screen.png" alt="Home Screen" width="200" style="border-radius:16px; margin:8px;"/>
+</p>
+
+---
 ## 📖 Overview
 
 **Explore Enterprise Suite** is an internal enterprise mobile application developed for Explore Vacations & Travels. It replaces fragmented paper-based and email-driven workflows with a unified, digital-first platform — enabling employees, managers, and operations teams to collaborate efficiently from their mobile devices.
