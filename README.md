@@ -21,11 +21,11 @@
 📸 Screenshots
 
 <p align="center">
-  <img src="assets/sample/splash-screen.png" alt="Home Screen" width="200" style="border-radius:16px; margin:8px;"/>
-  <img src="assets/sample/login-screen.png" alt="Home Screen" width="200" style="border-radius:16px; margin:8px;"/>
-  <img src="assets/sample/home-screen.png" alt="Home Screen" width="200" style="border-radius:16px; margin:8px;"/>
-  <img src="assets/sample/leave-dashboard.png" alt="Home Screen" width="200" style="border-radius:16px; margin:8px;"/>
-  <img src="assets/sample/setting.png" alt="Home Screen" width="200" style="border-radius:16px; margin:8px;"/>
+  <img src="assets/sample/splash-screen.png" alt="Home Screen" width="150" style="border-radius:16px; margin:8px;"/>
+  <img src="assets/sample/login-screen.png" alt="Home Screen" width="150" style="border-radius:16px; margin:8px;"/>
+  <img src="assets/sample/home-screen.png" alt="Home Screen" width="150" style="border-radius:16px; margin:8px;"/>
+  <img src="assets/sample/leave-dashboard.png" alt="Home Screen" width="150" style="border-radius:16px; margin:8px;"/>
+  <img src="assets/sample/setting.png" alt="Home Screen" width="150" style="border-radius:16px; margin:8px;"/>
 </p>
 
 ---
