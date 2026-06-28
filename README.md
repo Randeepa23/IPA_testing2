@@ -187,9 +187,6 @@ Open `lib/app_config.dart` and set the API base URL:
 class AppConfig {
   // LOCAL development
   static const String baseUrl = "http://192.168.1.x/mobile-api";
-
-  // LIVE / Production — uncomment to switch
-  // static const String baseUrl = "https://exploresuite.lk/mobile-api";
 }
 ```
 
