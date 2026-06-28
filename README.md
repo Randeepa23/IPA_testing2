@@ -244,7 +244,7 @@ This is a private enterprise application. For feature requests, bug reports, or 
 
 ## 📄 License
 
-This project is proprietary software owned by [Your Company Name]. All rights reserved. Unauthorised copying, distribution, or modification is strictly prohibited.
+This project is proprietary software owned by Explore Vacations & Travels. All rights reserved. Unauthorised copying, distribution, or modification is strictly prohibited.
 
 ---
 
