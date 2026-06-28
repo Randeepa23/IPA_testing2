@@ -167,21 +167,7 @@ cd explore-enterprise-suite
 flutter pub get
 ```
 
-**3. Configure environment**
-
-Open `lib/app_config.dart` and set the API base URL:
-
-```dart
-class AppConfig {
-  // LOCAL development
-  static const String baseUrl = "http://192.168.1.x/mobile-api";
-
-  // LIVE / Production — uncomment to switch
-  // static const String baseUrl = "https://exploresuite.lk/mobile-api";
-}
-```
-
-**4. Firebase setup**
+**3. Firebase setup**
 
 Place your `google-services.json` (Android) in `android/app/` and configure `firebase_options.dart` with your Firebase project credentials.
 
