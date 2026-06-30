@@ -38,6 +38,10 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
   String? loadedReference;
   Map<String, dynamic>? bookingData;
 
+  bool isTodayLoading = false;
+  List<TodayBooking> todayBookings = [];
+  String? todayBookingsError;
+
   static const _blue1 = Color(0xFF1565C0);
   static const _blue2 = Color(0xFF003580);
   static const _textDark = Color(0xFF0F172A);
@@ -47,6 +51,38 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
   void initState() {
     super.initState();
     ScreenProtector.protectDataLeakageOff();
+    _fetchTodayBookings();
+  }
+
+  Future<void> _fetchTodayBookings() async {
+    setState(() {
+      isTodayLoading = true;
+      todayBookingsError = null;
+    });
+    final result = await AirportParkingService.getTodayBookings();
+    if (!mounted) return;
+    setState(() {
+      isTodayLoading = false;
+      if (result.status) {
+        todayBookings = result.bookings;
+      } else {
+        todayBookingsError = result.message;
+        todayBookings = [];
+      }
+    });
+  }
+
+  void _autofillFromTodayBooking(TodayBooking booking) {
+    final ref = booking.referenceNumber.toUpperCase().trim();
+    // Parse e.g. "G5-AP-01-0626" or "G8-AP-17"
+    final parts = ref.split('-AP-');
+    if (parts.length == 2) {
+      gNumberController.text = parts[0];
+      final rest = parts[1].split('-');
+      apNumberController.text = rest[0];
+      datePartController.text = rest.length > 1 ? rest[1] : '';
+    }
+    _search();
   }
 
   @override
@@ -319,6 +355,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
     final result = await AirportParkingService.updateBookingStatus(
       reference: loadedReference!,
       status: 'confirmed',
+      confirmedBy: _loggedInUserName,
     );
 
     if (!mounted) return;
@@ -1045,6 +1082,323 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
       ),
     );
   }
+
+  // ──────────────────────────────────────────────
+  //  TODAY'S BOOKINGS CARD
+  // ──────────────────────────────────────────────
+  Widget _buildTodayBookingsCard() {
+    final now = DateTime.now();
+    final todayLabel =
+        '${_monthNames[now.month - 1]} ${now.day}, ${now.year}';
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1565C0), Color(0xFF003580)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.today_rounded,
+                      color: Colors.white, size: 18),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Today's Bookings",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: _textDark,
+                        ),
+                      ),
+                      Text(
+                        todayLabel,
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          color: _textMuted,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (!isTodayLoading)
+                  GestureDetector(
+                    onTap: _fetchTodayBookings,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.refresh_rounded,
+                          size: 16, color: _textMuted),
+                    ),
+                  ),
+                if (!isTodayLoading && todayBookings.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 9, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDCFCE7),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '${todayBookings.length}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF166534),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          const Divider(height: 1, color: Color(0xFFE2E8F0)),
+
+          // ── Content ──
+          if (isTodayLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: _blue2,
+                  ),
+                ),
+              ),
+            )
+          else if (todayBookingsError != null)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  const Icon(Icons.wifi_off_rounded,
+                      color: _textMuted, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      todayBookingsError!,
+                      style: const TextStyle(
+                          fontSize: 12.5,
+                          color: _textMuted,
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else if (todayBookings.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 20),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: const Icon(Icons.event_busy_rounded,
+                          size: 26, color: _textMuted),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      "No bookings today",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: _textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      "There are no arrivals scheduled for today.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _textMuted,
+                        fontWeight: FontWeight.w500,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+              itemCount: todayBookings.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final b = todayBookings[index];
+                return _buildTodayBookingTile(b);
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTodayBookingTile(TodayBooking booking) {
+    final initials = booking.name.trim().isNotEmpty
+        ? booking.name.trim().split(' ').take(2).map((w) => w[0]).join()
+        : '?';
+
+    return InkWell(
+      onTap: () => _autofillFromTodayBooking(booking),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Row(
+          children: [
+            // Avatar
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1565C0), Color(0xFF003580)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                initials.toUpperCase(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            // Name + reference
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    booking.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: _textDark,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      const Icon(Icons.confirmation_number_rounded,
+                          size: 11, color: _textMuted),
+                      const SizedBox(width: 3),
+                      Text(
+                        booking.referenceNumber,
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          color: _textMuted,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // Price + tap hint
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  'LKR ${booking.totalPrice}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: _textDark,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    'View',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: _blue2,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static const _monthNames = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
 
   // ──────────────────────────────────────────────
   //  SEARCH INPUT CARD
@@ -2383,9 +2737,17 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
           child: Divider(height: 1, color: Colors.grey.shade200),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        child: Column(
+      body: RefreshIndicator(
+        color: Colors.blue,
+        backgroundColor: Colors.white,
+        onRefresh: () async {
+          await _fetchTodayBookings();
+          if (loadedReference != null) await _search();
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildInputCard(),
@@ -2410,9 +2772,12 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                 _buildInvoiceCard(),
               ],
             ],
+            const SizedBox(height: 16),
+            _buildTodayBookingsCard(),
           ],
         ),
       ),
+    ),
     );
   }
 }
