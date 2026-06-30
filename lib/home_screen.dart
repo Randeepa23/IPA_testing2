@@ -138,7 +138,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final name = widget.name;
     final user = widget.user;
 
     // services list (easy to add more)
@@ -340,209 +339,301 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
 
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // top row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Row(
-                      children: [
-                        // ── Profile photo ──────────────────────────────────
-                        ClipOval(
-                          child: SizedBox(
-                            width: 40,
-                            height: 40,
-                            child: (_profilePhotoUrl != null && _profilePhotoUrl!.isNotEmpty)
-                                ? Image.network(
-                                    _profilePhotoUrl!,
-                                    fit: BoxFit.cover,
-                                    gaplessPlayback: true,
-                                    loadingBuilder: (_, child, progress) {
-                                      if (progress == null) return child;
-                                      return Container(
-                                        color: const Color(0xFFEEF4FF),
-                                        alignment: Alignment.center,
-                                        child: const SizedBox(
-                                          width: 14,
-                                          height: 14,
-                                          child: CircularProgressIndicator(
-                                            color: blue,
-                                            strokeWidth: 2,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                    errorBuilder: (_, _, _) => Container(
-                                      color: const Color(0xFFEEF4FF),
-                                      child: const Icon(Icons.person, size: 22, color: blue),
-                                    ),
-                                  )
-                                : _photoLoading
-                                    ? Container(
-                                        color: const Color(0xFFEEF4FF),
-                                        alignment: Alignment.center,
-                                        child: const SizedBox(
-                                          width: 14,
-                                          height: 14,
-                                          child: CircularProgressIndicator(
-                                            color: blue,
-                                            strokeWidth: 2,
-                                          ),
-                                        ),
-                                      )
-                                    : Container(
-                                        color: const Color(0xFFEEF4FF),
-                                        child: const Icon(Icons.person, size: 22, color: blue),
-                                      ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        // ── Name + greeting ────────────────────────────────
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Hello, $name',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              Row(
+        top: false,
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                _buildHeroHeader(),
+                Positioned(
+                  bottom: -28,
+                  left: 16,
+                  right: 16,
+                  child: _buildFloatingSearchCard(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 28),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Services",
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: blue,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Expanded(
+                      child: services.isEmpty
+                          ? Center(
+                              child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
+                                  const Icon(Icons.search_off_rounded, size: 48, color: Color(0xFFCCD5E0)),
+                                  const SizedBox(height: 10),
                                   Text(
-                                    _greeting,
-                                    style: TextStyle(
-                                      color: const Color(0xFF000000)
-                                          .withValues(alpha: 0.78),
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                    'No services found for "$_searchQuery"',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 13, color: Color(0xFF8A97AD)),
                                   ),
-                                  const SizedBox(width: 4),
-                                  const _GreetingEmoji(),
                                 ],
                               ),
-                            ],
+                            )
+                          : ListView.separated(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              itemCount: services.length,
+                              separatorBuilder: (_, _) => const SizedBox(height: 12),
+                              itemBuilder: (context, i) {
+                                final s = services[i];
+                                return _serviceCard(
+                                  imagePath: s.image,
+                                  iconData: s.icon,
+                                  label: s.label,
+                                  description: s.description,
+                                  onTap: s.onTap,
+                                  isDisabled: s.disabled,
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // HERO HEADER
+  // ─────────────────────────────────────────────────────────────────────────
+  Widget _buildHeroHeader() {
+    final topPad = MediaQuery.of(context).padding.top;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(16, topPad + 24, 20, 48),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF0060A6), Color(0xFF0B3E73)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Name row with logout icon on the right
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Hello, ${widget.name}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _greeting,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.85),
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
+                        const SizedBox(width: 4),
+                        const _GreetingEmoji(),
                       ],
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.logout_outlined, color: Colors.black),
-                    onPressed: _showLogoutConfirmationDialog,
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 6),
-              const Divider(
-                thickness: 0.8,
-                color: Color.fromARGB(255, 187, 187, 187),
-              ),
-
-              const SizedBox(height: 8),
-
-              _buildEmployeeCard(),
-              
-              const Text(
-                "Services",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: blue,
+                  ],
                 ),
               ),
-
-              const SizedBox(height: 4),
-
-              // Search bar
-              TextField(
-                controller: _searchController,
-                onChanged: (v) => setState(() => _searchQuery = v.trim()),
-                style: const TextStyle(fontSize: 12.5, color: Colors.black87),
-                decoration: InputDecoration(
-                  hintText: "Search services...",
-                  hintStyle: const TextStyle(fontSize: 12.5, color: Color(0xFFAAB4C4)),
-                  prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF8A97AD), size: 17),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.close_rounded, size: 15, color: Color(0xFF8A97AD)),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() => _searchQuery = "");
-                          },
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: const Color(0xFFF4F7FC),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                  isDense: true,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+              GestureDetector(
+                onTap: _showLogoutConfirmationDialog,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE4EBF8)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: blue, width: 1.4),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.logout_outlined, color: Colors.white, size: 16),
+                      SizedBox(width: 5),
+                      Text('Logout', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                    ],
                   ),
                 ),
-              ),
-
-              const SizedBox(height: 14),
-
-              Expanded(
-                child: services.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.search_off_rounded, size: 48, color: Color(0xFFCCD5E0)),
-                            const SizedBox(height: 10),
-                            Text(
-                              'No services found for "$_searchQuery"',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(fontSize: 13, color: Color(0xFF8A97AD)),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        itemCount: services.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 12),
-                        itemBuilder: (context, i) {
-                          final s = services[i];
-                          return _serviceCard(
-                            imagePath: s.image,
-                            iconData: s.icon,
-                            label: s.label,
-                            description: s.description,
-                            onTap: s.onTap,
-                            isDisabled: s.disabled,
-                          );
-                        },
-                      ),
               ),
             ],
           ),
+          const SizedBox(height: 14),
+          // Designation & Department with avatar on the right
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      (widget.user['designation'] ?? widget.user['jobTitle'] ?? widget.user['job_title'] ?? '').toString().isNotEmpty
+                          ? (widget.user['designation'] ?? widget.user['jobTitle'] ?? widget.user['job_title']).toString()
+                          : '—',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      (widget.user['department'] ?? '').toString().isNotEmpty
+                          ? '${widget.user['department']} Department'
+                          : '—',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white.withValues(alpha: 0.75),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 14),
+              _heroProfileAvatar(),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            "What service do you\nneed today?",
+            style: TextStyle(
+              fontSize: 21,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+              height: 1.25,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _heroProfileAvatar() {
+    return Container(
+      width: 64,
+      height: 64,
+      padding: const EdgeInsets.all(2.5),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white.withValues(alpha: 0.85), width: 2),
+      ),
+      child: ClipOval(
+        child: (_profilePhotoUrl != null && _profilePhotoUrl!.isNotEmpty)
+            ? Image.network(
+                _profilePhotoUrl!,
+                fit: BoxFit.cover,
+                gaplessPlayback: true,
+                errorBuilder: (_, _, _) => Container(
+                  color: Colors.white24,
+                  child: const Icon(Icons.person, color: Colors.white, size: 38),
+                ),
+              )
+            : _photoLoading
+                ? Container(
+                    color: Colors.white24,
+                    alignment: Alignment.center,
+                    child: const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    ),
+                  )
+                : Container(
+                    color: Colors.white24,
+                    child: const Icon(Icons.person, color: Colors.white, size: 38),
+                  ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // MAIN MENU — replaces the old standalone logout icon button
+  // ─────────────────────────────────────────────────────────────────────────
+  Widget _buildFloatingSearchCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.10),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (v) => setState(() => _searchQuery = v.trim()),
+        style: const TextStyle(fontSize: 13.5, color: Colors.black87),
+        decoration: InputDecoration(
+          hintText: "Search services...",
+          hintStyle: const TextStyle(fontSize: 13.5, color: Color(0xFFAAB4C4)),
+          prefixIcon: Container(
+            margin: const EdgeInsets.all(10),
+            decoration: const BoxDecoration(
+              color: Color(0xFFEEF4FF),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.search_rounded, color: blue, size: 18),
+          ),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.close_rounded,
+                      size: 18, color: Color(0xFF8A97AD)),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = "");
+                  },
+                )
+              : null,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 16),
         ),
       ),
     );
@@ -714,83 +805,6 @@ class _HomeScreenState extends State<HomeScreen> {
         Navigator.of(context).pop();
       }
     });
-  }
-
-  Widget _infoCell(String label, String value, IconData icon) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 14, color: const Color(0xFF8A9BB0)),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF8A97AD),
-                  letterSpacing: 0.2,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value.isEmpty ? '—' : value,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1E2A3A),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEmployeeCard() {
-    final u = widget.user;
-    final designation = (u['designation'] ?? u['jobTitle'] ?? u['job_title'] ?? '').toString();
-    final empNo       = (u['employeeCode'] ?? u['employee_code'] ?? u['employeeId'] ?? '').toString();
-    final department  = (u['department'] ?? '').toString();
-    final contact     = (u['phone'] ?? u['contact'] ?? u['mobile'] ?? '').toString();
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF4F7FF),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFDDE5F8)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: _infoCell('Designation', designation, Icons.work_outline_rounded)),
-              const SizedBox(width: 20),
-              Expanded(child: _infoCell('Employee No.', empNo, Icons.tag_rounded)),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: _infoCell('Department', department, Icons.apartment_rounded)),
-              const SizedBox(width: 20),
-              Expanded(child: _infoCell('Contact No.', contact, Icons.phone_outlined)),
-            ],
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _serviceCard({
