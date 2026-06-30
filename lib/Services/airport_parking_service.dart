@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
@@ -147,32 +148,22 @@ class TodayBookingsResult {
 }
 
 class AirportParkingService {
+  // ── Switch here to toggle local ↔ production ──────────────────────────────
+  //static const String _apiBase = "http://192.168.1.42/airport/api";
+   static const String _apiBase = "https://airportparking.lk/api";
+  // ─────────────────────────────────────────────────────────────────────────
+
   static const String _baseUrl =
       "https://exploresuite.lk/mobile-api/airport-parking/get-invoice.php";
 
-  static const String _updateSlotUrl =
-      "https://airportparking.lk/api/update_reserved_slot.php";
-
-  static const String _getBookingUrl =
-      "https://airportparking.lk/api/get-booking.php";
-
-  static const String _updateStatusUrl =
-      "https://airportparking.lk/api/update-booking-status.php";
-
-  static const String _customerStatusUrl =
-      "https://airportparking.lk/api/get_customer_status.php";
-
-  static const String _perDayRateUrl =
-      "https://airportparking.lk/api/get-per-day-rate.php";
-
-  static const String _todayBookingsUrl =
-      "https://airportparking.lk/api/get_today_bookings.php";
-
-  static const String _checkReceiptUrl =
-      "https://airportparking.lk/api/check_payment_receipt.php";
-
-  static const String _saveReceiptUrl =
-      "https://airportparking.lk/api/save_payment_receipt.php";
+  static const String _updateSlotUrl    = "$_apiBase/update_reserved_slot.php";
+  static const String _getBookingUrl    = "$_apiBase/get-booking.php";
+  static const String _updateStatusUrl  = "$_apiBase/update-booking-status.php";
+  static const String _customerStatusUrl = "$_apiBase/get_customer_status.php";
+  static const String _perDayRateUrl    = "$_apiBase/get-per-day-rate.php";
+  static const String _todayBookingsUrl = "$_apiBase/get_today_bookings.php";
+  static const String _checkReceiptUrl  = "$_apiBase/check_payment_receipt.php";
+  static const String _saveReceiptUrl   = "$_apiBase/save_payment_receipt.php";
 
   /// Same URL [fetchInvoice] uses — safe to load in a [WebView] (no native PDF plugin).
   static Uri invoiceRequestUri(String reference) {
@@ -327,17 +318,22 @@ class AirportParkingService {
   }
 
   /// Update the booking status (e.g. "confirmed") for [reference].
+  /// [confirmedBy] is the name of the employee confirming the booking.
   static Future<UpdateStatusResult> updateBookingStatus({
     required String reference,
     required String status,
+    required String confirmedBy,
   }) async {
     final ref = reference.trim().toUpperCase();
 
     try {
-      final uri = Uri.parse(_updateStatusUrl)
-          .replace(queryParameters: {'reference': ref, 'status': status});
-      final response =
-          await http.get(uri).timeout(const Duration(seconds: 30));
+      final uri = Uri.parse(_updateStatusUrl).replace(queryParameters: {
+        'reference': ref,
+        'status': status,
+        'confirmed_by': confirmedBy.trim(),
+      });
+      debugPrint('[updateBookingStatus] confirmed_by="${confirmedBy.trim()}" reference=$ref url=$uri');
+      final response = await http.get(uri).timeout(const Duration(seconds: 30));
 
       if (response.statusCode != 200) {
         return UpdateStatusResult(
@@ -458,7 +454,7 @@ class AirportParkingService {
     try {
       final response = await http
           .post(
-            Uri.parse('https://airportparking.lk/api/customer_checkin.php'),
+            Uri.parse('$_apiBase/customer_checkin.php'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'reference_number': ref,
@@ -578,7 +574,7 @@ class AirportParkingService {
     try {
       final response = await http
           .post(
-            Uri.parse('https://airportparking.lk/api/customer_checkout.php'),
+            Uri.parse('$_apiBase/customer_checkout.php'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'reference_number': ref,

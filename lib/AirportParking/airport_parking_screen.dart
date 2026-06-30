@@ -355,6 +355,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
     final result = await AirportParkingService.updateBookingStatus(
       reference: loadedReference!,
       status: 'confirmed',
+      confirmedBy: _loggedInUserName,
     );
 
     if (!mounted) return;
