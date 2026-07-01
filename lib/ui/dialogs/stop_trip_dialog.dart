@@ -199,6 +199,9 @@ Future<void> showStopTripDialog({
 
                                   GestureDetector(
                                     onTap: () async {
+                                      FocusScope.of(ctx).unfocus();
+                                      await Future.delayed(const Duration(milliseconds: 150));
+                                      if (!ctx.mounted) return;
                                       await showModalBottomSheet(
                                         context: ctx,
                                         shape: const RoundedRectangleBorder(

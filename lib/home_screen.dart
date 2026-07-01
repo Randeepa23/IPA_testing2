@@ -145,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _ServiceItem(
         image: 'assets/456123.png',
         label: "Apply Leave",
-        description: "Apply and track your leaves and personal vehicle requests",
+        description: "Apply & Track your Leaves",
         disabled: false,
         onTap: () {
           Navigator.push(
@@ -157,7 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _ServiceItem(
         image: 'assets/personal-vehicle.png',
         label: "Vehicle Request (Personal Use)",
-        description: "Request personal vehicles for trips",
+        description: "Request Vehicles for Personal Requirements",
         disabled: false,
         onTap: () {
           Navigator.push(
@@ -169,7 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _ServiceItem(
         image: 'assets/office-vehicle.png',
         label: "Vehicle Request (Office Use)",
-        description: "Request company vehicles for official trips",
+        description: "Request Vehicles for Official Requirements",
         disabled: false,
         onTap: () {
           Navigator.push(
@@ -193,7 +193,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _ServiceItem(
         image: 'assets/gatepass.png',
         label: "Gate Pass",
-        description: "Request and track visitor gate passes",
+        description: "Gate pass Request Personal Requirements during Office Hours",
         disabled: false,
         onTap: () {
           Navigator.push(
@@ -217,7 +217,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _ServiceItem(
         image: 'assets/airportparking.png',
         label: "Airport Parking Customer Handling",
-        description: "Reserve and manage airport parking slots",
+        description: "Airport Parking Customer Handling",
         disabled: !isAirportParkingAllowed,
         onTap: () {
           Navigator.push(
