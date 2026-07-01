@@ -5,6 +5,7 @@ import '../Services/staff_gate_pass_service.dart';
 import '../Services/api_service.dart';
 import '../ui/dialogs/gate_pass_dialogs.dart';
 import '../Leaves/top_banner.dart';
+import '../ui/widgets/time_picker_sheet.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Model — matches get_all_staff.php response fields
@@ -590,21 +591,10 @@ class _GatePassRequestFormScreenState
       ),
       validator: isRequired ? (_) => selected == null ? 'Required' : null : null,
       onTap: () async {
-        final picked = await showTimePicker(
-          context: context,
-          initialTime: selected ?? TimeOfDay.now(),
-          builder: (ctx, child) => Theme(
-            data: Theme.of(ctx).copyWith(
-              colorScheme: const ColorScheme.light(
-                primary: Color(0xFF1565C0),
-                onPrimary: Colors.white,
-                surface: Colors.white,
-                onSurface: Color(0xFF1E2A3A),
-              ),
-              dialogTheme: const DialogThemeData(backgroundColor: Colors.white),
-            ),
-            child: child!,
-          ),
+        final picked = await showTimePickerSheet(
+          context,
+          initial: selected,
+          title: label,
         );
         if (picked != null) onSelect(picked);
       },
