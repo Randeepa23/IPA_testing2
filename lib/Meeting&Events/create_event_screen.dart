@@ -6,6 +6,7 @@ import '../Constants/app_colors.dart';
 import '../Services/api_service.dart';
 import '../Services/meeting_and_event_service.dart';
 import '../ui/dialogs/meeting_event_dialogs.dart';
+import '../ui/widgets/time_picker_sheet.dart';
 
 class CreateEventScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -85,37 +86,19 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   }
 
   Future<void> _pickStartTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: startTime ?? TimeOfDay.now(),
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: Color(0xFF1565C0), onPrimary: Colors.white,
-            surface: Colors.white, onSurface: Color(0xFF1E2A3A),
-          ),
-          dialogTheme: const DialogThemeData(backgroundColor: Colors.white),
-        ),
-        child: child!,
-      ),
+    final picked = await showTimePickerSheet(
+      context,
+      initial: startTime,
+      title: 'Start Time',
     );
     if (picked != null) setState(() => startTime = picked);
   }
 
   Future<void> _pickEndTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: endTime ?? startTime ?? TimeOfDay.now(),
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: Color(0xFF1565C0), onPrimary: Colors.white,
-            surface: Colors.white, onSurface: Color(0xFF1E2A3A),
-          ),
-          dialogTheme: const DialogThemeData(backgroundColor: Colors.white),
-        ),
-        child: child!,
-      ),
+    final picked = await showTimePickerSheet(
+      context,
+      initial: endTime ?? startTime,
+      title: 'End Time',
     );
     if (picked != null) setState(() => endTime = picked);
   }
