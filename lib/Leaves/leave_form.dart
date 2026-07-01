@@ -72,7 +72,6 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
   double  _noPayDays = 0;
   bool    _noPayAcknowledged = false;
   String? _noPayError;
-  bool    _checkingBalance = false;
 
   // Approving manager
   List<Map<String, String>> _leaveManagers = [];
@@ -471,7 +470,6 @@ void _showSubmitConfirmation() {
         ?? widget.user["employee_id"]?.toString() ?? "";
     if (empId.isEmpty) return;
 
-    setState(() => _checkingBalance = true);
     try {
       final res = await ApiService.checkLeaveNoPayPreview(
         employeeId:    empId,
@@ -490,8 +488,6 @@ void _showSubmitConfirmation() {
       }
     } catch (_) {
       // fail silently — PHP validates again on actual submit
-    } finally {
-      if (mounted) setState(() => _checkingBalance = false);
     }
   }
 
