@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../Services/staff_gate_pass_service.dart';
-import '../Services/vehicle_api_service.dart';
 import '../Services/api_service.dart';
 import '../ui/dialogs/gate_pass_dialogs.dart';
 import '../Leaves/top_banner.dart';
@@ -130,37 +129,32 @@ class _GatePassRequestFormScreenState
     final empId = (widget.user['employee_id'] ?? widget.user['employeeId'] ?? '').toString();
     if (empId.isEmpty) throw Exception('Employee ID missing');
 
-    final res = await VehicleApiService.getDefaultManagers(employeeId: int.parse(empId));
-    if (res['success'] != true) throw Exception(res['message'] ?? 'Failed to load manager');
+    // Use the same leave-managers API so the full HR → GM → MD chain is returned.
+    // Do NOT filter out the reporting manager — gate pass approvals go through
+    // the full chain and the user must be able to select any level.
+    final res = await ApiService.getLeaveManagers(employeeId: empId);
+    if (res['success'] != true) throw Exception(res['message'] ?? 'Failed to load managers');
 
     final data = res['data'] ?? {};
     final raw  = List.from(data['managers'] ?? []);
-
-    // The user's DIRECT reporting manager ID — skip this level for gate pass.
-    // Gate passes go to HR/GM, not the direct reporting manager.
-    final directManagerId = (
-      widget.user['reportingManagerId'] ??
-      widget.user['reporting_manager_id'] ??
-      widget.user['reportingManager'] ??
-      ''
-    ).toString().trim();
 
     final allManagers = raw.map<Map<String, String>>((e) => {
       'id'  : e['id'].toString(),
       'name': (e['name'] ?? '').toString(),
     }).toList();
 
-    // Remove the direct reporting manager, then take the FIRST remaining
-    // (HR/GM/MD) — same single-manager pattern as leave_form.dart.
-    final afterSkip = directManagerId.isNotEmpty
-        ? allManagers.where((m) => m['id'] != directManagerId).toList()
-        : allManagers;
+    // Priority: HR (45) → GM → MD. Show only the first available one.
+    const hrId = '45';
+    final hrEntry = allManagers.where((m) => m['id'] == hrId).toList();
+    final others  = allManagers.where((m) => m['id'] != hrId).toList();
+    // HR first, then fallback chain (GM → MD in order returned by API)
+    final prioritized = [...hrEntry, ...others];
 
-    final displayList = afterSkip.isNotEmpty ? [afterSkip.first] : <Map<String, String>>[];
-    final selected    = displayList.isNotEmpty ? displayList.first['id'] : null;
+    final display = prioritized.isNotEmpty ? [prioritized.first] : <Map<String, String>>[];
+    final selected = display.isNotEmpty ? display.first['id'] : null;
 
     setState(() {
-      _managers          = displayList;   // exactly one manager shown, auto-selected
+      _managers          = display;
       _selectedManagerId = selected;
       _loadingManagers   = false;
     });
