@@ -24,6 +24,26 @@ class StaffGatePassService {
     return 'Something went wrong. Please try again.';
   }
 
+  static Future<Map<String, dynamic>> getGatePassManagers() async {
+    try {
+      final url = Uri.parse("$_baseUrl/get_gate_pass_managers.php");
+      final res = await http
+          .get(url, headers: {"Accept": "application/json"})
+          .timeout(const Duration(seconds: 15));
+
+      if (res.body.trim().isEmpty) throw Exception('No response from server.');
+      if (res.statusCode != 200) throw Exception('Server error (${res.statusCode}).');
+
+      final decoded = jsonDecode(res.body);
+      if (decoded is! Map<String, dynamic>) throw Exception('Unexpected response format.');
+      return decoded;
+    } on TimeoutException {
+      throw Exception('Request timed out.');
+    } catch (e) {
+      throw Exception(_friendlyError(e));
+    }
+  }
+
   static Future<Map<String, dynamic>> getAllStaff() async {
     try {
       final url = Uri.parse("$_baseUrl/get_all_staff.php");

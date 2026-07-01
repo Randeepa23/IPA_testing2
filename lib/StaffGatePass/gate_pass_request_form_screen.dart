@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../Services/staff_gate_pass_service.dart';
-import '../Services/vehicle_api_service.dart';
 import '../Services/api_service.dart';
 import '../ui/dialogs/gate_pass_dialogs.dart';
 import '../Leaves/top_banner.dart';
@@ -127,41 +126,18 @@ class _GatePassRequestFormScreenState
       _managerError    = null;
     });
 
-    final empId = (widget.user['employee_id'] ?? widget.user['employeeId'] ?? '').toString();
-    if (empId.isEmpty) throw Exception('Employee ID missing');
-
-    final res = await VehicleApiService.getDefaultManagers(employeeId: int.parse(empId));
+    final res = await StaffGatePassService.getGatePassManagers();
     if (res['success'] != true) throw Exception(res['message'] ?? 'Failed to load manager');
 
-    final data = res['data'] ?? {};
-    final raw  = List.from(data['managers'] ?? []);
-
-    // The user's DIRECT reporting manager ID — skip this level for gate pass.
-    // Gate passes go to HR/GM, not the direct reporting manager.
-    final directManagerId = (
-      widget.user['reportingManagerId'] ??
-      widget.user['reporting_manager_id'] ??
-      widget.user['reportingManager'] ??
-      ''
-    ).toString().trim();
-
-    final allManagers = raw.map<Map<String, String>>((e) => {
+    final raw = List.from((res['data']?['managers']) ?? []);
+    final managers = raw.map<Map<String, String>>((e) => {
       'id'  : e['id'].toString(),
       'name': (e['name'] ?? '').toString(),
     }).toList();
 
-    // Remove the direct reporting manager, then take the FIRST remaining
-    // (HR/GM/MD) — same single-manager pattern as leave_form.dart.
-    final afterSkip = directManagerId.isNotEmpty
-        ? allManagers.where((m) => m['id'] != directManagerId).toList()
-        : allManagers;
-
-    final displayList = afterSkip.isNotEmpty ? [afterSkip.first] : <Map<String, String>>[];
-    final selected    = displayList.isNotEmpty ? displayList.first['id'] : null;
-
     setState(() {
-      _managers          = displayList;   // exactly one manager shown, auto-selected
-      _selectedManagerId = selected;
+      _managers          = managers;
+      _selectedManagerId = managers.isNotEmpty ? managers.first['id'] : null;
       _loadingManagers   = false;
     });
   } catch (e) {
