@@ -275,6 +275,27 @@ class ApiService {
     }
   }
 
+  // ── Check leave no-pay preview ────────────────────────────────────────────
+  static Future<Map<String, dynamic>> checkLeaveNoPayPreview({
+    required String employeeId,
+    required int    leavePolicyId,
+    required double days,
+  }) async {
+    try {
+      final url = Uri.parse(
+        "$baseUrl/check_leave_balance.php"
+        "?employee_id=$employeeId&leave_policy_id=$leavePolicyId&days=$days",
+      );
+      final res = await http
+          .get(url, headers: {"Accept": "application/json"})
+          .timeout(const Duration(seconds: 10));
+      if (res.body.trim().isEmpty) throw Exception('No response from server.');
+      return Map<String, dynamic>.from(jsonDecode(res.body));
+    } catch (e) {
+      return {"success": false, "message": e.toString()};
+    }
+  }
+
   // ── Apply leave request ───────────────────────────────────────────────────
   static Future<Map<String, dynamic>> applyLeaveRequest({
     required String employeeId,
@@ -288,6 +309,7 @@ class ApiService {
     String? address,
     String? halfDaySession,
     String? managerId,
+    int acknowledgeNoPay = 0,
   }) async {
     try {
       final url  = Uri.parse("$baseUrl/apply_leave_request.php");
@@ -303,6 +325,7 @@ class ApiService {
         "address":         address ?? "",
         "halfDaySession":  halfDaySession ?? "",
         "managerId":       managerId ?? "",
+        "acknowledgeNoPay": acknowledgeNoPay,
       };
       final res = await http.post(
         url,

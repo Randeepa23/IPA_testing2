@@ -66,6 +66,14 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
   String? _memberError;
   String? _confirmError;
 
+  // No Pay Leave split state
+  double? _remainingBalance;
+  double  _paidDays  = 0;
+  double  _noPayDays = 0;
+  bool    _noPayAcknowledged = false;
+  String? _noPayError;
+  bool    _checkingBalance = false;
+
   // Approving manager
   List<Map<String, String>> _leaveManagers = [];
   String? _selectedManagerId;
@@ -293,6 +301,22 @@ Future<void> _submitForm() async {
     return;
   }
 
+  if (_noPayDays > 0 && !_noPayAcknowledged) {
+    setState(() => _noPayError =
+        "Please tick the checkbox to confirm you understand this includes "
+        "unpaid leave");
+    TopBanner.show(
+      context,
+      title: 'Confirmation Required',
+      message: 'Please confirm you understand this request includes '
+               'No Pay Leave before submitting.',
+      icon: Icons.warning_amber_rounded,
+      rightButtonText: 'OK',
+      onRightTap: () {},
+    );
+    return;
+  }
+
   // map leave type name -> leave_policy_id
   final leavePolicyId = _leaveTypeToId(selectedLeaveType!);
 
@@ -317,6 +341,7 @@ Future<void> _submitForm() async {
       address: addressController.text.trim(),
       halfDaySession: isHalfDay ? halfDaySession : null,
       managerId: _selectedManagerId,
+      acknowledgeNoPay: _noPayAcknowledged ? 1 : 0,
     );
 
       if (res["success"] == true) {
@@ -423,6 +448,52 @@ void _showSubmitConfirmation() {
   );
 }
 
+
+  Future<void> _checkNoPayPreview() async {
+    if (selectedLeaveType == null) return;
+    final leavePolicyId = _leaveTypeToId(selectedLeaveType!);
+
+    if (![1, 2, 3].contains(leavePolicyId)) {
+      setState(() {
+        _remainingBalance  = null;
+        _paidDays          = 0;
+        _noPayDays         = 0;
+        _noPayAcknowledged = false;
+      });
+      return;
+    }
+
+    final effectiveTo = isHalfDay ? fromDate : toDate;
+    if (fromDate == null || effectiveTo == null) return;
+
+    final days = (effectiveTo.difference(fromDate!).inDays + 1).toDouble();
+    final empId = widget.user["employeeId"]?.toString()
+        ?? widget.user["employee_id"]?.toString() ?? "";
+    if (empId.isEmpty) return;
+
+    setState(() => _checkingBalance = true);
+    try {
+      final res = await ApiService.checkLeaveNoPayPreview(
+        employeeId:    empId,
+        leavePolicyId: leavePolicyId,
+        days:          days,
+      );
+      if (res["success"] == true) {
+        final d = res["data"] ?? {};
+        setState(() {
+          _remainingBalance  = (d["remaining"] as num?)?.toDouble();
+          _paidDays           = (d["paidDays"]  as num?)?.toDouble() ?? days;
+          _noPayDays           = (d["noPayDays"] as num?)?.toDouble() ?? 0;
+          _noPayAcknowledged   = false;
+          _noPayError          = null;
+        });
+      }
+    } catch (_) {
+      // fail silently — PHP validates again on actual submit
+    } finally {
+      if (mounted) setState(() => _checkingBalance = false);
+    }
+  }
 
   // ===== DATE RANGE FILTER LOGIC =====
     Future<void> _loadRelievers() async {
@@ -597,6 +668,7 @@ void _showSubmitConfirmation() {
                   toDate = null;
                   halfDaySession = null;
                 });
+                _checkNoPayPreview();
               },
 
                 validator: (v) => v == null ? 'Select leave type' : null,
@@ -616,6 +688,7 @@ void _showSubmitConfirmation() {
                     toDate = date;
                   });
                   _loadRelievers();
+                  _checkNoPayPreview();
                 }),
 
                 const SizedBox(height: 12),
@@ -659,6 +732,65 @@ void _showSubmitConfirmation() {
                       ],
                     ),
                   ),
+                if (_noPayDays > 0) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF3E0),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFFFCC80)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(children: [
+                          Icon(Icons.warning_amber_rounded, color: Color(0xFFE65100), size: 18),
+                          SizedBox(width: 8),
+                          Expanded(child: Text(
+                            "Insufficient Leave Balance",
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800,
+                                color: Color(0xFFE65100)),
+                          )),
+                        ]),
+                        const SizedBox(height: 8),
+                        Text(
+                          "You have ${_remainingBalance?.toStringAsFixed(1) ?? '0'} day(s) "
+                          "of $selectedLeaveType remaining.\n"
+                          "${_paidDays.toStringAsFixed(1)} day(s) will be paid leave, "
+                          "${_noPayDays.toStringAsFixed(1)} day(s) will be No Pay Leave "
+                          "(salary deduction applies).",
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                              color: Color(0xFF6B4A1E), height: 1.4),
+                        ),
+                        const SizedBox(height: 10),
+                        CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          value: _noPayAcknowledged,
+                          onChanged: (v) => setState(() {
+                            _noPayAcknowledged = v ?? false;
+                            _noPayError = null;
+                          }),
+                          controlAffinity: ListTileControlAffinity.leading,
+                          activeColor: const Color(0xFFE65100),
+                          title: const Text(
+                            "I understand and confirm this request includes unpaid "
+                            "(No Pay) leave — salary deduction will apply",
+                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800,
+                                color: Colors.black87),
+                          ),
+                        ),
+                        if (_noPayError != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2, left: 4),
+                            child: Text(_noPayError!,
+                                style: const TextStyle(color: Color(0xFFD32F2F),
+                                    fontSize: 11.5, fontWeight: FontWeight.w700)),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
               ] else ...[
               // ---------------- DATES (SIDE BY SIDE) ----------------
               Row(
@@ -689,6 +821,7 @@ void _showSubmitConfirmation() {
                               }
                             });
                             _loadRelievers();
+                            _checkNoPayPreview();
                           },
                         ),
                       ],
@@ -725,6 +858,7 @@ void _showSubmitConfirmation() {
                             (date) {
                               setState(() => toDate = date);
                               _loadRelievers();
+                              _checkNoPayPreview();
                             },
                             notBefore: _minToDate(),
                           ),
@@ -805,6 +939,65 @@ void _showSubmitConfirmation() {
                       ],
                     );
                   }),
+                if (_noPayDays > 0) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF3E0),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFFFCC80)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(children: [
+                          Icon(Icons.warning_amber_rounded, color: Color(0xFFE65100), size: 18),
+                          SizedBox(width: 8),
+                          Expanded(child: Text(
+                            "Insufficient Leave Balance",
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800,
+                                color: Color(0xFFE65100)),
+                          )),
+                        ]),
+                        const SizedBox(height: 8),
+                        Text(
+                          "You have ${_remainingBalance?.toStringAsFixed(1) ?? '0'} day(s) "
+                          "of $selectedLeaveType remaining.\n"
+                          "${_paidDays.toStringAsFixed(1)} day(s) will be paid leave, "
+                          "${_noPayDays.toStringAsFixed(1)} day(s) will be No Pay Leave "
+                          "(salary deduction applies).",
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                              color: Color(0xFF6B4A1E), height: 1.4),
+                        ),
+                        const SizedBox(height: 10),
+                        CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          value: _noPayAcknowledged,
+                          onChanged: (v) => setState(() {
+                            _noPayAcknowledged = v ?? false;
+                            _noPayError = null;
+                          }),
+                          controlAffinity: ListTileControlAffinity.leading,
+                          activeColor: const Color(0xFFE65100),
+                          title: const Text(
+                            "I understand and confirm this request includes unpaid "
+                            "(No Pay) leave — salary deduction will apply",
+                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800,
+                                color: Colors.black87),
+                          ),
+                        ),
+                        if (_noPayError != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2, left: 4),
+                            child: Text(_noPayError!,
+                                style: const TextStyle(color: Color(0xFFD32F2F),
+                                    fontSize: 11.5, fontWeight: FontWeight.w700)),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
 
               const SizedBox(height: 16),
