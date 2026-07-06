@@ -47,7 +47,7 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
   String? attachedFileName;
 
   // Example leave types
-  final leaveTypes = ['Annual Leave', 'Sick Leave', 'Casual Leave', 'Half Day'];
+  final leaveTypes = ['Annual Leave', 'Medical Leave', 'Casual Leave', 'Half Day'];
 
   bool isHalfDay = false;
   String? halfDaySession; // 'MORNING' or 'EVENING'
@@ -75,6 +75,9 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
 
   // Multi-select calendar (Annual Leave)
   Set<DateTime> _selectedDates = {};
+
+  // Annual Leave remaining balance — drives adaptive minimum days
+  double? _annualLeaveRemaining;
 
   // Approving manager
   List<Map<String, String>> _leaveManagers = [];
@@ -326,7 +329,7 @@ Future<void> _submitForm() async {
 
   final start = DateFormat('yyyy-MM-dd').format(fromDate!);
   final end = DateFormat('yyyy-MM-dd').format(toDate!);
-  final days = isHalfDay ? 1.0 : _selectedDates.length.toDouble();
+  final days = isHalfDay ? 0.5 : _selectedDates.length.toDouble();
 
   try {
     setState(() {
@@ -416,7 +419,7 @@ Future<void> _submitForm() async {
 
 int _leaveTypeToId(String type) {
   if (type == "Annual Leave") return 1;
-  if (type == "Sick Leave") return 2;
+  if (type == "Medical Leave") return 2;
   if (type == "Casual Leave") return 3;
   if (type == "Half Day") return 4;
   return 0;
@@ -455,9 +458,30 @@ void _showSubmitConfirmation() {
 }
 
 
+  Future<void> _loadAnnualLeaveBalance() async {
+    final empId = widget.user["employeeId"]?.toString()
+        ?? widget.user["employee_id"]?.toString() ?? "";
+    if (empId.isEmpty) return;
+    try {
+      final res = await ApiService.checkLeaveNoPayPreview(
+        employeeId:    empId,
+        leavePolicyId: 1,   // Annual Leave
+        days:          1,   // probe — we only need the remaining field
+      );
+      if (!mounted) return;
+      if (selectedLeaveType != 'Annual Leave') return; // stale guard
+      if (res["success"] == true) {
+        final remaining = (res["data"]?["remaining"] as num?)?.toDouble();
+        if (remaining != null) setState(() => _annualLeaveRemaining = remaining);
+      }
+    } catch (_) {}
+  }
+
   Future<void> _checkNoPayPreview() async {
     if (selectedLeaveType == null) return;
-    final leavePolicyId = _leaveTypeToId(selectedLeaveType!);
+    final rawPolicyId = _leaveTypeToId(selectedLeaveType!);
+    // Half Day (4) checks against Casual Leave (3) balance with 0.5 days
+    final leavePolicyId = rawPolicyId == 4 ? 3 : rawPolicyId;
 
     if (![1, 2, 3].contains(leavePolicyId)) {
       setState(() {
@@ -470,9 +494,9 @@ void _showSubmitConfirmation() {
     }
 
     final double days;
-    if (isHalfDay) {
+    if (rawPolicyId == 4) {
       if (fromDate == null) return;
-      days = 1.0;
+      days = 0.5;
     } else {
       if (_selectedDates.isEmpty) return;
       days = _selectedDates.length.toDouble();
@@ -484,17 +508,20 @@ void _showSubmitConfirmation() {
     try {
       final res = await ApiService.checkLeaveNoPayPreview(
         employeeId:    empId,
-        leavePolicyId: leavePolicyId,
-        days:          days,
+        leavePolicyId: leavePolicyId, // 3 for Half Day
+        days:          days,          // 0.5 for Half Day
       );
+      if (!mounted) return;
+      // Discard stale response if leave type changed while awaiting
+      if (_leaveTypeToId(selectedLeaveType ?? '') != rawPolicyId) return;
       if (res["success"] == true) {
         final d = res["data"] ?? {};
         setState(() {
           _remainingBalance  = (d["remaining"] as num?)?.toDouble();
-          _paidDays           = (d["paidDays"]  as num?)?.toDouble() ?? days;
-          _noPayDays           = (d["noPayDays"] as num?)?.toDouble() ?? 0;
-          _noPayAcknowledged   = false;
-          _noPayError          = null;
+          _paidDays          = (d["paidDays"]  as num?)?.toDouble() ?? days;
+          _noPayDays         = (d["noPayDays"] as num?)?.toDouble() ?? 0;
+          _noPayAcknowledged = false;
+          _noPayError        = null;
         });
       }
     } catch (_) {
@@ -699,7 +726,9 @@ void _showSubmitConfirmation() {
                   fromDate = null;
                   toDate = null;
                   _selectedDates = {};
+                  _annualLeaveRemaining = null; // reset on every type change
                 });
+                if (v == 'Annual Leave') _loadAnnualLeaveBalance();
                 _checkNoPayPreview();
               },
 
@@ -913,7 +942,7 @@ void _showSubmitConfirmation() {
                     ),
                   ),
               ] else ...[
-                // ── Sick / Casual: same multi-select calendar ─────────────────
+                // ── Medical / Casual: same multi-select calendar ──────────────
                 const FormSectionTitle('Leave Dates *'),
                 const SizedBox(height: 8),
                 GestureDetector(
@@ -1622,21 +1651,28 @@ void _showSubmitConfirmation() {
   // ---------------- UI HELPERS (UI ONLY) ----------------
 
   /// Earliest selectable date — depends on leave type:
-  /// Annual Leave → today (no past).
-  /// Sick Leave   → today (no past; apply promptly after illness).
-  /// Others       → 3 days in the past (retroactive casual/half-day).
+  /// Annual Leave   → today (no past).
+  /// Medical Leave  → yesterday (can report next day after illness).
+  /// Others         → 3 days in the past (retroactive casual/half-day).
   DateTime _leavePickerFirstDate() {
     final today = DateUtils.dateOnly(DateTime.now());
-    if (selectedLeaveType == 'Annual Leave' ||
-        selectedLeaveType == 'Sick Leave') {
+    if (selectedLeaveType == 'Annual Leave') {
       return today;
+    }
+    if (selectedLeaveType == 'Medical Leave') {
+      return today.subtract(const Duration(days: 1));
     }
     return today.subtract(const Duration(days: 3));
   }
 
   int _minimumDays() {
-    if (selectedLeaveType == 'Annual Leave') return 3;
-    // if (selectedLeaveType == 'Sick Leave') return 2;
+    if (selectedLeaveType == 'Annual Leave') {
+      final r = _annualLeaveRemaining;
+      // remaining is always a whole number (0, 1, 2, 3 …)
+      // if < 3, the minimum matches remaining (at least 1)
+      if (r != null && r < 3) return r.toInt().clamp(1, 2);
+      return 3;
+    }
     return 1;
   }
 

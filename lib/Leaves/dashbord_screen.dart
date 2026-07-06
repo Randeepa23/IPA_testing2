@@ -8,7 +8,6 @@ import 'package:test_app/Services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:test_app/login_screen.dart';
 import '../ui/dialogs/logout_dialog.dart';
-import '../users/personal_vehicle_screen.dart';
 import '../Vehicle/personal_request_screen.dart';
 import '../Services/vehicle_api_service.dart';
 class DashboardScreen extends StatefulWidget {
@@ -833,23 +832,21 @@ Future<void> _loadApprovedPersonalTripCount() async {
           );
         },
       ),
-      _QuickAction(
-        icon: Icons.directions_car,
-        label: 'Vehicle Request',
-        badgeCount: approvedPersonalTripCount,
-        onTap: () async {
-          setState(() => approvedPersonalTripCount = 0);
-
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => VehicleScreen(user: widget.user),
-            ),
-          );
-        },
-      ),
+      // _QuickAction(
+      //   icon: Icons.directions_car,
+      //   label: 'Vehicle Request',
+      //   badgeCount: approvedPersonalTripCount,
+      //   onTap: () async {
+      //     setState(() => approvedPersonalTripCount = 0);
+      //     await Navigator.push(
+      //       context,
+      //       MaterialPageRoute(
+      //         builder: (context) => VehicleScreen(user: widget.user),
+      //       ),
+      //     );
+      //   },
+      // ),
     ];
-
 
     // Only HOD sees Request button
     if (isManagers) {
@@ -900,14 +897,20 @@ Future<void> _loadApprovedPersonalTripCount() async {
       );
     }
 
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 2.4,
-      children: actions,
+    return LayoutBuilder(
+      builder: (ctx, constraints) {
+        const gap = 12.0;
+        final itemW = (constraints.maxWidth - gap) / 2;
+        const itemH = 88.0;
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          alignment: WrapAlignment.center,
+          children: actions
+              .map((a) => SizedBox(width: itemW, height: itemH, child: a))
+              .toList(),
+        );
+      },
     );
   }
 

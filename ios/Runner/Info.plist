@@ -27,11 +27,13 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>This app needs camera access to take photos.</string>
+	<string>Explore Enterprise Suite uses the camera to capture meter reading photos for vehicle trips and to upload documents for leave and gate pass requests.</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>We use Face ID for secure login</string>
+	<string>Explore Enterprise Suite uses Face ID to securely authenticate your identity when logging in.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Explore Enterprise Suite may save photos taken during vehicle trips to your photo library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>This app needs photo library access.</string>
+	<string>Explore Enterprise Suite accesses your photo library so you can select existing photos for vehicle meter readings, leave attachments, and gate pass documents.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

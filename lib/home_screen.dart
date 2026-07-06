@@ -17,6 +17,7 @@ import 'AirportParking/airport_parking_screen.dart';
 import 'users/gate_pass_screen.dart';
 import '../users/vehicle_screen.dart';
 import '../users/personal_vehicle_screen.dart' as pvs;
+import 'Vehicle/personal_request_screen.dart';
 import 'ITSupport/it_support_home_screen.dart';
 import 'ITSupport/ticket_conversation_screen.dart';
 import 'Services/ticket_api_service.dart';
@@ -180,8 +181,8 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       _ServiceItem(
         image: 'assets/123456.png',
-        label: "Shuttle & Transfer Trip",
-        description: "Track and manage your Shuttle and Transfer vehicle trips",
+        label: "Shuttle & Transfer Movement",
+        description: "Manage Shuttle and Transfer vehicle Movement",
         disabled: false,
         onTap: () {
           Navigator.push(
@@ -193,7 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _ServiceItem(
         image: 'assets/gatepass.png',
         label: "Gate Pass",
-        description: "Gate pass Request Personal Requirements during Office Hours",
+        description: "Gate Pass Request for Personal Requirements during Office Hours",
         disabled: false,
         onTap: () {
           Navigator.push(
@@ -448,13 +449,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 18,
+                        fontSize: 19,
                         fontWeight: FontWeight.w900,
                         color: Colors.white,
                         letterSpacing: 0.2,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -537,9 +538,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 16),
           const Text(
-            "What service do you\nneed today?",
+            "Explore Holdings Staff App\nSimple. Smart. Secure.",
             style: TextStyle(
-              fontSize: 21,
+              fontSize: 20,
               fontWeight: FontWeight.w800,
               color: Colors.white,
               height: 1.25,
@@ -690,18 +691,37 @@ class _HomeScreenState extends State<HomeScreen> {
             MaterialPageRoute(builder: (_) => GatePassScreen(user: widget.user)));
         break;
 
-      // ── OFFICE & PERSONAL VEHICLE ───────────────────────────────────────────
+      // ── OFFICE VEHICLE: manager needs to approve ─────────────────────────────
       case "vehicle_request_approval":
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => VehicleScreen(user: widget.user, initialTab: 2)));
+        break;
+
+      // ── OFFICE VEHICLE: employee feedback / companion added ───────────────────
       case "vehicle_request_companion":
       case "vehicle_approved":
       case "vehicle_rejected":
+      case "vehicle_changed_mid_trip":
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => VehicleScreen(user: widget.user, initialTab: 1)));
+        break;
+
+      // ── PERSONAL VEHICLE: manager needs to approve ────────────────────────────
       case "personal_vehicle_approval":
       case "personal_vehicle_forwarded":
       case "personal_vehicle_gm_approval":
-      case "personal_vehicle_approved":
-      case "vehicle_changed_mid_trip":
+        final managerId = (widget.user["employee_id"] ??
+                widget.user["employeeId"] ??
+                widget.user["id"] ?? "")
+            .toString();
         Navigator.push(context,
-            MaterialPageRoute(builder: (_) => VehicleHomeScreen(user: widget.user)));
+            MaterialPageRoute(builder: (_) => PersonalRequestScreen(managerId: managerId)));
+        break;
+
+      // ── PERSONAL VEHICLE: employee feedback ───────────────────────────────────
+      case "personal_vehicle_approved":
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => pvs.VehicleScreen(user: widget.user, initialTab: 1)));
         break;
 
       // ── MEETING & EVENTS ───────────────────────────────────────────────────
