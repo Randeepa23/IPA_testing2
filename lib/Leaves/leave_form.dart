@@ -47,7 +47,7 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
   String? attachedFileName;
 
   // Example leave types
-  final leaveTypes = ['Annual Leave', 'Sick Leave', 'Casual Leave', 'Half Day'];
+  final leaveTypes = ['Annual Leave', 'Medical Leave', 'Casual Leave', 'Half Day'];
 
   bool isHalfDay = false;
   String? halfDaySession; // 'MORNING' or 'EVENING'
@@ -72,6 +72,12 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
   double  _noPayDays = 0;
   bool    _noPayAcknowledged = false;
   String? _noPayError;
+
+  // Multi-select calendar (Annual Leave)
+  Set<DateTime> _selectedDates = {};
+
+  // Annual Leave remaining balance — drives adaptive minimum days
+  double? _annualLeaveRemaining;
 
   // Approving manager
   List<Map<String, String>> _leaveManagers = [];
@@ -283,16 +289,18 @@ Future<void> _submitForm() async {
     }
   }
 
-  if (fromDate == null || toDate == null || selectedLeaveType == null) return;
+  if (selectedLeaveType == null) return;
+  if (!isHalfDay && _selectedDates.isEmpty) return;
+  if (isHalfDay && (fromDate == null || toDate == null)) return;
 
-  // Enforce minimum days per leave type
-  final totalDays = toDate!.difference(fromDate!).inDays + 1;
+  // Enforce minimum working days per leave type
+  final totalDays = isHalfDay ? 1 : _selectedDates.length;
   final minDays = _minimumDays();
   if (totalDays < minDays) {
     TopBanner.show(
       context,
       title: 'Minimum Days Required',
-      message: '$selectedLeaveType requires at least $minDays days. Please adjust your dates.',
+      message: '$selectedLeaveType requires at least $minDays working days (weekends excluded). Please adjust your dates.',
       icon: Icons.warning_amber_rounded,
       rightButtonText: 'OK',
       onRightTap: () {},
@@ -321,7 +329,7 @@ Future<void> _submitForm() async {
 
   final start = DateFormat('yyyy-MM-dd').format(fromDate!);
   final end = DateFormat('yyyy-MM-dd').format(toDate!);
-  final days = (toDate!.difference(fromDate!).inDays + 1).toDouble();
+  final days = isHalfDay ? 0.5 : _selectedDates.length.toDouble();
 
   try {
     setState(() {
@@ -411,7 +419,7 @@ Future<void> _submitForm() async {
 
 int _leaveTypeToId(String type) {
   if (type == "Annual Leave") return 1;
-  if (type == "Sick Leave") return 2;
+  if (type == "Medical Leave") return 2;
   if (type == "Casual Leave") return 3;
   if (type == "Half Day") return 4;
   return 0;
@@ -432,9 +440,11 @@ void _showSubmitConfirmation() {
   final leaveType = selectedLeaveType ?? "Leave";
   final fromTxt = fromDate == null ? "-" : DateFormat('yyyy-MM-dd').format(fromDate!);
   final toTxt = toDate == null ? "-" : DateFormat('yyyy-MM-dd').format(toDate!);
-  final daysTxt = (fromDate != null && toDate != null)
-      ? "${toDate!.difference(fromDate!).inDays + 1} days"
-      : "-";
+  final daysTxt = isHalfDay
+      ? "Half Day"
+      : _selectedDates.isNotEmpty
+          ? "${_selectedDates.length} working days"
+          : "-";
 
   showLeaveSubmitDialog(
     context: context,
@@ -448,9 +458,30 @@ void _showSubmitConfirmation() {
 }
 
 
+  Future<void> _loadAnnualLeaveBalance() async {
+    final empId = widget.user["employeeId"]?.toString()
+        ?? widget.user["employee_id"]?.toString() ?? "";
+    if (empId.isEmpty) return;
+    try {
+      final res = await ApiService.checkLeaveNoPayPreview(
+        employeeId:    empId,
+        leavePolicyId: 1,   // Annual Leave
+        days:          1,   // probe — we only need the remaining field
+      );
+      if (!mounted) return;
+      if (selectedLeaveType != 'Annual Leave') return; // stale guard
+      if (res["success"] == true) {
+        final remaining = (res["data"]?["remaining"] as num?)?.toDouble();
+        if (remaining != null) setState(() => _annualLeaveRemaining = remaining);
+      }
+    } catch (_) {}
+  }
+
   Future<void> _checkNoPayPreview() async {
     if (selectedLeaveType == null) return;
-    final leavePolicyId = _leaveTypeToId(selectedLeaveType!);
+    final rawPolicyId = _leaveTypeToId(selectedLeaveType!);
+    // Half Day (4) checks against Casual Leave (3) balance with 0.5 days
+    final leavePolicyId = rawPolicyId == 4 ? 3 : rawPolicyId;
 
     if (![1, 2, 3].contains(leavePolicyId)) {
       setState(() {
@@ -462,10 +493,14 @@ void _showSubmitConfirmation() {
       return;
     }
 
-    final effectiveTo = isHalfDay ? fromDate : toDate;
-    if (fromDate == null || effectiveTo == null) return;
-
-    final days = (effectiveTo.difference(fromDate!).inDays + 1).toDouble();
+    final double days;
+    if (rawPolicyId == 4) {
+      if (fromDate == null) return;
+      days = 0.5;
+    } else {
+      if (_selectedDates.isEmpty) return;
+      days = _selectedDates.length.toDouble();
+    }
     final empId = widget.user["employeeId"]?.toString()
         ?? widget.user["employee_id"]?.toString() ?? "";
     if (empId.isEmpty) return;
@@ -473,21 +508,51 @@ void _showSubmitConfirmation() {
     try {
       final res = await ApiService.checkLeaveNoPayPreview(
         employeeId:    empId,
-        leavePolicyId: leavePolicyId,
-        days:          days,
+        leavePolicyId: leavePolicyId, // 3 for Half Day
+        days:          days,          // 0.5 for Half Day
       );
+      if (!mounted) return;
+      // Discard stale response if leave type changed while awaiting
+      if (_leaveTypeToId(selectedLeaveType ?? '') != rawPolicyId) return;
       if (res["success"] == true) {
         final d = res["data"] ?? {};
         setState(() {
           _remainingBalance  = (d["remaining"] as num?)?.toDouble();
-          _paidDays           = (d["paidDays"]  as num?)?.toDouble() ?? days;
-          _noPayDays           = (d["noPayDays"] as num?)?.toDouble() ?? 0;
-          _noPayAcknowledged   = false;
-          _noPayError          = null;
+          _paidDays          = (d["paidDays"]  as num?)?.toDouble() ?? days;
+          _noPayDays         = (d["noPayDays"] as num?)?.toDouble() ?? 0;
+          _noPayAcknowledged = false;
+          _noPayError        = null;
         });
       }
     } catch (_) {
       // fail silently — PHP validates again on actual submit
+    }
+  }
+
+  Future<void> _openMultiDatePicker({bool singleSelect = false}) async {
+    final result = await showModalBottomSheet<Set<DateTime>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => _MultiSelectCalendarSheet(
+        initialSelected: _selectedDates,
+        firstDate: _leavePickerFirstDate(),
+        singleSelect: singleSelect,
+      ),
+    );
+
+    if (result != null) {
+      final sorted = result.toList()..sort();
+      setState(() {
+        _selectedDates = result;
+        fromDate = sorted.isEmpty ? null : sorted.first;
+        toDate   = sorted.isEmpty ? null : sorted.last;
+      });
+      _loadRelievers();
+      _checkNoPayPreview();
     }
   }
 
@@ -656,14 +721,14 @@ void _showSubmitConfirmation() {
                 onChanged: (v) {
                 setState(() {
                   selectedLeaveType = v;
-
-                  // check Half Day
                   isHalfDay = (v == "Half Day");
-
-                  // reset right side field
-                  toDate = null;
                   halfDaySession = null;
+                  fromDate = null;
+                  toDate = null;
+                  _selectedDates = {};
+                  _annualLeaveRemaining = null; // reset on every type change
                 });
+                if (v == 'Annual Leave') _loadAnnualLeaveBalance();
                 _checkNoPayPreview();
               },
 
@@ -678,15 +743,37 @@ void _showSubmitConfirmation() {
               if (isHalfDay) ...[
                 const FormSectionTitle('Date *'),
                 const SizedBox(height: 8),
-                _buildDatePicker('Select date', fromDate, (date) {
-                  setState(() {
-                    fromDate = date;
-                    toDate = date;
-                  });
-                  _loadRelievers();
-                  _checkNoPayPreview();
-                }),
-
+                GestureDetector(
+                  onTap: () => _openMultiDatePicker(singleSelect: true),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade300, width: 1),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.calendar_month, color: Colors.grey.shade700),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: fromDate == null
+                              ? Text('Tap to select date',
+                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 15))
+                              : Text(
+                                  DateFormat('EEE, d MMM yyyy').format(fromDate!),
+                                  style: const TextStyle(
+                                      color: Colors.black87,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600),
+                                ),
+                        ),
+                        Icon(Icons.edit_calendar_outlined,
+                            color: Colors.grey.shade700, size: 18),
+                      ],
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 12),
                 const FormSectionTitle('Half Day Session *'),
                 const SizedBox(height: 8),
@@ -788,153 +875,139 @@ void _showSubmitConfirmation() {
                   ),
                 ],
               ] else ...[
-              // ---------------- DATES (SIDE BY SIDE) ----------------
-              Row(
-                children: [
-                  // LEFT: From date / Date
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        FormSectionTitle(isHalfDay ? 'Date *' : 'From date *'),
-                        const SizedBox(height: 8),
-                        _buildDatePicker(
-                          isHalfDay ? 'Select date' : 'From date',
-                          fromDate,
-                          (date) {
-                            setState(() {
-                              fromDate = date;
-                              if (isHalfDay) {
-                                toDate = date;
-                              } else {
-                                // reset toDate if it no longer meets the minimum
-                                final min = _minToDate();
-                                if (toDate != null &&
-                                    min != null &&
-                                    toDate!.isBefore(min)) {
-                                  toDate = null;
-                                }
-                              }
-                            });
-                            _loadRelievers();
-                            _checkNoPayPreview();
-                          },
-                        ),
-                      ],
+              // ── Annual Leave: tap individual working days ─────────────────────
+              if (selectedLeaveType == 'Annual Leave') ...[
+                const FormSectionTitle('Select Working Days *'),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: _openMultiDatePicker,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade300, width: 1),
                     ),
-                  ),
-
-                  const SizedBox(width: 12),
-
-                  // RIGHT: To date OR Time (Morning/Evening)
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
                       children: [
-                        FormSectionTitle(isHalfDay ? 'Time *' : 'To date *'),
-                        const SizedBox(height: 8),
-
-                        if (isHalfDay)
-                          DropdownButtonFormField<String>(
-                            value: halfDaySession,
-                            dropdownColor: Colors.white,
-                            decoration: _dropdownDecoration(),
-                            hint: Text('Select time', style: TextStyle(color: Colors.grey.shade600)),
-                            items: const [
-                              DropdownMenuItem(value: 'MORNING', child: Text('Morning')),
-                              DropdownMenuItem(value: 'EVENING', child: Text('Evening')),
-                            ],
-                            onChanged: (v) => setState(() => halfDaySession = v),
-                            validator: (v) => v == null ? 'Select time' : null,
-                          )
-                        else
-                          _buildDatePicker(
-                            'To date',
-                            toDate,
-                            (date) {
-                              setState(() => toDate = date);
-                              _loadRelievers();
-                              _checkNoPayPreview();
-                            },
-                            notBefore: _minToDate(),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 10),
-
-                const SizedBox(height: 10),
-                if (fromDate != null && toDate != null)
-                  Builder(builder: (context) {
-                    final days = toDate!.difference(fromDate!).inDays + 1;
-                    final minDays = _minimumDays();
-                    final belowMin = days < minDays;
-                    return Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: belowMin
-                                ? const Color(0xFFFFEBEE)
-                                : const Color(0xFFEAF1FF),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Total Days',
-                                style: TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.black87),
-                              ),
-                              Text(
-                                '$days days',
-                                style: TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w900,
-                                    color: belowMin
-                                        ? const Color(0xFFD32F2F)
-                                        : Colors.black87),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (minDays > 1) ...[
-                          const SizedBox(height: 5),
-                          Row(
-                            children: [
-                              Icon(
-                                belowMin
-                                    ? Icons.error_outline
-                                    : Icons.info_outline,
-                                size: 13,
-                                color: belowMin
-                                    ? const Color(0xFFD32F2F)
-                                    : const Color(0xFF1565C0),
-                              ),
-                              const SizedBox(width: 5),
-                              Text(
-                                '$selectedLeaveType requires a minimum of $minDays days.',
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: belowMin
-                                      ? const Color(0xFFD32F2F)
-                                      : const Color(0xFF1E2A3A),
+                        Icon(Icons.calendar_month, color: Colors.grey.shade700),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _selectedDates.isEmpty
+                              ? Text('Tap to select working days',
+                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 15))
+                              : Text(
+                                  '${_selectedDates.length} day${_selectedDates.length == 1 ? '' : 's'} selected'
+                                  ' · ${DateFormat('d MMM').format(fromDate!)} – ${DateFormat('d MMM').format(toDate!)}',
+                                  style: const TextStyle(
+                                      color: Colors.black87,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                        ),
+                        Icon(Icons.edit_calendar_outlined,
+                            color: Colors.grey.shade700, size: 18),
                       ],
-                    );
-                  }),
+                    ),
+                  ),
+                ),
+                if (_selectedDates.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: _selectedDates.length < _minimumDays()
+                            ? const Color(0xFFFFEBEE)
+                            : const Color(0xFFEAF1FF),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Selected Days',
+                              style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black87)),
+                          Text('${_selectedDates.length} working days',
+                              style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w900,
+                                  color: _selectedDates.length < _minimumDays()
+                                      ? const Color(0xFFD32F2F)
+                                      : Colors.black87)),
+                        ],
+                      ),
+                    ),
+                  ),
+              ] else ...[
+                // ── Medical / Casual: same multi-select calendar ──────────────
+                const FormSectionTitle('Leave Dates *'),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: _openMultiDatePicker,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade300, width: 1),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.calendar_month, color: Colors.grey.shade700),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _selectedDates.isEmpty
+                              ? Text('Tap to select leave dates',
+                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 15))
+                              : Text(
+                                  '${_selectedDates.length} day${_selectedDates.length == 1 ? '' : 's'} selected'
+                                  ' · ${DateFormat('d MMM').format(fromDate!)} – ${DateFormat('d MMM').format(toDate!)}',
+                                  style: const TextStyle(
+                                      color: Colors.black87,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600),
+                                ),
+                        ),
+                        Icon(Icons.edit_calendar_outlined,
+                            color: Colors.grey.shade700, size: 18),
+                      ],
+                    ),
+                  ),
+                ),
+                if (_selectedDates.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: _selectedDates.length < _minimumDays()
+                            ? const Color(0xFFFFEBEE)
+                            : const Color(0xFFEAF1FF),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Selected Days',
+                              style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black87)),
+                          Text('${_selectedDates.length} working days',
+                              style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w900,
+                                  color: _selectedDates.length < _minimumDays()
+                                      ? const Color(0xFFD32F2F)
+                                      : Colors.black87)),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
                 if (_noPayDays > 0) ...[
                   const SizedBox(height: 10),
                   Container(
@@ -1578,88 +1651,351 @@ void _showSubmitConfirmation() {
   // ---------------- UI HELPERS (UI ONLY) ----------------
 
   /// Earliest selectable date — depends on leave type:
-  /// Annual Leave → today (no past).
-  /// Sick Leave   → today (no past; apply promptly after illness).
-  /// Others       → 3 days in the past (retroactive casual/half-day).
+  /// Annual Leave   → today (no past).
+  /// Medical Leave  → yesterday (can report next day after illness).
+  /// Others         → 3 days in the past (retroactive casual/half-day).
   DateTime _leavePickerFirstDate() {
     final today = DateUtils.dateOnly(DateTime.now());
-    if (selectedLeaveType == 'Annual Leave' ||
-        selectedLeaveType == 'Sick Leave') {
+    if (selectedLeaveType == 'Annual Leave') {
       return today;
+    }
+    if (selectedLeaveType == 'Medical Leave') {
+      return today.subtract(const Duration(days: 1));
     }
     return today.subtract(const Duration(days: 3));
   }
 
-  /// Minimum allowed "To date" given [fromDate] and the current leave type.
-  /// Annual Leave → fromDate + 2 days (≥ 3 days total).
-  /// Sick Leave   → fromDate + 1 day  (≥ 2 days total).
-  /// Others       → fromDate itself (no minimum beyond 1 day).
-  DateTime? _minToDate() {
-    if (fromDate == null) return null;
-    if (selectedLeaveType == 'Annual Leave') {
-      return fromDate!.add(const Duration(days: 2));
-    }
-    // if (selectedLeaveType == 'Sick Leave') {
-    //   return fromDate!.add(const Duration(days: 1));
-    // }
-    return fromDate;
-  }
-
   int _minimumDays() {
-    if (selectedLeaveType == 'Annual Leave') return 3;
-    // if (selectedLeaveType == 'Sick Leave') return 2;
+    if (selectedLeaveType == 'Annual Leave') {
+      final r = _annualLeaveRemaining;
+      // remaining is always a whole number (0, 1, 2, 3 …)
+      // if < 3, the minimum matches remaining (at least 1)
+      if (r != null && r < 3) return r.toInt().clamp(1, 2);
+      return 3;
+    }
     return 1;
   }
 
-  Widget _buildDatePicker(
-    String hint,
-    DateTime? selected,
-    Function(DateTime) onSelect, {
-    DateTime? notBefore,
-  }) {
-    return TextFormField(
-      readOnly: true,
-      style: const TextStyle(color: Colors.black, fontSize: 15),
-      decoration: _inputDecoration(
-        hint,
-        suffix: Icon(Icons.calendar_today, color: Colors.grey.shade700),
-      ),
-      controller: TextEditingController(
-        text: selected == null ? '' : DateFormat('yyyy-MM-dd').format(selected),
-      ),
-      validator: (_) => selected == null ? 'Required' : null,
-      onTap: () async {
-        final today = DateUtils.dateOnly(DateTime.now());
-        var firstDate = _leavePickerFirstDate();
-        if (notBefore != null) {
-          final nb = DateUtils.dateOnly(notBefore);
-          if (nb.isAfter(firstDate)) firstDate = nb;
-        }
-        final lastDate = DateTime(2030);
-        var initialDate = selected ?? today;
-        if (initialDate.isBefore(firstDate)) initialDate = firstDate;
-        if (initialDate.isAfter(lastDate)) initialDate = lastDate;
+}
 
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: initialDate,
-          firstDate: firstDate,
-          lastDate: lastDate,
-          builder: (ctx, child) => Theme(
-            data: Theme.of(ctx).copyWith(
-              colorScheme: const ColorScheme.light(
-                primary: Color(0xFF1565C0),      // header & selected day
-                onPrimary: Colors.white,          // text on header
-                surface: Colors.white,            // calendar background
-                onSurface: Color(0xFF1E2A3A),     // day numbers
+// ─────────────────────────────────────────────────────────────────────────────
+// Multi-select calendar sheet (Annual Leave)
+// ─────────────────────────────────────────────────────────────────────────────
+class _MultiSelectCalendarSheet extends StatefulWidget {
+  final Set<DateTime> initialSelected;
+  final DateTime firstDate;
+  final bool singleSelect;
+
+  const _MultiSelectCalendarSheet({
+    required this.initialSelected,
+    required this.firstDate,
+    this.singleSelect = false,
+  });
+
+  @override
+  State<_MultiSelectCalendarSheet> createState() =>
+      _MultiSelectCalendarSheetState();
+}
+
+class _MultiSelectCalendarSheetState extends State<_MultiSelectCalendarSheet> {
+  late Set<DateTime> _selected;
+  late DateTime _focusedMonth;
+
+  static const _dayLabels = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = widget.initialSelected.map(DateUtils.dateOnly).toSet();
+    final today = DateUtils.dateOnly(DateTime.now());
+    _focusedMonth = DateTime(today.year, today.month, 1);
+  }
+
+  bool _isWeekend(DateTime d) =>
+      d.weekday == DateTime.saturday || d.weekday == DateTime.sunday;
+
+  bool _isBeforeFirst(DateTime d) =>
+      DateUtils.dateOnly(d).isBefore(DateUtils.dateOnly(widget.firstDate));
+
+  bool _isSelected(DateTime d) =>
+      _selected.any((s) => DateUtils.isSameDay(s, d));
+
+  void _toggle(DateTime d) {
+    if (_isBeforeFirst(d) || _isWeekend(d)) return;
+    final key = DateUtils.dateOnly(d);
+
+    if (widget.singleSelect) {
+      setState(() {
+        if (_isSelected(key)) {
+          _selected.clear();
+        } else {
+          _selected = {key};
+        }
+      });
+      return;
+    }
+
+    if (_selected.isEmpty) {
+      setState(() => _selected.add(key));
+      return;
+    }
+
+    final sorted = _selected.toList()..sort();
+    final first = sorted.first;
+    final last  = sorted.last;
+
+    if (DateUtils.isSameDay(key, first)) {
+      setState(() => _selected.removeWhere((s) => DateUtils.isSameDay(s, first)));
+    } else if (DateUtils.isSameDay(key, last)) {
+      setState(() => _selected.removeWhere((s) => DateUtils.isSameDay(s, last)));
+    } else if (key.isAfter(last)) {
+      setState(() {
+        DateTime fill = last.add(const Duration(days: 1));
+        while (!fill.isAfter(key)) {
+          if (!_isWeekend(fill)) _selected.add(DateUtils.dateOnly(fill));
+          fill = fill.add(const Duration(days: 1));
+        }
+      });
+    } else if (key.isBefore(first)) {
+      setState(() {
+        DateTime fill = key;
+        while (fill.isBefore(first)) {
+          if (!_isWeekend(fill)) _selected.add(DateUtils.dateOnly(fill));
+          fill = fill.add(const Duration(days: 1));
+        }
+      });
+    }
+  }
+
+  void _clearSelection() => setState(() => _selected.clear());
+
+  @override
+  Widget build(BuildContext context) {
+    final daysInMonth =
+        DateUtils.getDaysInMonth(_focusedMonth.year, _focusedMonth.month);
+    // weekday of the 1st: 1=Mon … 7=Sun (our grid starts on Monday)
+    final firstWeekday =
+        DateTime(_focusedMonth.year, _focusedMonth.month, 1).weekday;
+    final count = _selected.length;
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.72,
+      minChildSize: 0.5,
+      maxChildSize: 0.92,
+      expand: false,
+      builder: (_, scrollController) => SingleChildScrollView(
+        controller: scrollController,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // drag handle
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-              dialogBackgroundColor: Colors.white,
-            ),
-            child: child!,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const SizedBox(width: 48),
+                  Text(
+                    widget.singleSelect ? 'Select Date' : 'Select Working Days',
+                    style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1E2A3A)),
+                  ),
+                  SizedBox(
+                    width: 48,
+                    child: _selected.isNotEmpty
+                        ? GestureDetector(
+                            onTap: _clearSelection,
+                            child: const Text(
+                              'Clear',
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF1565C0),
+                                  fontWeight: FontWeight.w700),
+                              textAlign: TextAlign.right,
+                            ),
+                          )
+                        : const SizedBox(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                widget.singleSelect
+                    ? 'Tap a working day to select your half day date'
+                    : 'Tap a date to start · extend forward or backward · weekends auto-skipped',
+                style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              // month navigation
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left,
+                        color: Color(0xFF1565C0)),
+                    onPressed: () => setState(() {
+                      _focusedMonth = DateTime(
+                          _focusedMonth.year, _focusedMonth.month - 1, 1);
+                    }),
+                  ),
+                  Text(
+                    DateFormat('MMMM yyyy').format(_focusedMonth),
+                    style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1E2A3A)),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right,
+                        color: Color(0xFF1565C0)),
+                    onPressed: () => setState(() {
+                      _focusedMonth = DateTime(
+                          _focusedMonth.year, _focusedMonth.month + 1, 1);
+                    }),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              // day-of-week headers
+              Row(
+                children: _dayLabels.map((label) {
+                  final isWeekendCol = label == 'Sa' || label == 'Su';
+                  return Expanded(
+                    child: Center(
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: isWeekendCol
+                              ? Colors.grey.shade300
+                              : Colors.grey.shade600,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 4),
+              // day grid
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 7,
+                  childAspectRatio: 1,
+                ),
+                itemCount: (firstWeekday - 1) + daysInMonth,
+                itemBuilder: (_, index) {
+                  if (index < firstWeekday - 1) return const SizedBox();
+                  final day = index - (firstWeekday - 1) + 1;
+                  final d = DateTime(
+                      _focusedMonth.year, _focusedMonth.month, day);
+                  final weekend = _isWeekend(d);
+                  final beforeFirst = _isBeforeFirst(d);
+                  final disabled = weekend || beforeFirst;
+                  final selected = _isSelected(d);
+
+                  return GestureDetector(
+                    onTap: disabled ? null : () => _toggle(d),
+                    child: Container(
+                      margin: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: selected
+                            ? const Color(0xFF1565C0)
+                            : Colors.transparent,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '$day',
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: selected
+                              ? FontWeight.w800
+                              : FontWeight.w500,
+                          color: selected
+                              ? Colors.white
+                              : disabled
+                                  ? Colors.grey.shade300
+                                  : Colors.black87,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              // selected-day chips preview
+              if (count > 0) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAF1FF),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: (_selected.toList()..sort()).map((d) => Text(
+                          DateFormat('EEE d MMM').format(d),
+                          style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1E2A3A)),
+                        )).toList(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: count == 0
+                      ? null
+                      : () => Navigator.pop(context, _selected),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1565C0),
+                    disabledBackgroundColor: Colors.grey.shade200,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: Text(
+                    count == 0
+                        ? (widget.singleSelect ? 'Select a date' : 'Select at least 1 day')
+                        : widget.singleSelect
+                            ? 'Confirm  ·  ${DateFormat('EEE, d MMM').format(_selected.first)}'
+                            : 'Confirm $count day${count == 1 ? '' : 's'}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: count == 0
+                          ? Colors.grey.shade400
+                          : Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        );
-        if (picked != null) onSelect(picked);
-      },
+        ),
+      ),
     );
   }
 }

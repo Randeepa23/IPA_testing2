@@ -134,14 +134,16 @@ class TodayBooking {
 class TodayBookingsResult {
   final bool status;
   final String message;
-  final String date;
+  final String fromDate;
+  final String toDate;
   final int count;
   final List<TodayBooking> bookings;
 
   const TodayBookingsResult({
     required this.status,
     required this.message,
-    required this.date,
+    required this.fromDate,
+    required this.toDate,
     required this.count,
     required this.bookings,
   });
@@ -878,7 +880,8 @@ class AirportParkingService {
         return TodayBookingsResult(
           status: false,
           message: 'Server error (${response.statusCode}).',
-          date: date ?? '',
+          fromDate: date ?? '',
+          toDate: '',
           count: 0,
           bookings: [],
         );
@@ -890,7 +893,8 @@ class AirportParkingService {
         return TodayBookingsResult(
           status: false,
           message: (json['message'] as String?) ?? 'Failed to load bookings.',
-          date: json['date']?.toString() ?? '',
+          fromDate: json['from_date']?.toString() ?? '',
+          toDate: json['to_date']?.toString() ?? '',
           count: 0,
           bookings: [],
         );
@@ -905,7 +909,8 @@ class AirportParkingService {
       return TodayBookingsResult(
         status: true,
         message: 'OK',
-        date: json['date']?.toString() ?? '',
+        fromDate: json['from_date']?.toString() ?? '',
+        toDate: json['to_date']?.toString() ?? '',
         count: (json['count'] as num?)?.toInt() ?? bookings.length,
         bookings: bookings,
       );
@@ -913,7 +918,8 @@ class AirportParkingService {
       return TodayBookingsResult(
         status: false,
         message: 'No internet connection.',
-        date: '',
+        fromDate: '',
+        toDate: '',
         count: 0,
         bookings: [],
       );
@@ -921,7 +927,8 @@ class AirportParkingService {
       return TodayBookingsResult(
         status: false,
         message: 'Something went wrong: $e',
-        date: '',
+        fromDate: '',
+        toDate: '',
         count: 0,
         bookings: [],
       );

@@ -41,6 +41,8 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
   bool isTodayLoading = false;
   List<TodayBooking> todayBookings = [];
   String? todayBookingsError;
+  String _fromDate = '';
+  String _toDate = '';
 
   static const _blue1 = Color(0xFF1565C0);
   static const _blue2 = Color(0xFF003580);
@@ -63,6 +65,8 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
     if (!mounted) return;
     setState(() {
       isTodayLoading = false;
+      _fromDate = result.fromDate;
+      _toDate = result.toDate;
       if (result.status) {
         todayBookings = result.bookings;
       } else {
@@ -1086,10 +1090,20 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
   // ──────────────────────────────────────────────
   //  TODAY'S BOOKINGS CARD
   // ──────────────────────────────────────────────
+  String _fmtShortDate(String ymd) {
+    try {
+      final dt = DateTime.parse(ymd);
+      return '${_monthNames[dt.month - 1]} ${dt.day}';
+    } catch (_) {
+      return ymd;
+    }
+  }
+
   Widget _buildTodayBookingsCard() {
     final now = DateTime.now();
-    final todayLabel =
-        '${_monthNames[now.month - 1]} ${now.day}, ${now.year}';
+    final todayLabel = (_fromDate.isNotEmpty && _toDate.isNotEmpty)
+        ? '${_fmtShortDate(_fromDate)} – ${_fmtShortDate(_toDate)}, ${now.year}'
+        : '${_monthNames[now.month - 1]} ${now.day}, ${now.year}';
 
     return Container(
       width: double.infinity,
@@ -1132,7 +1146,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        "Today's Bookings",
+                        "Upcoming Bookings",
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
