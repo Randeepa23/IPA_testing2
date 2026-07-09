@@ -16,7 +16,13 @@ class AppException implements Exception {
     if (e is SocketException) {
       return const AppException('No internet connection. Please check your Wi-Fi or mobile data.');
     }
-    final msg = e.toString();
+
+    // Strip "Exception: " prefix so message checks work correctly
+    String msg = e.toString();
+    if (msg.startsWith('Exception: ')) {
+      msg = msg.substring('Exception: '.length);
+    }
+
     if (msg.contains('Connection timed out') || msg.contains('errno = 110')) {
       return const AppException('Server is unreachable. Please check your internet connection and try again.');
     }
@@ -28,6 +34,8 @@ class AppException implements Exception {
     }
     if (msg.contains('404')) return const AppException('Service not found. Please contact support.');
     if (msg.contains('500')) return const AppException('Server error. Please try again later.');
-    return const AppException('Something went wrong. Please try again.');
+
+    // Return the actual message instead of the generic fallback
+    return AppException(msg.isNotEmpty ? msg : 'Something went wrong. Please try again.');
   }
 }
