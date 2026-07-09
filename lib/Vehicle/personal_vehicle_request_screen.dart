@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../Leaves/dashbord_screen.dart';
+import '../../home_screen.dart';
 import '../ui/dialogs/vehicle_submit_dialog.dart';
 import '../ui/dialogs/personal_vehicle_policy_dialog.dart';
 import '../Services/vehicle_api_service.dart';
@@ -174,6 +174,7 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
     super.dispose();
   }
 
+  // Enforce policy acceptance before allowing form submission
   Future<void> _enforcePolicyAcceptance() async {
     if (!mounted || _policyAccepted || _policyDialogVisible) {
       return;
@@ -188,7 +189,7 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
       setState(() => _policyAccepted = true);
       return;
     }
-
+    // User declined the policy, show a banner and navigate back to home
     TopBanner.show(
       context,
       title: "Policy Required",
@@ -196,8 +197,13 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
       icon: Icons.error_outline,
       isSuccess: false,
     );
+    // Navigate back to the home screen
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => DashboardScreen(user: widget.user)),
+      MaterialPageRoute(builder: (_) => HomeScreen(
+        username: widget.user["username"]?.toString() ?? "",
+        name: widget.user["name"]?.toString() ?? "",
+        user: widget.user,
+      )),
       (route) => false,
     );
   }
