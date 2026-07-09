@@ -199,11 +199,9 @@ Future<void> showEndCurrentVehicleDialog({
                                 const SizedBox(height: 10),
                                 fieldLabel("End Meter Photo *"),
                                 const SizedBox(height: 8),
+                                // ── Photo picker ─────────────────────────────────────────
                                 GestureDetector(
                                   onTap: () async {
-                                    FocusScope.of(ctx).unfocus();
-                                    await Future.delayed(const Duration(milliseconds: 150));
-                                    if (!ctx.mounted) return;
                                     await showModalBottomSheet(
                                       context: ctx,
                                       shape: const RoundedRectangleBorder(
@@ -598,9 +596,6 @@ Future<void> showStartNewVehicleDialog({
                                   const SizedBox(height: 8),
                                   GestureDetector(
                                     onTap: () async {
-                                      FocusScope.of(ctx).unfocus();
-                                      await Future.delayed(const Duration(milliseconds: 150));
-                                      if (!ctx.mounted) return;
                                       await showModalBottomSheet(
                                         context: ctx,
                                         shape: const RoundedRectangleBorder(
