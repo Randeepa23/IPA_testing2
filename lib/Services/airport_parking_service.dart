@@ -113,6 +113,9 @@ class TodayBooking {
   final String startDate;
   final String endDate;
   final String totalPrice;
+  final String bookingStatus;
+  final String customerStatus;
+  final String checkOutDatetime;
 
   const TodayBooking({
     required this.referenceNumber,
@@ -120,7 +123,20 @@ class TodayBooking {
     required this.startDate,
     required this.endDate,
     required this.totalPrice,
+    required this.bookingStatus,
+    required this.customerStatus,
+    required this.checkOutDatetime,
   });
+
+  bool get isCheckedIn {
+    final s = customerStatus.toLowerCase();
+    return s == 'check_in' || s == 'checked_in' || s == 'checked in';
+  }
+
+  bool get isCheckedOut {
+    final dt = checkOutDatetime.trim().toLowerCase();
+    return dt.isNotEmpty && dt != 'null';
+  }
 
   factory TodayBooking.fromJson(Map<String, dynamic> json) => TodayBooking(
         referenceNumber: json['reference_number']?.toString() ?? '',
@@ -128,6 +144,9 @@ class TodayBooking {
         startDate: json['start_date']?.toString() ?? '',
         endDate: json['end_date']?.toString() ?? '',
         totalPrice: json['total_price']?.toString() ?? '0.00',
+        bookingStatus: json['booking_status']?.toString() ?? '',
+        customerStatus: json['customer_status']?.toString() ?? '',
+        checkOutDatetime: json['check_out_datetime']?.toString() ?? '',
       );
 }
 

@@ -942,10 +942,9 @@ class _VehicleRequestCard extends StatelessWidget {
 
   Widget _attemptBanner() {
     final attempt = int.tryParse(
-            (data['current_attempt'] ?? data['usage_count'] ?? '1').toString()) ??
-        1;
+            (data['attempt_number'] ?? '0').toString()) ?? 0;
     final label =
-        (data['attempt_label'] ?? (attempt == 1 ? 'First Attempt' : '$attempt Attempt'))
+        (data['attempt_label'] ?? (attempt > 0 ? '$attempt Attempt' : '—'))
             .toString()
             .trim();
 
@@ -984,22 +983,6 @@ class _VehicleRequestCard extends StatelessWidget {
               fontSize: 12.5,
               fontWeight: FontWeight.w900,
               color: textCol,
-            ),
-          ),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: iconCol.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              "#$attempt",
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-                color: iconCol,
-              ),
             ),
           ),
         ],
