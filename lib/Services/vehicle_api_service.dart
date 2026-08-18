@@ -4,6 +4,40 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:test_app/app_config.dart';
 
+class AttemptSlot {
+  final int attemptNumber;
+  final String label;
+  final String discount;
+  final int discountPct;
+  final int? maxDays;
+  final bool carOnly;
+  final String status; // 'available' | 'pending' | 'approved'
+
+  const AttemptSlot({
+    required this.attemptNumber,
+    required this.label,
+    required this.discount,
+    required this.discountPct,
+    this.maxDays,
+    required this.carOnly,
+    required this.status,
+  });
+
+  bool get isSelectable => status == 'available';
+
+  factory AttemptSlot.fromJson(Map<String, dynamic> json) {
+    return AttemptSlot(
+      attemptNumber: (json['attempt_number'] as num).toInt(),
+      label: json['label'] as String,
+      discount: json['discount'] as String,
+      discountPct: (json['discount_pct'] as num).toInt(),
+      maxDays: json['max_days'] == null ? null : (json['max_days'] as num).toInt(),
+      carOnly: json['car_only'] == true,
+      status: json['status'] as String,
+    );
+  }
+}
+
 class VehicleApiService {
 
   // ── Base URL for Vehicle API ────────────────────────────────────────────────
@@ -477,6 +511,7 @@ class VehicleApiService {
     required String toDate,
     required String contactNo,
     required String employeeName,
+    required int attemptNumber,
     String reason = "Personal Service",
     String? vehicleType,
     int? vehicleId,
@@ -504,8 +539,8 @@ class VehicleApiService {
               "reason": reason,
               "vehicle_type": vehicleType,
               "vehicle_id": vehicleId,
+              "attempt_number": attemptNumber,
               "remark": remark ?? "",
-
             }),
           )
           .timeout(const Duration(seconds: 15));
@@ -825,6 +860,27 @@ static Future<List<Map<String, dynamic>>> fetchGeneralManagerPersonalRequests({
       if (decoded["success"] != true) {
         throw Exception(decoded["message"] ?? "Reject failed");
       }
+    } on TimeoutException {
+      throw Exception('Request timed out. Please check your connection and retry.');
+    } catch (e) {
+      throw Exception(_friendlyError(e));
+    }
+  }
+
+  static Future<List<AttemptSlot>> getPersonalAttemptSlots(String employeeId) async {
+    try {
+      final url = Uri.parse("$baseUrl/get_personal_attempt_slots.php?employee_id=$employeeId");
+      final res = await http.get(url).timeout(const Duration(seconds: 15));
+
+      if (res.body.trim().isEmpty) throw Exception('No response from server.');
+      final json = jsonDecode(res.body);
+      if (json["success"] != true) {
+        throw Exception(json["message"] ?? "Failed to fetch attempt slots");
+      }
+      final List slots = (json["data"] ?? {})["slots"] ?? [];
+      return slots
+          .map((e) => AttemptSlot.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
     } on TimeoutException {
       throw Exception('Request timed out. Please check your connection and retry.');
     } catch (e) {
