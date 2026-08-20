@@ -1,0 +1,36 @@
+plugins {
+    id 'com.android.library'
+}
+
+rootProject.allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+group 'com.prongbang.screen_protector'
+
+android {
+    namespace 'com.prongbang.screen_protector'
+    compileSdk 36
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+
+    defaultConfig {
+        minSdk 21
+        targetSdk 36
+    }
+
+    lint {
+        disable 'InvalidPackage'
+    }
+}
