@@ -47,14 +47,13 @@ class _PersonalVehiclePolicyDialogState
       children: [
         BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-          child: Container(color: Colors.black.withOpacity(0.15)),
+          child: Container(color: Colors.black.withValues(alpha: 0.15)),
         ),
         Center(
           child: Theme(
             data: Theme.of(context).copyWith(
               brightness: Brightness.light,
               scaffoldBackgroundColor: Colors.white,
-              dialogBackgroundColor: Colors.white,
               colorScheme: const ColorScheme.light(
                 surface: Colors.white,
                 onSurface: Color(0xFF1E2A3A),
@@ -63,7 +62,7 @@ class _PersonalVehiclePolicyDialogState
               popupMenuTheme: const PopupMenuThemeData(
                 color: Colors.white,
                 surfaceTintColor: Colors.white,
-              ),
+              ), dialogTheme: DialogThemeData(backgroundColor: Colors.white),
             ),
             child: Dialog(
               backgroundColor: Colors.white,

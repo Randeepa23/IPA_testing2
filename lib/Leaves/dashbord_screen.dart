@@ -13,7 +13,7 @@ import '../Services/vehicle_api_service.dart';
 class DashboardScreen extends StatefulWidget {
   final Map<String, dynamic> user;
 
-  const DashboardScreen({Key? key, required this.user}) : super(key: key);
+  const DashboardScreen({super.key, required this.user});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -540,7 +540,7 @@ Future<void> _loadApprovedPersonalTripCount() async {
                                                   ),
                                                 );
                                               },
-                                              errorBuilder: (_, __, ___) => Container(
+                                              errorBuilder: (_, _, _) => Container(
                                                 color: Colors.white,
                                                 child: const Icon(Icons.person, size: 16, color: Colors.blue),
                                               ),
@@ -979,7 +979,7 @@ void showBottomMessage(String text) {
         border: Border.all(color: const Color(0xFFE8EDF5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -1014,7 +1014,7 @@ void showBottomMessage(String text) {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
+              color: color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(

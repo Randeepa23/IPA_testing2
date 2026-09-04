@@ -214,6 +214,7 @@ Future<void> showStopTripDialog({
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
                                                 ListTile(
+                                                  tileColor: Colors.white,
                                                   leading: const Icon(Icons.camera_alt),
                                                   title: const Text("Take photo"),
                                                   onTap: () async {
@@ -222,6 +223,7 @@ Future<void> showStopTripDialog({
                                                   },
                                                 ),
                                                 ListTile(
+                                                  tileColor: Colors.white,
                                                   leading: const Icon(Icons.photo_library),
                                                   title: const Text("Choose from gallery"),
                                                   onTap: () async {
@@ -231,6 +233,7 @@ Future<void> showStopTripDialog({
                                                 ),
                                                 if (photoFile != null)
                                                   ListTile(
+                                                    tileColor: Colors.white,
                                                     leading: const Icon(Icons.delete,
                                                         color: Colors.red),
                                                     title: const Text("Remove photo"),

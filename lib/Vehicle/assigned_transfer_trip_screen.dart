@@ -71,22 +71,22 @@ class _AssignedTransferTripScreenState extends State<AssignedTransferTripScreen>
       // Map DB rows -> UI shape used in TripCard
       final mapped = await Future.wait(rows.map((e) async {
         
-        String _getDate(String v) => v.length >= 10 ? v.substring(0, 10) : "-";
+        String getDate(String v) => v.length >= 10 ? v.substring(0, 10) : "-";
 
-        String _getTime(String v) => v.length >= 16 ? v.substring(11, 16) : "-";
+        String getTime(String v) => v.length >= 16 ? v.substring(11, 16) : "-";
 
         // START
         final startAt = (e["assigned_start_at"] ?? "").toString();
-        final assignedStartDate = _getDate(startAt);
-        final startTime = _getTime(startAt);
+        final assignedStartDate = getDate(startAt);
+        final startTime = getTime(startAt);
 
         // STOP
         final stopAt = (e["trip_start_datetime"] ?? "").toString();
-        final startDate = _getDate(stopAt);
+        final startDate = getDate(stopAt);
 
         // END
         final endAt = (e["trip_end_datetime"] ?? "").toString();
-        final endDate = _getDate(endAt);
+        final endDate = getDate(endAt);
 
         final tripId = (e["id"] ?? "").toString();
 
@@ -627,7 +627,7 @@ class _SegmentTabs extends StatelessWidget {
           border: Border.all(color: const Color(0xFFE6ECF5)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(active ? 0.12 : 0.06),
+              color: Colors.black.withValues(alpha: active ? 0.12 : 0.06),
               blurRadius: 10,
               offset: const Offset(0, 6),
             )
@@ -679,7 +679,7 @@ class TripCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.12),
+                color: Colors.black.withValues(alpha: 0.12),
                 blurRadius: 12,
                 offset: const Offset(0, 6),
               ),
@@ -717,7 +717,7 @@ class TripCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE8EDF5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),

@@ -270,7 +270,7 @@ class _VehicleRequestCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFFE8EDF5)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.06),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 14, offset: const Offset(0, 6)),
         ],
       ),
@@ -889,7 +889,7 @@ class _VehicleCompanionsSheetState extends State<_VehicleCompanionsSheet> {
             physics: const NeverScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(vertical: 8),
             itemCount: _companions.length,
-            separatorBuilder: (_, __) =>
+            separatorBuilder: (_, _) =>
                 const Divider(height: 1, indent: 72, endIndent: 20),
             itemBuilder: (_, i) {
               final c          = _companions[i];

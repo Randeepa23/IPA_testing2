@@ -42,7 +42,7 @@ Future<void> _showOfficeApproveDialog({
   await showDialog(
     context: context,
     barrierDismissible: false,
-    barrierColor: Colors.black.withOpacity(0.15),
+    barrierColor: Colors.black.withValues(alpha: 0.15),
     builder: (ctx) {
       final w = MediaQuery.of(ctx).size.width;
       final dialogW = (w * 0.90).clamp(300.0, 420.0);
@@ -167,7 +167,7 @@ Future<void> _showPersonalAcceptForwardDialog({
   await showDialog(
     context: context,
     barrierDismissible: false,
-    barrierColor: Colors.black.withOpacity(0.15),
+    barrierColor: Colors.black.withValues(alpha: 0.15),
     builder: (ctx) {
       final w = MediaQuery.of(ctx).size.width;
       final dialogW = (w * 0.92).clamp(280.0, 420.0);

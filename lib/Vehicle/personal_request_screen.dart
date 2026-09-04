@@ -661,7 +661,7 @@ class _VehicleRequestCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE8EDF5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 14,
             offset: const Offset(0, 6),
           ),

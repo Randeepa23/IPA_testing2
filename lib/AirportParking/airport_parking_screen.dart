@@ -224,7 +224,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
     final agreed = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      barrierColor: Colors.black.withOpacity(0.15),
+      barrierColor: Colors.black.withValues(alpha: 0.15),
       builder: (ctx) {
         final dialogW =
             (MediaQuery.of(ctx).size.width * 0.90).clamp(300.0, 420.0);
@@ -639,7 +639,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
     final agreed = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      barrierColor: Colors.black.withOpacity(0.15),
+      barrierColor: Colors.black.withValues(alpha: 0.15),
       builder: (ctx) => Stack(
         children: [
           BackdropFilter(
@@ -1720,7 +1720,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 14,
             offset: const Offset(0, 6),
           ),
@@ -1923,7 +1923,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
               "Example: G5-AP-01-0626  or  G8-AP-17",
               style: TextStyle(
                 fontSize: 11.5,
-                color: _textMuted.withOpacity(0.85),
+                color: _textMuted.withValues(alpha: 0.85),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -1938,8 +1938,8 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
               gradient: LinearGradient(
                 colors: isLoading
                     ? [
-                        const Color(0xFF1565C0).withOpacity(0.5),
-                        const Color(0xFF003580).withOpacity(0.5),
+                        const Color(0xFF1565C0).withValues(alpha: 0.5),
+                        const Color(0xFF003580).withValues(alpha: 0.5),
                       ]
                     : const [Color(0xFF1565C0), Color(0xFF003580)],
               ),
@@ -1997,7 +1997,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFFFF5F5),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.red.withOpacity(0.25)),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.25)),
       ),
       child: Row(
         children: [
@@ -2029,7 +2029,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -2073,7 +2073,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
               color: const Color(0xFFFFF7E6),
               borderRadius: BorderRadius.circular(12),
               border:
-                  Border.all(color: const Color(0xFFFFC107).withOpacity(0.45)),
+                  Border.all(color: const Color(0xFFFFC107).withValues(alpha: 0.45)),
             ),
             child: const Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2115,7 +2115,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF166534).withOpacity(0.28),
+              color: const Color(0xFF166534).withValues(alpha: 0.28),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -2202,7 +2202,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -2553,7 +2553,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                         borderRadius: BorderRadius.circular(14),
                         boxShadow: [
                           BoxShadow(
-                            color: _blue2.withOpacity(0.28),
+                            color: _blue2.withValues(alpha: 0.28),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -2610,9 +2610,9 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                                                   isCheckedOut)
                                               ? [
                                                   const Color(0xFF0891B2)
-                                                      .withOpacity(0.45),
+                                                      .withValues(alpha: 0.45),
                                                   const Color(0xFF0E7490)
-                                                      .withOpacity(0.45),
+                                                      .withValues(alpha: 0.45),
                                                 ]
                                               : const [
                                                   Color(0xFF0891B2),
@@ -2625,7 +2625,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                                         boxShadow: [
                                           BoxShadow(
                                             color: const Color(0xFF0E7490)
-                                                .withOpacity(0.28),
+                                                .withValues(alpha: 0.28),
                                             blurRadius: 10,
                                             offset: const Offset(0, 4),
                                           ),
@@ -2804,7 +2804,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -2823,7 +2823,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
-                      color: _blue2.withOpacity(0.22),
+                      color: _blue2.withValues(alpha: 0.22),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -2959,7 +2959,7 @@ class _AirportParkingScreenState extends State<AirportParkingScreen> {
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
-                    color: _blue2.withOpacity(0.22),
+                    color: _blue2.withValues(alpha: 0.22),
                     blurRadius: 12,
                     offset: const Offset(0, 5),
                   ),

@@ -250,7 +250,7 @@ class _GatePassRequestScreenState extends State<GatePassRequestScreen> {
           scrollDirection: Axis.horizontal,
           padding: EdgeInsets.zero,
           itemCount: _tabLabels.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          separatorBuilder: (_, _) => const SizedBox(width: 8),
           itemBuilder: (_, i) {
             final active = _tab == i;
             final count  = _all.where((r) => r.status == _tabStatuses[i]).length;
@@ -267,7 +267,7 @@ class _GatePassRequestScreenState extends State<GatePassRequestScreen> {
                   ),
                   boxShadow: active
                       ? [BoxShadow(
-                          color: const Color(0xFF1565C0).withOpacity(0.25),
+                          color: const Color(0xFF1565C0).withValues(alpha: 0.25),
                           blurRadius: 8, offset: const Offset(0, 4))]
                       : [],
                 ),
@@ -286,7 +286,7 @@ class _GatePassRequestScreenState extends State<GatePassRequestScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: active
-                              ? Colors.white.withOpacity(0.3)
+                              ? Colors.white.withValues(alpha: 0.3)
                               : const Color(0xFF1565C0),
                           borderRadius: BorderRadius.circular(999),
                         ),
@@ -622,7 +622,7 @@ class _GatePassRequestScreenState extends State<GatePassRequestScreen> {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: colors.first.withOpacity(0.35),
+              color: colors.first.withValues(alpha: 0.35),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),

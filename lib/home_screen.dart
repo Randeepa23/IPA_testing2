@@ -33,12 +33,12 @@ class HomeScreen extends StatefulWidget {
   final String? successMessage;
 
   const HomeScreen({
-    Key? key,
+    super.key,
     required this.name,
     required this.username,
     required this.user,
     this.successMessage,
-  }) : super(key: key);
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();

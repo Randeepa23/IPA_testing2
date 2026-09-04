@@ -37,7 +37,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
 
           return ListView.separated(
             itemCount: list.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            separatorBuilder: (_, _) => const Divider(height: 1),
             itemBuilder: (context, i) {
               final e = list[i] as Map<String, dynamic>;
 

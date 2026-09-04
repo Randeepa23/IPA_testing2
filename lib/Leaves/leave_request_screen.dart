@@ -183,7 +183,7 @@ class _LeaveRequestCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE8EDF5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 14,
             offset: const Offset(0, 6),
           ),
@@ -567,7 +567,7 @@ class _LeaveRequestCard extends StatelessWidget {
     showDialog(
       context: context,
       barrierDismissible: true,
-      barrierColor: Colors.black.withOpacity(0.15), // dim
+      barrierColor: Colors.black.withValues(alpha: 0.15), // dim
       builder: (ctx) {
         final w = MediaQuery.of(ctx).size.width;
         final dialogW = (w * 0.92).clamp(280.0, 520.0);

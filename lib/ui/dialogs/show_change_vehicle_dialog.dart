@@ -224,6 +224,7 @@ Future<void> showEndCurrentVehicleDialog({
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             ListTile(
+                                              tileColor: Colors.white,
                                               leading: const Icon(Icons.camera_alt),
                                               title: const Text("Take photo"),
                                               onTap: () async {
@@ -232,6 +233,7 @@ Future<void> showEndCurrentVehicleDialog({
                                               },
                                             ),
                                             ListTile(
+                                              tileColor: Colors.white,
                                               leading: const Icon(Icons.photo_library),
                                               title: const Text("Choose from gallery"),
                                               onTap: () async {
@@ -241,6 +243,7 @@ Future<void> showEndCurrentVehicleDialog({
                                             ),
                                             if (photo != null)
                                               ListTile(
+                                                tileColor: Colors.white,
                                                 leading: const Icon(Icons.delete, color: Colors.red),
                                                 title: const Text("Remove photo"),
                                                 onTap: () {
@@ -611,11 +614,14 @@ Future<void> showStartNewVehicleDialog({
                                           backgroundColor: Colors.white,
                                           strokeWidth: 2)),
                                     ),
-                                    itemBuilder: (context, s) => ListTile(
-                                      leading: const Icon(Icons.location_on_outlined),
-                                      title: Text(s.description,
-                                          style: TextStyle(
-                                              color: theme.textTheme.bodyLarge?.color)),
+                                    itemBuilder: (context, s) => Material(
+                                      color: Colors.transparent,
+                                      child: ListTile(
+                                        leading: const Icon(Icons.location_on_outlined),
+                                        title: Text(s.description,
+                                            style: TextStyle(
+                                                color: theme.textTheme.bodyLarge?.color)),
+                                      ),
                                     ),
                                     onSelected: (s) {
                                       destinationCtrl.text = s.description;
@@ -659,6 +665,7 @@ Future<void> showStartNewVehicleDialog({
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               ListTile(
+                                                tileColor: Colors.white,
                                                 leading: const Icon(Icons.camera_alt),
                                                 title: const Text("Take photo"),
                                                 onTap: () async {
@@ -667,6 +674,7 @@ Future<void> showStartNewVehicleDialog({
                                                 },
                                               ),
                                               ListTile(
+                                                tileColor: Colors.white,
                                                 leading: const Icon(Icons.photo_library),
                                                 title: const Text("Choose from gallery"),
                                                 onTap: () async {
@@ -676,6 +684,7 @@ Future<void> showStartNewVehicleDialog({
                                               ),
                                               if (photo != null)
                                                 ListTile(
+                                                  tileColor: Colors.white,
                                                   leading: const Icon(Icons.delete, color: Colors.red),
                                                   title: const Text("Remove photo"),
                                                   onTap: () {

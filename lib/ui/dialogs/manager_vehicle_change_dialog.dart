@@ -71,7 +71,7 @@ Future<void> showManagerVehicleChangeDialog({
   await showDialog(
     context: context,
     barrierDismissible: false,
-    barrierColor: Colors.black.withOpacity(0.15),
+    barrierColor: Colors.black.withValues(alpha: 0.15),
     builder: (ctx) {
       final w = MediaQuery.of(ctx).size.width;
       final dialogW = (w * 0.90).clamp(300.0, 430.0);
@@ -286,21 +286,24 @@ Future<void> showManagerVehicleChangeDialog({
                                 return full.contains(q);
                               }).toList();
                             },
-                            itemBuilder: (context, suggestion) => ListTile(
-                              dense: true,
-                              tileColor: Colors.white,
-                              title: Text(
-                                suggestion.displayLabel,
-                                style: const TextStyle(
-                                  fontSize: 13.5,
-                                  color: Colors.black87,
+                            itemBuilder: (context, suggestion) => Material(
+                              color: Colors.transparent,
+                              child: ListTile(
+                                dense: true,
+                                tileColor: Colors.white,
+                                title: Text(
+                                  suggestion.displayLabel,
+                                  style: const TextStyle(
+                                    fontSize: 13.5,
+                                    color: Colors.black87,
+                                  ),
                                 ),
-                              ),
-                              subtitle: Text(
-                                suggestion.vehicleTypeName,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.black54,
+                                subtitle: Text(
+                                  suggestion.vehicleTypeName,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.black54,
+                                  ),
                                 ),
                               ),
                             ),

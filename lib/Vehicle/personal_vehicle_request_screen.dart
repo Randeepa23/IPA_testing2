@@ -219,6 +219,12 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
         _attemptSlots = slots;
         _loadingSlots = false;
         _slotsError = null;
+        if (_selectedSlot == null && slots.isNotEmpty) {
+          final firstAvailable = slots.where((s) => s.isSelectable).firstOrNull;
+          if (firstAvailable != null) {
+            _selectedSlot = firstAvailable;
+          }
+        }
       });
     } catch (e) {
       if (!mounted) return;
@@ -646,16 +652,19 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
                     return full.contains(q);
                   }).toList();
                 },
-                itemBuilder: (context, suggestion) => ListTile(
-                  dense: true,
-                  tileColor: Colors.white,
-                  title: Text(
-                    suggestion.displayLabel,
-                    style: const TextStyle(fontSize: 13.5, color: Colors.black87),
-                  ),
-                  subtitle: Text(
-                    suggestion.vehicleTypeName,
-                    style: const TextStyle(fontSize: 12, color: Colors.black54),
+                itemBuilder: (context, suggestion) => Material(
+                  color: Colors.transparent,
+                  child: ListTile(
+                    dense: true,
+                    tileColor: Colors.white,
+                    title: Text(
+                      suggestion.displayLabel,
+                      style: const TextStyle(fontSize: 13.5, color: Colors.black87),
+                    ),
+                    subtitle: Text(
+                      suggestion.vehicleTypeName,
+                      style: const TextStyle(fontSize: 12, color: Colors.black54),
+                    ),
                   ),
                 ),
                 onSelected: (suggestion) {
@@ -807,12 +816,13 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
               if (managers.isEmpty)
                 const Text("No managers found")
               else
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
+                Material(
+                  color: Colors.white,
+                  shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE1E6EF)),
+                    side: const BorderSide(color: Color(0xFFE1E6EF)),
                   ),
+                  clipBehavior: Clip.antiAlias,
                   child: Column(
                     children: managers
                         .where((m) => m["id"].toString() == reportingManagerId)
@@ -820,58 +830,61 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
                       final managerId = (m["id"] ?? "").toString();
                       final empId     = int.tryParse(managerId) ?? 0;
 
-                      return RadioListTile<String>(
-                        value: managerId,
-                        groupValue: selectedManagerId,
-                        onChanged: (v) => setState(() => selectedManagerId = v),
-                        controlAffinity: ListTileControlAffinity.trailing,
-                        fillColor: WidgetStateProperty.resolveWith((states) {
-                          if (states.contains(WidgetState.selected)) return Colors.blue;
-                          return Colors.grey;
-                        }),
-                        secondary: FutureBuilder<Map<String, dynamic>?>(
-                          future: empId > 0 ? _getPhotoFuture(empId) : Future.value(null),
-                          builder: (context, snap) {
-                            final url = (snap.data?["fileUrl"] ?? "").toString().trim();
+                      return Material(
+                        color: Colors.transparent,
+                        child: RadioListTile<String>(
+                          value: managerId,
+                          groupValue: selectedManagerId,
+                          onChanged: (v) => setState(() => selectedManagerId = v),
+                          controlAffinity: ListTileControlAffinity.trailing,
+                          fillColor: WidgetStateProperty.resolveWith((states) {
+                            if (states.contains(WidgetState.selected)) return Colors.blue;
+                            return Colors.grey;
+                          }),
+                          secondary: FutureBuilder<Map<String, dynamic>?>(
+                            future: empId > 0 ? _getPhotoFuture(empId) : Future.value(null),
+                            builder: (context, snap) {
+                              final url = (snap.data?["fileUrl"] ?? "").toString().trim();
 
-                            if (snap.connectionState == ConnectionState.waiting) {
+                              if (snap.connectionState == ConnectionState.waiting) {
+                                return const CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor: Color(0xFFEAF1FF),
+                                  child: SizedBox(
+                                    width: 14, height: 14,
+                                    child: CircularProgressIndicator(
+                                      backgroundColor: Colors.white,
+                                      color: Colors.blue,
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                );
+                              }
+
+                              if (url.isNotEmpty) {
+                                return CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor: const Color(0xFFEAF1FF),
+                                  backgroundImage: NetworkImage(url),
+                                );
+                              }
+
                               return const CircleAvatar(
                                 radius: 18,
                                 backgroundColor: Color(0xFFEAF1FF),
-                                child: SizedBox(
-                                  width: 14, height: 14,
-                                  child: CircularProgressIndicator(
-                                    backgroundColor: Colors.white,
-                                    color: Colors.blue,
-                                    strokeWidth: 2,
-                                  ),
-                                ),
+                                child: Icon(Icons.person, size: 18, color: Colors.black54),
                               );
-                            }
-
-                            if (url.isNotEmpty) {
-                              return CircleAvatar(
-                                radius: 18,
-                                backgroundColor: const Color(0xFFEAF1FF),
-                                backgroundImage: NetworkImage(url),
-                              );
-                            }
-
-                            return const CircleAvatar(
-                              radius: 18,
-                              backgroundColor: Color(0xFFEAF1FF),
-                              child: Icon(Icons.person, size: 18, color: Colors.black54),
-                            );
-                          },
-                        ),
-                        title: Text(
-                          (m["name"] ?? "-").toString(),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.black87,
+                            },
+                          ),
+                          title: Text(
+                            (m["name"] ?? "-").toString(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.black87,
+                            ),
                           ),
                         ),
                       );
@@ -967,7 +980,7 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
                 const SizedBox(width: 8),
                 const Expanded(
                   child: Text(
-                    "Select Your Attempt Slot",
+                    "Select Your Attempt ",
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,

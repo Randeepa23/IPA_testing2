@@ -15,7 +15,7 @@ Future<void> showRejectDialog({
   await showDialog(
     context: context,
     barrierDismissible: false,
-    barrierColor: Colors.black.withOpacity(0.15),
+    barrierColor: Colors.black.withValues(alpha: 0.15),
     builder: (ctx) {
 
       final w = MediaQuery.of(ctx).size.width;

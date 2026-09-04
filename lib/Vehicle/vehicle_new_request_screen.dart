@@ -551,9 +551,12 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
                           backgroundColor: Colors.white,
                           strokeWidth: 2)),
                 ),
-                itemBuilder: (context, s) => ListTile(
-                  leading: const Icon(Icons.location_on_outlined),
-                  title: Text(s.description),
+                itemBuilder: (context, s) => Material(
+                  color: Colors.transparent,
+                  child: ListTile(
+                    leading: const Icon(Icons.location_on_outlined),
+                    title: Text(s.description),
+                  ),
                 ),
                 onSelected: (s) {
                   destinationController.text = s.description;
@@ -618,13 +621,15 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
                     children: managers.map((m) {
                       final mId  = (m["id"] ?? "").toString();
                       final eId  = int.tryParse(mId) ?? 0;
-                      return RadioListTile<String>(
+                      return Material(
+                        color: Colors.transparent,
+                        child: RadioListTile<String>(
                         value:            mId,
                         groupValue:       selectedManagerId,
                         onChanged:        (v) => setState(() => selectedManagerId = v),
                         controlAffinity:  ListTileControlAffinity.trailing,
-                        fillColor: MaterialStateProperty.resolveWith((states) {
-                          if (states.contains(MaterialState.selected)) return Colors.blue;
+                        fillColor: WidgetStateProperty.resolveWith((states) {
+                          if (states.contains(WidgetState.selected)) return Colors.blue;
                           return Colors.grey;
                         }),
                         secondary: FutureBuilder<Map<String, dynamic>?>(
@@ -661,6 +666,7 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800,
                                 color: Colors.black87)),
+                        ),
                       );
                     }).toList(),
                   ),
@@ -813,7 +819,7 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
                   shrinkWrap: true,
                   physics: const ClampingScrollPhysics(),
                   itemCount: filtered.length,
-                  separatorBuilder: (_, __) =>
+                  separatorBuilder: (_, _) =>
                       const Divider(height: 1, color: Color(0xFFEEF2F8)),
                   itemBuilder: (ctx, i) {
                     final staff    = filtered[i];
@@ -967,8 +973,7 @@ class _VehicleRequestFormScreenState extends State<VehicleRequestFormScreen> {
                 onPrimary: Colors.white,
                 surface:   Colors.white,
                 onSurface: Color(0xFF1E2A3A),
-              ),
-              dialogBackgroundColor: Colors.white,
+              ), dialogTheme: DialogThemeData(backgroundColor: Colors.white),
             ),
             child: child!,
           ),

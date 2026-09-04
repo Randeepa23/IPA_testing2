@@ -135,20 +135,26 @@ class _ManagerGatePassScreenState extends State<ManagerGatePassScreen> {
               id: req.id, managerId: _managerId);
           if (res['success'] == true) {
             setState(() => _requests.removeWhere((r) => r.id == req.id));
-            if (mounted) TopBanner.show(context,
+            if (mounted) {
+              TopBanner.show(context,
                 title: 'Approved',
                 message: 'Gate pass approved — ${res['gate_pass_code'] ?? ''}',
                 icon: Icons.check_circle, isSuccess: true);
+            }
           } else {
-            if (mounted) TopBanner.show(context,
+            if (mounted) {
+              TopBanner.show(context,
                 title: 'Failed',
                 message: (res['message'] ?? 'Could not approve').toString(),
                 icon: Icons.error_outline, isError: true);
+            }
           }
         } catch (e) {
-          if (mounted) TopBanner.show(context,
+          if (mounted) {
+            TopBanner.show(context,
               title: 'Error', message: e.toString(),
               icon: Icons.error_outline, isError: true);
+          }
         } finally {
           if (mounted) setState(() => _processingId = null);
         }
@@ -167,19 +173,25 @@ class _ManagerGatePassScreenState extends State<ManagerGatePassScreen> {
               id: req.id, managerId: _managerId, rejectReason: reason);
           if (res['success'] == true) {
             setState(() => _requests.removeWhere((r) => r.id == req.id));
-            if (mounted) TopBanner.show(context,
+            if (mounted) {
+              TopBanner.show(context,
                 title: 'Rejected', message: 'Gate pass request rejected.',
                 icon: Icons.cancel);
+            }
           } else {
-            if (mounted) TopBanner.show(context,
+            if (mounted) {
+              TopBanner.show(context,
                 title: 'Failed',
                 message: (res['message'] ?? 'Could not reject').toString(),
                 icon: Icons.error_outline, isError: true);
+            }
           }
         } catch (e) {
-          if (mounted) TopBanner.show(context,
+          if (mounted) {
+            TopBanner.show(context,
               title: 'Error', message: e.toString(),
               icon: Icons.error_outline, isError: true);
+          }
         } finally {
           if (mounted) setState(() => _processingId = null);
         }
@@ -265,7 +277,7 @@ class _ManagerGatePassScreenState extends State<ManagerGatePassScreen> {
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         itemCount: _requests.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 14),
+        separatorBuilder: (_, _) => const SizedBox(height: 14),
         itemBuilder: (ctx, i) {
           final req = _requests[i];
           return _GatePassCard(
@@ -852,7 +864,7 @@ class _CompanionsSheetState extends State<_CompanionsSheet> {
             physics: const NeverScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(vertical: 8),
             itemCount: _companions.length,
-            separatorBuilder: (_, __) =>
+            separatorBuilder: (_, _) =>
                 const Divider(height: 1, indent: 72, endIndent: 20),
             itemBuilder: (_, i) {
               final c           = _companions[i];

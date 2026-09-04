@@ -243,8 +243,7 @@ class _CreateEventTabState extends State<_CreateEventTab> {
         data: Theme.of(ctx).copyWith(
           colorScheme: const ColorScheme.light(
             primary: Color(0xFF1565C0), onPrimary: Colors.white,
-            surface: Colors.white, onSurface: Color(0xFF1E2A3A)),
-          dialogBackgroundColor: Colors.white,
+            surface: Colors.white, onSurface: Color(0xFF1E2A3A)), dialogTheme: DialogThemeData(backgroundColor: Colors.white),
         ),
         child: child!,
       ),
@@ -262,8 +261,7 @@ class _CreateEventTabState extends State<_CreateEventTab> {
         data: Theme.of(ctx).copyWith(
           colorScheme: const ColorScheme.light(
             primary: Color(0xFF1565C0), onPrimary: Colors.white,
-            surface: Colors.white, onSurface: Color(0xFF1E2A3A)),
-          dialogBackgroundColor: Colors.white,
+            surface: Colors.white, onSurface: Color(0xFF1E2A3A)), dialogTheme: DialogThemeData(backgroundColor: Colors.white),
         ),
         child: child!,
       ),
@@ -474,7 +472,7 @@ class _CreateEventTabState extends State<_CreateEventTab> {
               begin: Alignment.centerLeft, end: Alignment.centerRight),
           borderRadius: BorderRadius.circular(14),
           boxShadow: [BoxShadow(
-              color: const Color(0xFF1565C0).withOpacity(0.35),
+              color: const Color(0xFF1565C0).withValues(alpha: 0.35),
               blurRadius: 10, offset: const Offset(0, 4))],
         ),
         child: Center(
@@ -516,7 +514,7 @@ class _CreateEventTabState extends State<_CreateEventTab> {
               _fieldLabel("Type *"),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: meetingType,
+                initialValue: meetingType,
                 decoration: _inputDeco("Select type", icon: Icons.category_outlined),
                 items: const [
                   DropdownMenuItem(value: "Meeting",  child: Text("Meeting")),
@@ -1193,7 +1191,7 @@ class _MyEventsTabState extends State<_MyEventsTab> {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFFE8EDF5)),
         boxShadow: [BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 14, offset: const Offset(0, 6))],
       ),
       padding: const EdgeInsets.all(14),
@@ -1441,7 +1439,7 @@ class _MyEventsTabState extends State<_MyEventsTab> {
               begin: Alignment.centerLeft, end: Alignment.centerRight),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [BoxShadow(
-              color: const Color(0xFFD10A0A).withOpacity(0.35),
+              color: const Color(0xFFD10A0A).withValues(alpha: 0.35),
               blurRadius: 10, offset: const Offset(0, 4))],
         ),
         child: const Row(

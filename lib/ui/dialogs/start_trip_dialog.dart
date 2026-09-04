@@ -158,10 +158,13 @@ Future<void> showStartTripDialog({
                               decoration: inputFieldStyle(
                                   "Enter current odometer reading"),
                               validator: (v) {
-                                if (v == null || v.trim().isEmpty)
+                                if (v == null || v.trim().isEmpty) {
                                   return "Required";
+                                }
                                 if (!RegExp(r'^\d+(\.\d+)?$')
-                                    .hasMatch(v.trim())) return "Numbers only";
+                                    .hasMatch(v.trim())) {
+                                  return "Numbers only";
+                                }
                                 return null;
                               },
                             ),
@@ -178,8 +181,9 @@ Future<void> showStartTripDialog({
                               decoration:
                                   inputFieldStyle("Enter current fuel reading"),
                               validator: (v) {
-                                if (v == null || v.trim().isEmpty)
+                                if (v == null || v.trim().isEmpty) {
                                   return "Required";
+                                }
                                 final val = double.tryParse(v.trim());
                                 if (val == null) return "Numbers only";
                                 if (val < 0 || val > 100) return "0 - 100 only";
@@ -209,6 +213,7 @@ Future<void> showStartTripDialog({
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           ListTile(
+                                            tileColor: Colors.white,
                                             leading: const Icon(
                                                 Icons.camera_alt),
                                             title: const Text("Take photo"),
@@ -219,6 +224,7 @@ Future<void> showStartTripDialog({
                                             },
                                           ),
                                           ListTile(
+                                            tileColor: Colors.white,
                                             leading: const Icon(
                                                 Icons.photo_library),
                                             title: const Text(
@@ -231,6 +237,7 @@ Future<void> showStartTripDialog({
                                           ),
                                           if (photoFile != null)
                                             ListTile(
+                                              tileColor: Colors.white,
                                               leading: const Icon(Icons.delete,
                                                   color: Colors.red),
                                               title:
@@ -372,7 +379,9 @@ Future<void> showStartTripDialog({
                                                 ? null
                                                 : () async {
                                                     if (!formKey.currentState!
-                                                        .validate()) return;
+                                                        .validate()) {
+                                                      return;
+                                                    }
                                                     if (photoFile == null) {
                                                       ScaffoldMessenger.of(ctx)
                                                           .showSnackBar(
@@ -391,8 +400,9 @@ Future<void> showStartTripDialog({
                                                       remark: remarkCtrl.text.trim().isEmpty
                                                           ? null : remarkCtrl.text.trim(),
                                                     );
-                                                    if (ctx.mounted)
+                                                    if (ctx.mounted) {
                                                       Navigator.pop(ctx);
+                                                    }
                                                   },
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor:

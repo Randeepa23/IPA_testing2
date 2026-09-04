@@ -88,7 +88,7 @@ class _UpdateSlotDialogState extends State<_UpdateSlotDialog> {
     final confirmed = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      barrierColor: Colors.black.withOpacity(0.25),
+      barrierColor: Colors.black.withValues(alpha: 0.25),
       builder: (ctx) => Center(
         child: Dialog(
           insetPadding: const EdgeInsets.all(20),
@@ -269,7 +269,7 @@ class _UpdateSlotDialogState extends State<_UpdateSlotDialog> {
         // blurred backdrop matching project dialogs
         BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-          child: Container(color: Colors.black.withOpacity(0.15)),
+          child: Container(color: Colors.black.withValues(alpha: 0.15)),
         ),
         Center(
           child: Dialog(
@@ -433,7 +433,7 @@ class _UpdateSlotDialogState extends State<_UpdateSlotDialog> {
                             ),
                             Icon(
                               Icons.arrow_drop_down_rounded,
-                              color: _textMuted.withOpacity(0.7),
+                              color: _textMuted.withValues(alpha: 0.7),
                               size: 22,
                             ),
                           ],
@@ -489,8 +489,8 @@ class _UpdateSlotDialogState extends State<_UpdateSlotDialog> {
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color: _isSuccess
-                                ? _green.withOpacity(0.3)
-                                : Colors.red.withOpacity(0.25),
+                                ? _green.withValues(alpha: 0.3)
+                                : Colors.red.withValues(alpha: 0.25),
                           ),
                         ),
                         child: Row(
@@ -572,8 +572,8 @@ class _UpdateSlotDialogState extends State<_UpdateSlotDialog> {
                                   gradient: LinearGradient(
                                     colors: _isLoading
                                         ? [
-                                            _blue1.withOpacity(0.5),
-                                            _blue2.withOpacity(0.5),
+                                            _blue1.withValues(alpha: 0.5),
+                                            _blue2.withValues(alpha: 0.5),
                                           ]
                                         : const [_blue1, _blue2],
                                     begin: Alignment.topLeft,

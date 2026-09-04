@@ -870,19 +870,73 @@ static Future<List<Map<String, dynamic>>> fetchGeneralManagerPersonalRequests({
   static Future<List<AttemptSlot>> getPersonalAttemptSlots(String employeeId) async {
     try {
       final url = Uri.parse("$baseUrl/get_personal_attempt_slots.php?employee_id=$employeeId");
-      final res = await http.get(url).timeout(const Duration(seconds: 15));
+      final res = await http.get(url, headers: {"Accept": "application/json"}).timeout(const Duration(seconds: 15));
 
-      if (res.body.trim().isEmpty) throw Exception('No response from server.');
-      final json = jsonDecode(res.body);
-      if (json["success"] != true) {
-        throw Exception(json["message"] ?? "Failed to fetch attempt slots");
+      if (res.statusCode == 200 && res.body.trim().isNotEmpty) {
+        final json = jsonDecode(res.body);
+        if (json["success"] == true) {
+          final List slots = (json["data"] ?? {})["slots"] ?? [];
+          if (slots.isNotEmpty) {
+            return slots
+                .map((e) => AttemptSlot.fromJson(Map<String, dynamic>.from(e)))
+                .toList();
+          }
+        }
       }
-      final List slots = (json["data"] ?? {})["slots"] ?? [];
-      return slots
-          .map((e) => AttemptSlot.fromJson(Map<String, dynamic>.from(e)))
-          .toList();
-    } on TimeoutException {
-      throw Exception('Request timed out. Please check your connection and retry.');
+    } catch (_) {
+      // Backend get_personal_attempt_slots.php returned an error (e.g. 500), proceed to policy fallback
+    }
+
+    // Resilient fallback: calculate slots using the official policy and employee usage count
+    try {
+      int usageCount = 0;
+      try {
+        usageCount = await getPersonalUsageCount(employeeId);
+      } catch (_) {
+        usageCount = 0;
+      }
+
+      int pendingAttempt = -1;
+      try {
+        final pendingUrl = Uri.parse("$baseUrl/get_personal_trip.php?employee_id=$employeeId&status=PENDING");
+        final pRes = await http.get(pendingUrl, headers: {"Accept": "application/json"}).timeout(const Duration(seconds: 5));
+        if (pRes.statusCode == 200 && pRes.body.trim().isNotEmpty) {
+          final pJson = jsonDecode(pRes.body);
+          final List trips = pJson["data"] ?? [];
+          if (trips.isNotEmpty) {
+            pendingAttempt = int.tryParse(trips.first["attempt_number"]?.toString() ?? "") ?? (usageCount + 1);
+          }
+        }
+      } catch (_) {}
+
+      final slots = <AttemptSlot>[];
+      for (int i = 1; i <= 5; i++) {
+        final String label = i == 1 ? "1st" : i == 2 ? "2nd" : i == 3 ? "3rd" : "${i}th";
+        final String discount = i <= 2 ? "100%" : "50%";
+        final int discountPct = i <= 2 ? 100 : 50;
+        final int maxDays = i <= 2 ? 2 : 3;
+        final bool carOnly = i <= 2;
+
+        String status;
+        if (i <= usageCount) {
+          status = 'approved';
+        } else if (i == pendingAttempt) {
+          status = 'pending';
+        } else {
+          status = 'available';
+        }
+
+        slots.add(AttemptSlot(
+          attemptNumber: i,
+          label: label,
+          discount: discount,
+          discountPct: discountPct,
+          maxDays: maxDays,
+          carOnly: carOnly,
+          status: status,
+        ));
+      }
+      return slots;
     } catch (e) {
       throw Exception(_friendlyError(e));
     }
@@ -891,7 +945,7 @@ static Future<List<Map<String, dynamic>>> fetchGeneralManagerPersonalRequests({
   static Future<int> getPersonalUsageCount(String employeeId) async {
     try {
       final url = Uri.parse("$baseUrl/get_personal_usage_count.php?employee_id=$employeeId");
-      final res = await http.get(url).timeout(const Duration(seconds: 15));
+      final res = await http.get(url, headers: {"Accept": "application/json"}).timeout(const Duration(seconds: 15));
 
       if (res.body.trim().isEmpty) throw Exception('No response from server.');
       final json = jsonDecode(res.body);

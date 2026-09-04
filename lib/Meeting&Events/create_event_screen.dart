@@ -379,7 +379,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             children: [
               // Meeting / Event / Training type
               DropdownButtonFormField<String>(
-                value: meetingType,
+                initialValue: meetingType,
                 decoration: const InputDecoration(labelText: "Title Type"),
                 items: const [
                   DropdownMenuItem(value: "Meeting", child: Text("Meeting")),
@@ -658,11 +658,13 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                           final checked = selectedParticipantIds.contains(memberId);
                           final empId = int.tryParse(memberId) ?? 0;
 
-                          return CheckboxListTile(
-                            value: checked,
-                            controlAffinity: ListTileControlAffinity.trailing,
-                            activeColor: AppColors.primaryStart,
-                            secondary: FutureBuilder<Map<String, dynamic>?>(
+                          return Material(
+                            color: Colors.transparent,
+                            child: CheckboxListTile(
+                              value: checked,
+                              controlAffinity: ListTileControlAffinity.trailing,
+                              activeColor: AppColors.primaryStart,
+                              secondary: FutureBuilder<Map<String, dynamic>?>(
                               future: empId > 0
                                   ? _getPhotoFuture(empId)
                                   : Future.value(null),
@@ -726,7 +728,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                 }
                               });
                             },
-                          );
+                          ),  // Close CheckboxListTile
+                        );    // Close Material and return
                         },
                       ),
                     ),

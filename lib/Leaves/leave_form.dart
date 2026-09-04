@@ -704,7 +704,7 @@ void _showSubmitConfirmation() {
               const FormSectionTitle('Leave Type *'),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: selectedLeaveType,
+                initialValue: selectedLeaveType,
                 dropdownColor: Colors.white,
                 decoration: _dropdownDecoration(),
                 hint: Text('Select leave type', style: TextStyle(color: Colors.grey.shade600)),
@@ -778,13 +778,13 @@ void _showSubmitConfirmation() {
                 const FormSectionTitle('Half Day Session *'),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  value: halfDaySession,
+                  initialValue: halfDaySession,
                   dropdownColor: Colors.white,
                   decoration: _dropdownDecoration(),
                   hint: Text('Select session', style: TextStyle(color: Colors.grey.shade600)),
                   items: const [
-                    DropdownMenuItem(value: 'MORNING', child: Text('Morning',style: const TextStyle(color: Colors.black,fontWeight: FontWeight.w600))),
-                    DropdownMenuItem(value: 'EVENING', child: Text('Evening',style: const TextStyle(color: Colors.black,fontWeight: FontWeight.w600))),
+                    DropdownMenuItem(value: 'MORNING', child: Text('Morning',style: TextStyle(color: Colors.black,fontWeight: FontWeight.w600))),
+                    DropdownMenuItem(value: 'EVENING', child: Text('Evening',style: TextStyle(color: Colors.black,fontWeight: FontWeight.w600))),
                   ],
                   onChanged: (v) => setState(() => halfDaySession = v),
                   validator: (v) => v == null ? 'Select session' : null,
@@ -847,20 +847,23 @@ void _showSubmitConfirmation() {
                               color: Color(0xFF6B4A1E), height: 1.4),
                         ),
                         const SizedBox(height: 10),
-                        CheckboxListTile(
-                          contentPadding: EdgeInsets.zero,
-                          value: _noPayAcknowledged,
-                          onChanged: (v) => setState(() {
-                            _noPayAcknowledged = v ?? false;
-                            _noPayError = null;
-                          }),
-                          controlAffinity: ListTileControlAffinity.leading,
-                          activeColor: const Color(0xFFE65100),
-                          title: const Text(
-                            "I understand and confirm this request includes unpaid "
-                            "(No Pay) leave — salary deduction will apply",
-                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800,
-                                color: Colors.black87),
+                        Material(
+                          color: Colors.transparent,
+                          child: CheckboxListTile(
+                            contentPadding: EdgeInsets.zero,
+                            value: _noPayAcknowledged,
+                            onChanged: (v) => setState(() {
+                              _noPayAcknowledged = v ?? false;
+                              _noPayError = null;
+                            }),
+                            controlAffinity: ListTileControlAffinity.leading,
+                            activeColor: const Color(0xFFE65100),
+                            title: const Text(
+                              "I understand and confirm this request includes unpaid "
+                              "(No Pay) leave — salary deduction will apply",
+                              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800,
+                                  color: Colors.black87),
+                            ),
                           ),
                         ),
                         if (_noPayError != null)
@@ -1040,20 +1043,23 @@ void _showSubmitConfirmation() {
                               color: Color(0xFF6B4A1E), height: 1.4),
                         ),
                         const SizedBox(height: 10),
-                        CheckboxListTile(
-                          contentPadding: EdgeInsets.zero,
-                          value: _noPayAcknowledged,
-                          onChanged: (v) => setState(() {
-                            _noPayAcknowledged = v ?? false;
-                            _noPayError = null;
-                          }),
-                          controlAffinity: ListTileControlAffinity.leading,
-                          activeColor: const Color(0xFFE65100),
-                          title: const Text(
-                            "I understand and confirm this request includes unpaid "
-                            "(No Pay) leave — salary deduction will apply",
-                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800,
-                                color: Colors.black87),
+                        Material(
+                          color: Colors.transparent,
+                          child: CheckboxListTile(
+                            contentPadding: EdgeInsets.zero,
+                            value: _noPayAcknowledged,
+                            onChanged: (v) => setState(() {
+                              _noPayAcknowledged = v ?? false;
+                              _noPayError = null;
+                            }),
+                            controlAffinity: ListTileControlAffinity.leading,
+                            activeColor: const Color(0xFFE65100),
+                            title: const Text(
+                              "I understand and confirm this request includes unpaid "
+                              "(No Pay) leave — salary deduction will apply",
+                              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800,
+                                  color: Colors.black87),
+                            ),
                           ),
                         ),
                         if (_noPayError != null)
@@ -1162,65 +1168,69 @@ void _showSubmitConfirmation() {
                 const SizedBox(height: 10),
 
                 if (availableMembers.isNotEmpty)
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
+                  Material(
+                    color: Colors.white,
+                    shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE1E6EF)),
+                      side: const BorderSide(color: Color(0xFFE1E6EF)),
                     ),
+                    clipBehavior: Clip.antiAlias,
                     child: Column(
                       children: availableMembers.map((m) {
                         final empId = int.tryParse(m["id"] ?? "") ?? 0;
-                        return RadioListTile<String>(
-                          value: m['id']!,
-                          groupValue: selectedMember,
-                          onChanged: (v) => setState(() {
-                            selectedMember = v;
-                            _memberError = null;
-                          }),
-                          fillColor: MaterialStateProperty.resolveWith<Color>((states) {
-                            if (states.contains(MaterialState.selected)) return Colors.blue;
-                            return Colors.black54;
-                          }),
-                          controlAffinity: ListTileControlAffinity.trailing,
-                          secondary: FutureBuilder<Map<String, dynamic>?>(
-                            future: empId > 0 ? _getPhotoFuture(empId) : Future.value(null),
-                            builder: (context, snap) {
-                              final url = (snap.data?["fileUrl"] ?? "").toString().trim();
-                              if (snap.connectionState == ConnectionState.waiting) {
+                        return Material(
+                          color: Colors.transparent,
+                          child: RadioListTile<String>(
+                            value: m['id']!,
+                            groupValue: selectedMember,
+                            onChanged: (v) => setState(() {
+                              selectedMember = v;
+                              _memberError = null;
+                            }),
+                            fillColor: WidgetStateProperty.resolveWith<Color>((states) {
+                              if (states.contains(WidgetState.selected)) return Colors.blue;
+                              return Colors.black54;
+                            }),
+                            controlAffinity: ListTileControlAffinity.trailing,
+                            secondary: FutureBuilder<Map<String, dynamic>?>(
+                              future: empId > 0 ? _getPhotoFuture(empId) : Future.value(null),
+                              builder: (context, snap) {
+                                final url = (snap.data?["fileUrl"] ?? "").toString().trim();
+                                if (snap.connectionState == ConnectionState.waiting) {
+                                  return const CircleAvatar(
+                                    radius: 18,
+                                    backgroundColor: Color(0xFFEAF1FF),
+                                    child: SizedBox(
+                                      width: 14, height: 14,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.blue,
+                                        backgroundColor: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  );
+                                }
+                                if (url.isNotEmpty) {
+                                  return CircleAvatar(
+                                    radius: 18,
+                                    backgroundColor: const Color(0xFFEAF1FF),
+                                    backgroundImage: NetworkImage(url),
+                                  );
+                                }
                                 return const CircleAvatar(
                                   radius: 18,
                                   backgroundColor: Color(0xFFEAF1FF),
-                                  child: SizedBox(
-                                    width: 14, height: 14,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.blue,
-                                      backgroundColor: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  ),
+                                  child: Icon(Icons.person, size: 18, color: Colors.black54),
                                 );
-                              }
-                              if (url.isNotEmpty) {
-                                return CircleAvatar(
-                                  radius: 18,
-                                  backgroundColor: const Color(0xFFEAF1FF),
-                                  backgroundImage: NetworkImage(url),
-                                );
-                              }
-                              return const CircleAvatar(
-                                radius: 18,
-                                backgroundColor: Color(0xFFEAF1FF),
-                                child: Icon(Icons.person, size: 18, color: Colors.black54),
-                              );
-                            },
-                          ),
-                          title: Text(
-                            m['name']!,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.black87,
+                              },
+                            ),
+                            title: Text(
+                              m['name']!,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.black87,
+                              ),
                             ),
                           ),
                         );
@@ -1234,31 +1244,34 @@ void _showSubmitConfirmation() {
                       color: const Color(0xFFD7E8F6),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text(
-                        'Proceed without reliever team member (By HOD Approval)',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 12.5,
-                          color: Colors.black,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text(
+                          'Proceed without reliever team member (By HOD Approval)',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 12.5,
+                            color: Colors.black,
+                          ),
                         ),
-                      ),
-                      subtitle: const Text(
-                        'This request will be escalated to HR for special approval.',
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black87,
+                        subtitle: const Text(
+                          'This request will be escalated to HR for special approval.',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black87,
+                          ),
                         ),
+                        value: noMemberConfirmed,
+                        onChanged: (v) => setState(() {
+                          noMemberConfirmed = v!;
+                          _confirmError = null;
+                        }),
+                        controlAffinity: ListTileControlAffinity.leading,
+                        activeColor: Colors.blue,
                       ),
-                      value: noMemberConfirmed,
-                      onChanged: (v) => setState(() {
-                        noMemberConfirmed = v!;
-                        _confirmError = null;
-                      }),
-                      controlAffinity: ListTileControlAffinity.leading,
-                      activeColor: Colors.blue,
                     ),
                   ),
 
@@ -1377,61 +1390,65 @@ void _showSubmitConfirmation() {
               else if (_leaveManagers.isEmpty)
                 const Text("No managers available", style: TextStyle(color: Colors.grey))
               else
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
+                Material(
+                  color: Colors.white,
+                  shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE1E6EF)),
+                    side: const BorderSide(color: Color(0xFFE1E6EF)),
                   ),
+                  clipBehavior: Clip.antiAlias,
                   child: Column(
                     children: _leaveManagers.map((m) {
                       final mId = (m["id"] ?? "").toString();
                       final eId = int.tryParse(mId) ?? 0;
-                      return RadioListTile<String>(
-                        value: mId,
-                        groupValue: _selectedManagerId,
-                        onChanged: (v) => setState(() => _selectedManagerId = v),
-                        controlAffinity: ListTileControlAffinity.trailing,
-                        fillColor: MaterialStateProperty.resolveWith<Color>((states) {
-                          if (states.contains(MaterialState.selected)) {
-                            return Colors.blue;
-                          }
-                          return Colors.black54;
-                        }),
-                        secondary: FutureBuilder<Map<String, dynamic>?>(
-                          future: eId > 0 ? _getPhotoFuture(eId) : Future.value(null),
-                          builder: (context, snap) {
-                            final url = (snap.data?["fileUrl"] ?? "").toString().trim();
-                            if (snap.connectionState == ConnectionState.waiting) {
+                      return Material(
+                        color: Colors.transparent,
+                        child: RadioListTile<String>(
+                          value: mId,
+                          groupValue: _selectedManagerId,
+                          onChanged: (v) => setState(() => _selectedManagerId = v),
+                          controlAffinity: ListTileControlAffinity.trailing,
+                          fillColor: WidgetStateProperty.resolveWith<Color>((states) {
+                            if (states.contains(WidgetState.selected)) {
+                              return Colors.blue;
+                            }
+                            return Colors.black54;
+                          }),
+                          secondary: FutureBuilder<Map<String, dynamic>?>(
+                            future: eId > 0 ? _getPhotoFuture(eId) : Future.value(null),
+                            builder: (context, snap) {
+                              final url = (snap.data?["fileUrl"] ?? "").toString().trim();
+                              if (snap.connectionState == ConnectionState.waiting) {
+                                return const CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor: Color(0xFFEAF1FF),
+                                  child: SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(color: Colors.blue, backgroundColor: Colors.white, strokeWidth: 2),
+                                  ),
+                                );
+                              }
+                              if (url.isNotEmpty) {
+                                return CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor: const Color(0xFFEAF1FF),
+                                  backgroundImage: NetworkImage(url),
+                                );
+                              }
                               return const CircleAvatar(
                                 radius: 18,
                                 backgroundColor: Color(0xFFEAF1FF),
-                                child: SizedBox(
-                                  width: 14,
-                                  height: 14,
-                                  child: CircularProgressIndicator(color: Colors.blue, backgroundColor: Colors.white, strokeWidth: 2),
-                                ),
+                                child: Icon(Icons.person, size: 18, color: Colors.black54),
                               );
-                            }
-                            if (url.isNotEmpty) {
-                              return CircleAvatar(
-                                radius: 18,
-                                backgroundColor: const Color(0xFFEAF1FF),
-                                backgroundImage: NetworkImage(url),
-                              );
-                            }
-                            return const CircleAvatar(
-                              radius: 18,
-                              backgroundColor: Color(0xFFEAF1FF),
-                              child: Icon(Icons.person, size: 18, color: Colors.black54),
-                            );
-                          },
-                        ),
-                        title: Text(
-                          (m["name"] ?? "-"),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.black87),
+                            },
+                          ),
+                          title: Text(
+                            (m["name"] ?? "-"),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.black87),
+                          ),
                         ),
                       );
                     }).toList(),

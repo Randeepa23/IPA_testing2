@@ -748,7 +748,7 @@ class _GatePassRequestFormScreenState
                   shrinkWrap: true,
                   physics: const ClampingScrollPhysics(),
                   itemCount: filtered.length,
-                  separatorBuilder: (_, __) =>
+                  separatorBuilder: (_, _) =>
                       const Divider(height: 1, color: Color(0xFFEEF2F8)),
                   itemBuilder: (ctx, i) {
                     final staff    = filtered[i];
@@ -911,52 +911,55 @@ class _GatePassRequestFormScreenState
         children: visible.map((m) {
           final mgrId = m['id'] ?? '';
           final empId = int.tryParse(mgrId) ?? 0;
-          return RadioListTile<String>(
-            value: mgrId,
-            groupValue: _selectedManagerId,
-            onChanged: (v) => setState(() => _selectedManagerId = v),
-            controlAffinity: ListTileControlAffinity.trailing,
-            fillColor: WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.selected)) return const Color(0xFF1565C0);
-              return Colors.grey;
-            }),
-            secondary: FutureBuilder<Map<String, dynamic>?>(
-              future: empId > 0 ? _getPhotoFuture(empId) : Future.value(null),
-              builder: (context, snap) {
-                final url = (snap.data?['fileUrl'] ?? '').toString().trim();
-                if (snap.connectionState == ConnectionState.waiting) {
+          return Material(
+            color: Colors.transparent,
+            child: RadioListTile<String>(
+              value: mgrId,
+              groupValue: _selectedManagerId,
+              onChanged: (v) => setState(() => _selectedManagerId = v),
+              controlAffinity: ListTileControlAffinity.trailing,
+              fillColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) return const Color(0xFF1565C0);
+                return Colors.grey;
+              }),
+              secondary: FutureBuilder<Map<String, dynamic>?>(
+                future: empId > 0 ? _getPhotoFuture(empId) : Future.value(null),
+                builder: (context, snap) {
+                  final url = (snap.data?['fileUrl'] ?? '').toString().trim();
+                  if (snap.connectionState == ConnectionState.waiting) {
+                    return const CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Color(0xFFEAF1FF),
+                      child: SizedBox(
+                        width: 14, height: 14,
+                        child: CircularProgressIndicator(
+                            color: Color(0xFF1565C0), strokeWidth: 2),
+                      ),
+                    );
+                  }
+                  if (url.isNotEmpty) {
+                    return CircleAvatar(
+                      radius: 18,
+                      backgroundColor: const Color(0xFFEAF1FF),
+                      backgroundImage: NetworkImage(url),
+                    );
+                  }
                   return const CircleAvatar(
                     radius: 18,
                     backgroundColor: Color(0xFFEAF1FF),
-                    child: SizedBox(
-                      width: 14, height: 14,
-                      child: CircularProgressIndicator(
-                          color: Color(0xFF1565C0), strokeWidth: 2),
-                    ),
+                    child: Icon(Icons.person, size: 18, color: Colors.black54),
                   );
-                }
-                if (url.isNotEmpty) {
-                  return CircleAvatar(
-                    radius: 18,
-                    backgroundColor: const Color(0xFFEAF1FF),
-                    backgroundImage: NetworkImage(url),
-                  );
-                }
-                return const CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Color(0xFFEAF1FF),
-                  child: Icon(Icons.person, size: 18, color: Colors.black54),
-                );
-              },
-            ),
-            title: Text(
-              (m['name'] ?? '-').toString(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                color: Colors.black87,
+                },
+              ),
+              title: Text(
+                (m['name'] ?? '-').toString(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.black87,
+                ),
               ),
             ),
           );
@@ -978,7 +981,7 @@ class _GatePassRequestFormScreenState
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1565C0).withOpacity(0.35),
+            color: const Color(0xFF1565C0).withValues(alpha: 0.35),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

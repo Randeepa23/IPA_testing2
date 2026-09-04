@@ -107,7 +107,7 @@ class _VehicleQrScreenState extends State<VehicleQrScreen> {
 
     showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.15),
+      barrierColor: Colors.black.withValues(alpha: 0.15),
       builder: (ctx) {
         final w = MediaQuery.of(ctx).size.width;
         final qrSize = (w * 0.75).clamp(220.0, 320.0);
@@ -194,7 +194,7 @@ class _VehicleQrScreenState extends State<VehicleQrScreen> {
                               Border.all(color: const Color(0xFFE2E8F0)),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.07),
+                              color: Colors.black.withValues(alpha: 0.07),
                               blurRadius: 16,
                               offset: const Offset(0, 6),
                             ),
@@ -218,7 +218,7 @@ class _VehicleQrScreenState extends State<VehicleQrScreen> {
                               ),
                             );
                           },
-                          errorBuilder: (_, __, ___) => SizedBox(
+                          errorBuilder: (_, _, _) => SizedBox(
                             width: qrSize,
                             height: qrSize,
                             child: const Center(
@@ -246,7 +246,7 @@ class _VehicleQrScreenState extends State<VehicleQrScreen> {
                         "Tap outside to close",
                         style: TextStyle(
                           fontSize: 11.5,
-                          color: _textMuted.withOpacity(0.7),
+                          color: _textMuted.withValues(alpha: 0.7),
                         ),
                       ),
                     ],
@@ -272,7 +272,7 @@ class _VehicleQrScreenState extends State<VehicleQrScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 14,
             offset: const Offset(0, 6),
           ),
@@ -378,7 +378,7 @@ class _VehicleQrScreenState extends State<VehicleQrScreen> {
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    color: _textMuted.withOpacity(0.6),
+                    color: _textMuted.withValues(alpha: 0.6),
                   ),
                 ),
               ),
@@ -431,8 +431,8 @@ class _VehicleQrScreenState extends State<VehicleQrScreen> {
               gradient: LinearGradient(
                 colors: isLoading
                     ? [
-                        const Color(0xFF1565C0).withOpacity(0.5),
-                        const Color(0xFF003580).withOpacity(0.5),
+                        const Color(0xFF1565C0).withValues(alpha: 0.5),
+                        const Color(0xFF003580).withValues(alpha: 0.5),
                       ]
                     : const [Color(0xFF1565C0), Color(0xFF003580)],
               ),
@@ -490,7 +490,7 @@ class _VehicleQrScreenState extends State<VehicleQrScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFFFF5F5),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.red.withOpacity(0.25)),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.25)),
       ),
       child: Row(
         children: [
@@ -522,7 +522,7 @@ Widget _buildEmptyState() {
       borderRadius: BorderRadius.circular(16),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(0.04),
+          color: Colors.black.withValues(alpha: 0.04),
           blurRadius: 10,
           offset: const Offset(0, 4),
         ),
@@ -571,7 +571,7 @@ Widget _buildEmptyState() {
           decoration: BoxDecoration(
             color: const Color(0xFFFFF7E6),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFFFC107).withOpacity(0.45)),
+            border: Border.all(color: const Color(0xFFFFC107).withValues(alpha: 0.45)),
           ),
           child: const Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -612,7 +612,7 @@ Widget _buildEmptyState() {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 14,
             offset: const Offset(0, 6),
           ),
@@ -707,7 +707,7 @@ Widget _buildEmptyState() {
                               Border.all(color: const Color(0xFFE2E8F0)),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
+                              color: Colors.black.withValues(alpha: 0.05),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -730,7 +730,7 @@ Widget _buildEmptyState() {
                               ),
                             );
                           },
-                          errorBuilder: (_, __, ___) => const SizedBox(
+                          errorBuilder: (_, _, _) => const SizedBox(
                             height: 240,
                             child: Center(
                               child: Column(
@@ -758,7 +758,7 @@ Widget _buildEmptyState() {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
-                            color: _blue2.withOpacity(0.92),
+                            color: _blue2.withValues(alpha: 0.92),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: const Row(

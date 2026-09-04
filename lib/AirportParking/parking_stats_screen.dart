@@ -262,7 +262,7 @@ class _FiltersBar extends StatelessWidget {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: quickLabels.length + 1, // +1 for custom
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, i) {
                 if (i < quickLabels.length) {
                   final isActive = activeQuick == i;
@@ -1135,7 +1135,7 @@ class _YearMonthPickerState extends State<_YearMonthPicker> {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: widget.years.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (_, i) {
                   final y = widget.years[i];
                   final isSelected = _year == y;

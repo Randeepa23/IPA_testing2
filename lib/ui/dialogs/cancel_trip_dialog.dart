@@ -15,7 +15,7 @@ Future<bool?> showCancelTripDialog(BuildContext context) {
         children: [
           BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-            child: Container(color: Colors.black.withOpacity(0.15)),
+            child: Container(color: Colors.black.withValues(alpha: 0.15)),
           ),
           Center(
             child: Dialog(

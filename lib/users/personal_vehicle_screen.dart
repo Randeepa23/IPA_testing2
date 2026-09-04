@@ -181,9 +181,6 @@ void initState() {
               children: [
                 PersonalVehicleRequestScreen(user: widget.user, onRequestSubmitted: _onRequestSubmitted),
                 PersonalTripScreen(key: ValueKey(_tripsRefreshKey), user: widget.user),
-                PersonalVehicleRequestScreen(
-                  user: widget.user,
-                ),
               ],
             ),
           ),

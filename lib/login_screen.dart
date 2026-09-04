@@ -15,7 +15,7 @@ import 'Services/notification_service.dart';
 class LoginScreen extends StatefulWidget {
   final String? initialUsername;
 
-  const LoginScreen({Key? key, this.initialUsername}) : super(key: key);
+  const LoginScreen({super.key, this.initialUsername});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();

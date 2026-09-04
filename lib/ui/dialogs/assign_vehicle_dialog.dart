@@ -63,14 +63,14 @@ Future<void> showAssignVehicleDialog({
   await showDialog(
     context: context,
     barrierDismissible: false,
-    barrierColor: Colors.black.withOpacity(0.15),
+    barrierColor: Colors.black.withValues(alpha: 0.15),
     builder: (ctx) {
       final w = MediaQuery.of(ctx).size.width;
       final dialogW = (w * 0.90).clamp(300.0, 430.0);
 
       return StatefulBuilder(
         builder: (context, setState) {
-          String _toApiDate(String value) {
+          String toApiDate(String value) {
             final v = value.trim();
             if (v.length >= 10) {
               final head = v.substring(0, 10);
@@ -96,8 +96,8 @@ Future<void> showAssignVehicleDialog({
             });
 
             try {
-              final start = _toApiDate(assignedStartAt);
-              final end = _toApiDate(assignedEndAt);
+              final start = toApiDate(assignedStartAt);
+              final end = toApiDate(assignedEndAt);
               if (start.isEmpty || end.isEmpty) {
                 setState(() {
                   vehicleError = "Invalid assigned date range for this trip.";
@@ -267,16 +267,19 @@ Future<void> showAssignVehicleDialog({
                                   return full.contains(q);
                                 }).toList();
                               },
-                              itemBuilder: (context, suggestion) => ListTile(
-                                dense: true,
-                                tileColor: Colors.white,
-                                title: Text(
-                                  suggestion.displayLabel,
-                                  style: const TextStyle(fontSize: 13.5, color: Colors.black87),
-                                ),
-                                subtitle: Text(
-                                  suggestion.vehicleTypeName,
-                                  style: const TextStyle(fontSize: 12, color: Colors.black54),
+                              itemBuilder: (context, suggestion) => Material(
+                                color: Colors.transparent,
+                                child: ListTile(
+                                  dense: true,
+                                  tileColor: Colors.white,
+                                  title: Text(
+                                    suggestion.displayLabel,
+                                    style: const TextStyle(fontSize: 13.5, color: Colors.black87),
+                                  ),
+                                  subtitle: Text(
+                                    suggestion.vehicleTypeName,
+                                    style: const TextStyle(fontSize: 12, color: Colors.black54),
+                                  ),
                                 ),
                               ),
                               onSelected: (suggestion) {

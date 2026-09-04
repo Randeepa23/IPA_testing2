@@ -63,7 +63,7 @@ void showParticipantsSheet({
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: memberIds.length,
-                  separatorBuilder: (_, __) =>
+                  separatorBuilder: (_, _) =>
                       const Divider(height: 15, color: Color(0xFFF1F2F5)),
                   itemBuilder: (_, index) {
                     final memberId = memberIds[index];
@@ -109,7 +109,7 @@ void showParticipantsSheet({
                             vertical: 5,
                           ),
                           decoration: BoxDecoration(
-                            color: statusColor.withOpacity(0.12),
+                            color: statusColor.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(

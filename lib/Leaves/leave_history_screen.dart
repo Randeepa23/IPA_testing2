@@ -300,7 +300,7 @@ Widget build(BuildContext context) {
           boxShadow: [
             if (active)
               BoxShadow(
-                color: Colors.black.withOpacity(0.06),
+                color: Colors.black.withValues(alpha: 0.06),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -614,8 +614,9 @@ Map<String, int> _counts(List<LeaveRequest> list) {
   int pending = 0, approved = 0, rejected = 0;
 
   for (final r in list) {
-    if (r.status == LeaveStatus.approved) approved++;
-    else if (r.status == LeaveStatus.rejected) rejected++;
+    if (r.status == LeaveStatus.approved) {
+      approved++;
+    } else if (r.status == LeaveStatus.rejected) rejected++;
     else {
       // everything not final goes to "Pending"
       pending++;
