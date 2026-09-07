@@ -130,6 +130,8 @@ class _TwoFactorPromptDialogState extends State<_TwoFactorPromptDialog>
 
     if (res["success"] == true) {
       Navigator.of(context, rootNavigator: true).pop(action == 'APPROVED');
+      // Always return to the main screen of the app
+      navigatorKey.currentState?.popUntil((route) => route.isFirst);
       _showFeedbackSnackBar(
         isApproved: action == 'APPROVED',
         message: action == 'APPROVED'
@@ -146,7 +148,8 @@ class _TwoFactorPromptDialogState extends State<_TwoFactorPromptDialog>
   }
 
   void _showFeedbackSnackBar({required bool isApproved, required String message}) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    final messengerContext = navigatorKey.currentContext ?? context;
+    ScaffoldMessenger.of(messengerContext).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
         backgroundColor: Colors.transparent,
@@ -254,138 +257,67 @@ class _TwoFactorPromptDialogState extends State<_TwoFactorPromptDialog>
                         color: isExpired ? Colors.grey.shade700 : const Color(0xFF1A1A2E),
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
 
+                    // Message
                     Text(
                       isExpired
                           ? "This login attempt has timed out."
-                          : "Are you trying to log into this account?",
+                          : "Are you trying to sign in to ${widget.challenge.websiteName.isNotEmpty ? widget.challenge.websiteName : 'Terminal Prime'}?",
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade600,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey.shade700,
                         height: 1.4,
                       ),
                     ),
                     const SizedBox(height: 18),
 
-                    // Website & Details Card
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF7F9FC),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Website Name
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF0060A6).withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Icon(
-                                  Icons.language_rounded,
-                                  size: 18,
-                                  color: Color(0xFF0060A6),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  widget.challenge.websiteName,
-                                  style: const TextStyle(
-                                    fontSize: 14.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF0F172A),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Divider(height: 20, thickness: 0.8, color: Color(0xFFE2E8F0)),
-
-                          // Device / Browser
-                          if (widget.challenge.deviceInfo != null &&
-                              widget.challenge.deviceInfo!.isNotEmpty) ...[
-                            _buildInfoRow(
-                              Icons.devices_rounded,
-                              "Device",
-                              widget.challenge.deviceInfo!,
-                            ),
-                            const SizedBox(height: 8),
-                          ],
-
-                          // IP Address & Location
-                          if (widget.challenge.ipAddress != null &&
-                              widget.challenge.ipAddress!.isNotEmpty) ...[
-                            _buildInfoRow(
-                              Icons.location_on_outlined,
-                              "Location / IP",
-                              widget.challenge.location != null &&
-                                      widget.challenge.location!.isNotEmpty
-                                  ? "${widget.challenge.location} (${widget.challenge.ipAddress})"
-                                  : widget.challenge.ipAddress!,
-                            ),
-                            const SizedBox(height: 8),
-                          ],
-
-                          // Timestamp
-                          _buildInfoRow(
-                            Icons.access_time_rounded,
-                            "Time",
-                            _formatDateTime(widget.challenge.createdAt),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Optional Security Code Match
-                    if (widget.challenge.securityCode != null &&
-                        widget.challenge.securityCode!.isNotEmpty &&
-                        !isExpired) ...[
-                      const SizedBox(height: 14),
+                    // Verification Number Box
+                    if (!isExpired &&
+                        widget.challenge.securityCode != null &&
+                        widget.challenge.securityCode!.isNotEmpty) ...[
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 20),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFF8E1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFFFE082)),
+                          color: const Color(0xFFF0F7FF),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: const Color(0xFF0060A6).withValues(alpha: 0.25),
+                            width: 1.5,
+                          ),
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text(
-                              "Matching Code: ",
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF795548),
-                              ),
-                            ),
                             Text(
                               widget.challenge.securityCode!,
                               style: const TextStyle(
-                                fontSize: 20,
+                                fontSize: 48,
                                 fontWeight: FontWeight.w900,
-                                letterSpacing: 1.5,
-                                color: Color(0xFFD84315),
+                                letterSpacing: 6.0,
+                                color: Color(0xFF0060A6),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "Verification Number",
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade600,
                               ),
                             ),
                           ],
                         ),
                       ),
+                      const SizedBox(height: 16),
                     ],
 
                     // Countdown Progress Bar
                     if (!isExpired) ...[
-                      const SizedBox(height: 16),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(6),
                         child: LinearProgressIndicator(
@@ -446,14 +378,16 @@ class _TwoFactorPromptDialogState extends State<_TwoFactorPromptDialog>
 
                     const SizedBox(height: 22),
 
-                    // Actions
+                    // Actions (2 Buttons: Decline & Approve)
                     if (isExpired) ...[
                       SizedBox(
                         width: double.infinity,
-                        height: 46,
+                        height: 48,
                         child: OutlinedButton(
-                          onPressed: () =>
-                              Navigator.of(context, rootNavigator: true).pop(false),
+                          onPressed: () {
+                            Navigator.of(context, rootNavigator: true).pop(false);
+                            navigatorKey.currentState?.popUntil((route) => route.isFirst);
+                          },
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(color: Colors.grey.shade400),
                             shape: RoundedRectangleBorder(
@@ -477,7 +411,7 @@ class _TwoFactorPromptDialogState extends State<_TwoFactorPromptDialog>
                           Expanded(
                             flex: 1,
                             child: SizedBox(
-                              height: 46,
+                              height: 48,
                               child: OutlinedButton(
                                 onPressed: _isProcessing
                                     ? null
@@ -485,7 +419,7 @@ class _TwoFactorPromptDialogState extends State<_TwoFactorPromptDialog>
                                 style: OutlinedButton.styleFrom(
                                   side: BorderSide(
                                     color: Colors.red.shade400,
-                                    width: 1.2,
+                                    width: 1.4,
                                   ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -503,7 +437,7 @@ class _TwoFactorPromptDialogState extends State<_TwoFactorPromptDialog>
                                     : const Text(
                                         "Decline",
                                         style: TextStyle(
-                                          fontSize: 14,
+                                          fontSize: 15,
                                           fontWeight: FontWeight.w700,
                                           color: Colors.red,
                                         ),
@@ -517,7 +451,7 @@ class _TwoFactorPromptDialogState extends State<_TwoFactorPromptDialog>
                           Expanded(
                             flex: 1,
                             child: SizedBox(
-                              height: 46,
+                              height: 48,
                               child: ElevatedButton(
                                 onPressed: _isProcessing
                                     ? null
@@ -542,12 +476,12 @@ class _TwoFactorPromptDialogState extends State<_TwoFactorPromptDialog>
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
                                           Icon(Icons.check_rounded,
-                                              size: 18, color: Colors.white),
+                                              size: 20, color: Colors.white),
                                           SizedBox(width: 6),
                                           Text(
-                                            "Accept",
+                                            "Approve",
                                             style: TextStyle(
-                                              fontSize: 14,
+                                              fontSize: 15,
                                               fontWeight: FontWeight.w700,
                                               color: Colors.white,
                                             ),
@@ -568,43 +502,5 @@ class _TwoFactorPromptDialogState extends State<_TwoFactorPromptDialog>
         ),
       ],
     );
-  }
-
-  Widget _buildInfoRow(IconData icon, String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 15, color: Colors.grey.shade600),
-        const SizedBox(width: 8),
-        Text(
-          "$label: ",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey.shade600,
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1E293B),
-            ),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 2,
-          ),
-        ),
-      ],
-    );
-  }
-
-  String _formatDateTime(DateTime dt) {
-    final now = DateTime.now();
-    final diff = now.difference(dt);
-    if (diff.inSeconds < 60) return "Just now";
-    if (diff.inMinutes < 60) return "${diff.inMinutes}m ago";
-    return "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -27,6 +28,7 @@ import 'Services/ticket_api_service.dart';
 import 'package:test_app/Services/api_service.dart';
 import 'Models/two_factor_challenge.dart';
 import 'Services/two_factor_auth_service.dart';
+import 'Services/notification_service.dart';
 import 'ui/dialogs/two_factor_prompt_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -47,7 +49,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   static const blue = Color(0xFF0060A6);
   bool _privacyNoticeShown = false;
   final TextEditingController _searchController = TextEditingController();
@@ -56,6 +58,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _photoLoading = false;
   bool _isHrManagement = false;
   bool _isAirportParkingAllowed = false;
+  Timer? _twoFaPollingTimer;
+  bool _isPromptShowing = false;
 
   bool get isHrManagement => _isHrManagement;
   bool get isAirportParkingAllowed => _isAirportParkingAllowed;
@@ -84,7 +88,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkPending2FaRequests();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _twoFaPollingTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -115,6 +128,34 @@ class _HomeScreenState extends State<HomeScreen> {
     _setupFcmListeners();
     _loadProfilePhoto();
     _loadUserAccess();
+
+    // Ensure FCM token is always up-to-date in database for this employee
+    try {
+      FirebaseMessaging.instance.getToken().then((token) {
+        if (token != null) {
+          final empId = (widget.user["employee_id"] ??
+                  widget.user["employeeId"] ??
+                  widget.user["id"] ?? "")
+              .toString();
+          debugPrint("2FA: Mobile App Employee ID is '$empId', FCM Token: ${token.substring(0, 20)}...");
+          if (empId.isNotEmpty) {
+            NotificationService.saveFcmToken(employeeId: empId, fcmToken: token);
+          }
+        }
+      }).catchError((e) {
+        debugPrint("2FA: Token fetch error (e.g. iOS Simulator APNS): $e");
+      });
+    } catch (e) {
+      debugPrint("2FA: Token fetch error: $e");
+    }
+
+    WidgetsBinding.instance.addObserver(this);
+    _twoFaPollingTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (!_isPromptShowing && mounted) {
+        _checkPending2FaRequests();
+      }
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkPending2FaRequests();
       final msg = widget.successMessage;
@@ -132,6 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _checkPending2FaRequests() async {
+    if (_isPromptShowing || !mounted) return;
     try {
       final empId = (widget.user["employee_id"] ??
               widget.user["employeeId"] ??
@@ -139,14 +181,18 @@ class _HomeScreenState extends State<HomeScreen> {
           .toString();
       if (empId.isEmpty) return;
       final pending = await TwoFactorAuthService.getPendingChallenges(employeeId: empId);
-      if (pending.isNotEmpty && mounted) {
-        showTwoFactorPromptDialog(
+      if (pending.isNotEmpty && mounted && !_isPromptShowing) {
+        _isPromptShowing = true;
+        await showTwoFactorPromptDialog(
           context,
           challenge: pending.first,
           employeeId: empId,
         );
+        _isPromptShowing = false;
       }
-    } catch (_) {}
+    } catch (e) {
+      _isPromptShowing = false;
+    }
   }
 
   //Show privacy notice dialog after login

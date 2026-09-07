@@ -1,0 +1,122 @@
+/* assets/css/two_factor_modal.css */
+.two-factor-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(6px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999999;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.two-factor-card {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 420px;
+  padding: 32px 26px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  text-align: center;
+  position: relative;
+  animation: modalScaleIn 0.25s ease-out;
+}
+
+@keyframes modalScaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.two-factor-icon-wrap {
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  background: #e0f2fe;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px auto;
+  font-size: 32px;
+}
+
+.two-factor-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
+
+.two-factor-desc {
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.45;
+  margin-bottom: 20px;
+}
+
+.two-factor-code-badge {
+  display: inline-block;
+  background: #fef3c7;
+  border: 1.5px solid #fde68a;
+  padding: 8px 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.two-factor-code-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #92400e;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.two-factor-code-val {
+  font-size: 30px;
+  font-weight: 900;
+  color: #b45309;
+  letter-spacing: 3px;
+  line-height: 1.2;
+}
+
+.two-factor-spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #0284c7;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 12px auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.two-factor-countdown {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.two-factor-cancel-btn {
+  margin-top: 20px;
+  background: transparent;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  padding: 8px 22px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.two-factor-cancel-btn:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
