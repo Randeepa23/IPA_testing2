@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:http/http.dart' as http;
@@ -25,6 +25,9 @@ import 'ITSupport/it_support_home_screen.dart';
 import 'ITSupport/ticket_conversation_screen.dart';
 import 'Services/ticket_api_service.dart';
 import 'package:test_app/Services/api_service.dart';
+import 'Models/two_factor_challenge.dart';
+import 'Services/two_factor_auth_service.dart';
+import 'ui/dialogs/two_factor_prompt_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   final String username;
@@ -113,6 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadProfilePhoto();
     _loadUserAccess();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkPending2FaRequests();
       final msg = widget.successMessage;
       if (msg != null && msg.trim().isNotEmpty) {
         TopBanner.show(
@@ -125,6 +129,24 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       _showPrivacyNoticeAfterLogin();
     });
+  }
+
+  Future<void> _checkPending2FaRequests() async {
+    try {
+      final empId = (widget.user["employee_id"] ??
+              widget.user["employeeId"] ??
+              widget.user["id"] ?? "")
+          .toString();
+      if (empId.isEmpty) return;
+      final pending = await TwoFactorAuthService.getPendingChallenges(employeeId: empId);
+      if (pending.isNotEmpty && mounted) {
+        showTwoFactorPromptDialog(
+          context,
+          challenge: pending.first,
+          employeeId: empId,
+        );
+      }
+    } catch (_) {}
   }
 
   //Show privacy notice dialog after login
@@ -654,7 +676,20 @@ class _HomeScreenState extends State<HomeScreen> {
   void _setupFcmListeners() {
     // Foreground tap — app is open
     FirebaseMessaging.onMessage.listen((message) {
-      // OS shows the banner; nothing extra needed
+      if (message.data["type"] == "2fa_login_request" ||
+          message.data["type"] == "2fa_challenge") {
+        if (!mounted) return;
+        final challenge = TwoFactorChallenge.fromFcmPayload(message.data);
+        final empId = (widget.user["employee_id"] ??
+                widget.user["employeeId"] ??
+                widget.user["id"] ?? "")
+            .toString();
+        showTwoFactorPromptDialog(
+          context,
+          challenge: challenge,
+          employeeId: empId,
+        );
+      }
     });
 
     // Tap while app is in background
@@ -671,6 +706,21 @@ class _HomeScreenState extends State<HomeScreen> {
     final type = message.data["type"];
 
     switch (type) {
+      // ── 2FA LOGIN VERIFICATION ─────────────────────────────────────────────
+      case "2fa_login_request":
+      case "2fa_challenge":
+        final challenge = TwoFactorChallenge.fromFcmPayload(message.data);
+        final empId = (widget.user["employee_id"] ??
+                widget.user["employeeId"] ??
+                widget.user["id"] ?? "")
+            .toString();
+        showTwoFactorPromptDialog(
+          context,
+          challenge: challenge,
+          employeeId: empId,
+        );
+        break;
+
       // ── LEAVE MANAGEMENT ────────────────────────────────────────────────────
       case "reliever_request":
         Navigator.push(context,
