@@ -807,6 +807,11 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
                 decoration: _inputDecoration("Enter any additional notes or remarks..."),
               ),
 
+              const SizedBox(height: 14),
+
+              // ── Estimated Payment Calculation ─────────────────────────────
+              _buildPaymentCalculationSection(),
+
               const SizedBox(height: 16),
 
               // Approving Manager dropdown
@@ -1473,6 +1478,239 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
                 ),
               ),
             ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPaymentCalculationSection() {
+    final slot = _selectedSlot;
+    final int attemptNum = slot?.attemptNumber ?? 1;
+    final bool isFreeAttempt = attemptNum <= 2;
+    final int discountPct = slot != null
+        ? slot.discountPct
+        : (isFreeAttempt ? 100 : 50);
+    final String attemptLabel = slot?.label ?? "${attemptNum}st";
+
+    // Duration calculation based on picked dates (or 1 day estimate if not picked yet)
+    final bool hasDateRange = fromDate != null && toDate != null;
+    final int days = hasDateRange ? (toDate!.difference(fromDate!).inDays + 1) : 1;
+
+    // Mock pricing data in LKR
+    const double baseDailyRate = 5000.0;
+    final double grossAmount = baseDailyRate * days;
+    final double discountAmount = isFreeAttempt
+        ? grossAmount
+        : grossAmount * (discountPct / 100.0);
+    final double netPayable = isFreeAttempt ? 0.0 : (grossAmount - discountAmount);
+
+    final currencyFormatter = NumberFormat("#,##0.00", "en_US");
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const FormSectionTitle("Estimated Payment Calculation"),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: isFreeAttempt ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isFreeAttempt ? const Color(0xFF86EFAC) : const Color(0xFFD0E1FD),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF1565C0).withValues(alpha: 0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header row
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: isFreeAttempt
+                          ? const Color(0xFFDCFCE7)
+                          : const Color(0xFFEAF1FF),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      isFreeAttempt
+                          ? Icons.card_giftcard_rounded
+                          : Icons.receipt_long_rounded,
+                      size: 18,
+                      color: isFreeAttempt
+                          ? const Color(0xFF15803D)
+                          : const Color(0xFF1565C0),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isFreeAttempt
+                              ? "Free Attempt ($attemptLabel)"
+                              : "$attemptLabel Attempt Rate",
+                          style: const TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF1E293B),
+                          ),
+                        ),
+                        Text(
+                          hasDateRange
+                              ? "$days day${days == 1 ? '' : 's'} (${DateFormat('d MMM').format(fromDate!)} – ${DateFormat('d MMM').format(toDate!)})"
+                              : "$days day (estimated · select dates above)",
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isFreeAttempt
+                          ? const Color(0xFFDCFCE7)
+                          : (discountPct > 0
+                              ? const Color(0xFFFEF3C7)
+                              : const Color(0xFFE2E8F0)),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      isFreeAttempt
+                          ? "FREE"
+                          : (discountPct > 0 ? "$discountPct% OFF" : "STANDARD"),
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                        color: isFreeAttempt
+                            ? const Color(0xFF15803D)
+                            : (discountPct > 0
+                                ? const Color(0xFFB45309)
+                                : const Color(0xFF475569)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Divider(height: 1, color: Color(0xFFE2E8F0)),
+              const SizedBox(height: 10),
+
+              // Breakdown rows
+              _buildCalcRow("Standard Daily Rate",
+                  "LKR ${currencyFormatter.format(baseDailyRate)} / day"),
+              const SizedBox(height: 5),
+              _buildCalcRow("Duration", "$days day${days == 1 ? '' : 's'}"),
+              const SizedBox(height: 5),
+              _buildCalcRow("Gross Amount",
+                  "LKR ${currencyFormatter.format(grossAmount)}"),
+              if (discountAmount > 0) ...[
+                const SizedBox(height: 5),
+                _buildCalcRow(
+                  isFreeAttempt
+                      ? "Free Benefit (100% OFF)"
+                      : "Staff Subsidy ($discountPct% OFF)",
+                  "- LKR ${currencyFormatter.format(discountAmount)}",
+                  valueColor: const Color(0xFF16A34A),
+                ),
+              ],
+
+              const SizedBox(height: 10),
+              const Divider(height: 1, color: Color(0xFFE2E8F0)),
+              const SizedBox(height: 10),
+
+              // Total Payable row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Total Payable (LKR)",
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                  Text(
+                    "LKR ${currencyFormatter.format(netPayable)}",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: isFreeAttempt
+                          ? const Color(0xFF15803D)
+                          : const Color(0xFF1565C0),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 8),
+              // Footer note
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    size: 13,
+                    color: Colors.grey.shade500,
+                  ),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      isFreeAttempt
+                          ? "Staff members receive 2 free personal vehicle attempts per year. No payment is required for this attempt."
+                          : "Calculated at staff subsidized rate for attempts beyond the 2 free allocations.",
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        color: Colors.grey.shade600,
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCalcRow(String label, String value, {Color? valueColor}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade600,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 12,
+            color: valueColor ?? const Color(0xFF1E293B),
+            fontWeight: FontWeight.w700,
           ),
         ),
       ],

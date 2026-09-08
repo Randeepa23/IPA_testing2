@@ -6,6 +6,8 @@ import '../ui/dialogs/stop_trip_dialog.dart';
 import '../Services/vehicle_api_service.dart';
 import '../Leaves/top_banner.dart';
 import '../ui/dialogs/cancel_trip_dialog.dart';
+import 'personal_vehicle_invoice_builder.dart';
+import 'personal_vehicle_invoice_viewer_screen.dart';
 
 class PersonalTripScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -653,6 +655,8 @@ class TripCard extends StatelessWidget {
                   _infoRow("To Date", (data["toDate"] ?? "").toString()),
                   const SizedBox(height: 8),
                   const SizedBox(height: 12),
+                  _invoiceButton(context),
+                  const SizedBox(height: 10),
                   Builder(
                     builder: (ctx) => _gradientButton(
                       text: "Start Trip (Enter Meter Reading)",
@@ -936,5 +940,89 @@ Widget _infoRow(String label, String value, {bool highlight = false}) {
         ],
       ),
     );
+  }
+
+  Widget _invoiceButton(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 44,
+      child: OutlinedButton.icon(
+        onPressed: () => _openInvoice(context),
+        icon: const Icon(Icons.receipt_long_rounded, size: 18, color: Color(0xFF1565C0)),
+        label: const Text(
+          "View Invoice / Payment Receipt",
+          style: TextStyle(
+            color: Color(0xFF1565C0),
+            fontWeight: FontWeight.w800,
+            fontSize: 13,
+          ),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: Color(0xFF1565C0), width: 1.4),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          backgroundColor: const Color(0xFFF4F8FD),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openInvoice(BuildContext context) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: Color(0xFF1565C0)),
+                SizedBox(height: 14),
+                Text(
+                  "Generating invoice...",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final state = context.findAncestorStateOfType<_PersonalTripScreenState>();
+      final user = state?.widget.user ?? {};
+
+      final file = await PersonalVehicleInvoiceBuilder.generate(
+        tripData: data,
+        user: user,
+      );
+
+      if (context.mounted) {
+        Navigator.pop(context); // Close loading dialog
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PersonalVehicleInvoiceViewerScreen(
+              file: file,
+              tripCode: (data["tripCode"] ?? "-").toString(),
+              tripData: data,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Could not generate invoice: $e"),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 }

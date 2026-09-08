@@ -541,6 +541,13 @@ void _showSubmitConfirmation() {
         initialSelected: _selectedDates,
         firstDate: _leavePickerFirstDate(),
         singleSelect: singleSelect,
+        isCasualLeave: selectedLeaveType == 'Casual Leave',
+        initialSpecialReason: reasonController.text,
+        onSpecialReasonChanged: (reason) {
+          if (reasonController.text.trim().isEmpty || selectedLeaveType == 'Casual Leave') {
+            reasonController.text = reason;
+          }
+        },
       ),
     );
 
@@ -1668,12 +1675,16 @@ void _showSubmitConfirmation() {
   // ---------------- UI HELPERS (UI ONLY) ----------------
 
   /// Earliest selectable date — depends on leave type:
-  /// Annual Leave   → today (no past).
-  /// Medical Leave  → yesterday (can report next day after illness).
-  /// Others         → 3 days in the past (retroactive casual/half-day).
+  /// Annual Leave               → 6 days from today (must apply at least 6 days in advance).
+  /// Casual Leave               → today (no past).
+  /// Medical Leave              → yesterday (can report next day after illness).
+  /// Others                     → 3 days in the past (retroactive half-day).
   DateTime _leavePickerFirstDate() {
     final today = DateUtils.dateOnly(DateTime.now());
     if (selectedLeaveType == 'Annual Leave') {
+      return today.add(const Duration(days: 6));
+    }
+    if (selectedLeaveType == 'Casual Leave') {
       return today;
     }
     if (selectedLeaveType == 'Medical Leave') {
@@ -1696,17 +1707,23 @@ void _showSubmitConfirmation() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Multi-select calendar sheet (Annual Leave)
+// Multi-select calendar sheet (Annual Leave, Casual Leave, Medical Leave)
 // ─────────────────────────────────────────────────────────────────────────────
 class _MultiSelectCalendarSheet extends StatefulWidget {
   final Set<DateTime> initialSelected;
   final DateTime firstDate;
   final bool singleSelect;
+  final bool isCasualLeave;
+  final String? initialSpecialReason;
+  final ValueChanged<String>? onSpecialReasonChanged;
 
   const _MultiSelectCalendarSheet({
     required this.initialSelected,
     required this.firstDate,
     this.singleSelect = false,
+    this.isCasualLeave = false,
+    this.initialSpecialReason,
+    this.onSpecialReasonChanged,
   });
 
   @override
@@ -1717,15 +1734,46 @@ class _MultiSelectCalendarSheet extends StatefulWidget {
 class _MultiSelectCalendarSheetState extends State<_MultiSelectCalendarSheet> {
   late Set<DateTime> _selected;
   late DateTime _focusedMonth;
+  late final DateTime _today;
+  late final TextEditingController _specialReasonController;
+  late final FocusNode _reasonFocusNode;
+  bool _hasSpecialReason = false;
 
   static const _dayLabels = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
   @override
   void initState() {
     super.initState();
+    _today = DateUtils.dateOnly(DateTime.now());
     _selected = widget.initialSelected.map(DateUtils.dateOnly).toSet();
-    final today = DateUtils.dateOnly(DateTime.now());
-    _focusedMonth = DateTime(today.year, today.month, 1);
+    _focusedMonth = DateTime(_today.year, _today.month, 1);
+
+    _specialReasonController =
+        TextEditingController(text: widget.initialSpecialReason ?? '');
+    _reasonFocusNode = FocusNode();
+    _hasSpecialReason = _specialReasonController.text.trim().isNotEmpty;
+    _specialReasonController.addListener(_onSpecialReasonChanged);
+  }
+
+  @override
+  void dispose() {
+    _specialReasonController.removeListener(_onSpecialReasonChanged);
+    _specialReasonController.dispose();
+    _reasonFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _onSpecialReasonChanged() {
+    final hasReason = _specialReasonController.text.trim().isNotEmpty;
+    if (hasReason != _hasSpecialReason) {
+      setState(() {
+        _hasSpecialReason = hasReason;
+        if (!_hasSpecialReason && widget.isCasualLeave) {
+          // If reason was cleared, remove today from selected dates
+          _selected.removeWhere((s) => DateUtils.isSameDay(s, _today));
+        }
+      });
+    }
   }
 
   bool _isWeekend(DateTime d) =>
@@ -1734,11 +1782,22 @@ class _MultiSelectCalendarSheetState extends State<_MultiSelectCalendarSheet> {
   bool _isBeforeFirst(DateTime d) =>
       DateUtils.dateOnly(d).isBefore(DateUtils.dateOnly(widget.firstDate));
 
+  bool _isDateDisabled(DateTime d) {
+    if (_isWeekend(d)) return true;
+    if (_isBeforeFirst(d)) return true;
+    if (widget.isCasualLeave &&
+        DateUtils.isSameDay(d, _today) &&
+        !_hasSpecialReason) {
+      return true;
+    }
+    return false;
+  }
+
   bool _isSelected(DateTime d) =>
       _selected.any((s) => DateUtils.isSameDay(s, d));
 
   void _toggle(DateTime d) {
-    if (_isBeforeFirst(d) || _isWeekend(d)) return;
+    if (_isDateDisabled(d)) return;
     final key = DateUtils.dateOnly(d);
 
     if (widget.singleSelect) {
@@ -1795,221 +1854,400 @@ class _MultiSelectCalendarSheetState extends State<_MultiSelectCalendarSheet> {
         DateTime(_focusedMonth.year, _focusedMonth.month, 1).weekday;
     final count = _selected.length;
 
-    return DraggableScrollableSheet(
-      initialChildSize: 0.72,
-      minChildSize: 0.5,
-      maxChildSize: 0.92,
-      expand: false,
-      builder: (_, scrollController) => SingleChildScrollView(
-        controller: scrollController,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // drag handle
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const SizedBox(width: 48),
-                  Text(
-                    widget.singleSelect ? 'Select Date' : 'Select Working Days',
-                    style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF1E2A3A)),
-                  ),
-                  SizedBox(
-                    width: 48,
-                    child: _selected.isNotEmpty
-                        ? GestureDetector(
-                            onTap: _clearSelection,
-                            child: const Text(
-                              'Clear',
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  color: Color(0xFF1565C0),
-                                  fontWeight: FontWeight.w700),
-                              textAlign: TextAlign.right,
-                            ),
-                          )
-                        : const SizedBox(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                widget.singleSelect
-                    ? 'Tap a working day to select your half day date'
-                    : 'Tap a date to start · extend forward or backward · weekends auto-skipped',
-                style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              // month navigation
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.chevron_left,
-                        color: Color(0xFF1565C0)),
-                    onPressed: () => setState(() {
-                      _focusedMonth = DateTime(
-                          _focusedMonth.year, _focusedMonth.month - 1, 1);
-                    }),
-                  ),
-                  Text(
-                    DateFormat('MMMM yyyy').format(_focusedMonth),
-                    style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF1E2A3A)),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.chevron_right,
-                        color: Color(0xFF1565C0)),
-                    onPressed: () => setState(() {
-                      _focusedMonth = DateTime(
-                          _focusedMonth.year, _focusedMonth.month + 1, 1);
-                    }),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              // day-of-week headers
-              Row(
-                children: _dayLabels.map((label) {
-                  final isWeekendCol = label == 'Sa' || label == 'Su';
-                  return Expanded(
-                    child: Center(
-                      child: Text(
-                        label,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: isWeekendCol
-                              ? Colors.grey.shade300
-                              : Colors.grey.shade600,
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 4),
-              // day grid
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 7,
-                  childAspectRatio: 1,
-                ),
-                itemCount: (firstWeekday - 1) + daysInMonth,
-                itemBuilder: (_, index) {
-                  if (index < firstWeekday - 1) return const SizedBox();
-                  final day = index - (firstWeekday - 1) + 1;
-                  final d = DateTime(
-                      _focusedMonth.year, _focusedMonth.month, day);
-                  final weekend = _isWeekend(d);
-                  final beforeFirst = _isBeforeFirst(d);
-                  final disabled = weekend || beforeFirst;
-                  final selected = _isSelected(d);
-
-                  return GestureDetector(
-                    onTap: disabled ? null : () => _toggle(d),
-                    child: Container(
-                      margin: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: selected
-                            ? const Color(0xFF1565C0)
-                            : Colors.transparent,
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '$day',
-                        style: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: selected
-                              ? FontWeight.w800
-                              : FontWeight.w500,
-                          color: selected
-                              ? Colors.white
-                              : disabled
-                                  ? Colors.grey.shade300
-                                  : Colors.black87,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-              // selected-day chips preview
-              if (count > 0) ...[
+    return AnimatedPadding(
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      duration: const Duration(milliseconds: 150),
+      curve: Curves.easeOut,
+      child: DraggableScrollableSheet(
+        initialChildSize: widget.isCasualLeave ? 0.88 : 0.72,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (_, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // drag handle
                 Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEAF1FF),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: (_selected.toList()..sort()).map((d) => Text(
-                          DateFormat('EEE d MMM').format(d),
-                          style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF1E2A3A)),
-                        )).toList(),
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                const SizedBox(height: 12),
-              ],
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: count == 0
-                      ? null
-                      : () => Navigator.pop(context, _selected),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1565C0),
-                    disabledBackgroundColor: Colors.grey.shade200,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const SizedBox(width: 48),
+                    Text(
+                      widget.singleSelect ? 'Select Date' : 'Select Working Days',
+                      style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1E2A3A)),
+                    ),
+                    SizedBox(
+                      width: 48,
+                      child: _selected.isNotEmpty
+                          ? GestureDetector(
+                              onTap: _clearSelection,
+                              child: const Text(
+                                'Clear',
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF1565C0),
+                                    fontWeight: FontWeight.w700),
+                                textAlign: TextAlign.right,
+                              ),
+                            )
+                          : const SizedBox(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  widget.singleSelect
+                      ? 'Tap a working day to select your half day date'
+                      : 'Tap a date to start · extend forward or backward · weekends auto-skipped',
+                  style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                // month navigation
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.chevron_left,
+                          color: Color(0xFF1565C0)),
+                      onPressed: () => setState(() {
+                        _focusedMonth = DateTime(
+                            _focusedMonth.year, _focusedMonth.month - 1, 1);
+                      }),
+                    ),
+                    Text(
+                      DateFormat('MMMM yyyy').format(_focusedMonth),
+                      style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1E2A3A)),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.chevron_right,
+                          color: Color(0xFF1565C0)),
+                      onPressed: () => setState(() {
+                        _focusedMonth = DateTime(
+                            _focusedMonth.year, _focusedMonth.month + 1, 1);
+                      }),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                // day-of-week headers
+                Row(
+                  children: _dayLabels.map((label) {
+                    final isWeekendCol = label == 'Sa' || label == 'Su';
+                    return Expanded(
+                      child: Center(
+                        child: Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: isWeekendCol
+                                ? Colors.grey.shade300
+                                : Colors.grey.shade600,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 4),
+                // day grid
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 7,
+                    childAspectRatio: 1,
                   ),
-                  child: Text(
-                    count == 0
-                        ? (widget.singleSelect ? 'Select a date' : 'Select at least 1 day')
-                        : widget.singleSelect
-                            ? 'Confirm  ·  ${DateFormat('EEE, d MMM').format(_selected.first)}'
-                            : 'Confirm $count day${count == 1 ? '' : 's'}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: count == 0
-                          ? Colors.grey.shade400
-                          : Colors.white,
+                  itemCount: (firstWeekday - 1) + daysInMonth,
+                  itemBuilder: (_, index) {
+                    if (index < firstWeekday - 1) return const SizedBox();
+                    final day = index - (firstWeekday - 1) + 1;
+                    final d = DateTime(
+                        _focusedMonth.year, _focusedMonth.month, day);
+                    final isToday = DateUtils.isSameDay(d, _today);
+                    final isLockedToday = widget.isCasualLeave &&
+                        isToday &&
+                        !_hasSpecialReason;
+                    final disabled = _isDateDisabled(d);
+                    final selected = _isSelected(d);
+
+                    return GestureDetector(
+                      onTap: disabled
+                          ? (isLockedToday
+                              ? () {
+                                  _reasonFocusNode.requestFocus();
+                                  ScaffoldMessenger.of(context)
+                                      .hideCurrentSnackBar();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Please enter a special reason below to select today.'),
+                                      duration: Duration(seconds: 2),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
+                              : null)
+                          : () => _toggle(d),
+                      child: Container(
+                        margin: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: selected
+                              ? const Color(0xFF1565C0)
+                              : isLockedToday
+                                  ? const Color(0xFFFFFBEB)
+                                  : Colors.transparent,
+                          border: isToday && !selected
+                              ? Border.all(
+                                  color: isLockedToday
+                                      ? const Color(0xFFFBBF24)
+                                      : const Color(0xFF1565C0),
+                                  width: 1.5,
+                                )
+                              : null,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '$day',
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: selected || isToday
+                                ? FontWeight.w800
+                                : FontWeight.w500,
+                            color: selected
+                                ? Colors.white
+                                : disabled
+                                    ? (isLockedToday
+                                        ? const Color(0xFFD97706)
+                                        : Colors.grey.shade300)
+                                    : Colors.black87,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+                // Special reason section for Casual Leave
+                if (widget.isCasualLeave) ...[
+                  const SizedBox(height: 14),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: _hasSpecialReason
+                          ? const Color(0xFFF0FDF4)
+                          : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: _hasSpecialReason
+                            ? const Color(0xFF86EFAC)
+                            : const Color(0xFFE2E8F0),
+                        width: 1.2,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              _hasSpecialReason
+                                  ? Icons.check_circle_rounded
+                                  : Icons.lock_outline_rounded,
+                              size: 18,
+                              color: _hasSpecialReason
+                                  ? const Color(0xFF16A34A)
+                                  : const Color(0xFFD97706),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                "Special Reason for Today's Leave",
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: _hasSpecialReason
+                                      ? const Color(0xFF14532D)
+                                      : const Color(0xFF1E293B),
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: _hasSpecialReason
+                                    ? const Color(0xFFDCFCE7)
+                                    : const Color(0xFFFEF3C7),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                _hasSpecialReason
+                                    ? 'Unlocked'
+                                    : 'Required',
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: _hasSpecialReason
+                                      ? const Color(0xFF15803D)
+                                      : const Color(0xFFB45309),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          _hasSpecialReason
+                              ? 'Today (${DateFormat('d MMM').format(_today)}) unlocked. Tap date above to select.'
+                              : 'Enter reason below to enable today (${DateFormat('d MMM').format(_today)}).',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: _hasSpecialReason
+                                ? const Color(0xFF166534)
+                                : Colors.grey.shade600,
+                            height: 1.3,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _specialReasonController,
+                          focusNode: _reasonFocusNode,
+                          maxLines: 2,
+                          minLines: 1,
+                          textCapitalization: TextCapitalization.sentences,
+                          style: const TextStyle(
+                              fontSize: 13.5, color: Color(0xFF1E293B)),
+                          decoration: InputDecoration(
+                            hintText:
+                                'Enter reason for today\'s leave...',
+                            hintStyle: TextStyle(
+                                fontSize: 13, color: Colors.grey.shade400),
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 10),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: _hasSpecialReason
+                                    ? const Color(0xFF86EFAC)
+                                    : Colors.grey.shade300,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: _hasSpecialReason
+                                    ? const Color(0xFF86EFAC)
+                                    : Colors.grey.shade300,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF1565C0),
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 16),
+                // selected-day chips preview
+                if (count > 0) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEAF1FF),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: (_selected.toList()..sort()).map((d) => Text(
+                            DateFormat('EEE d MMM').format(d),
+                            style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1E2A3A)),
+                          )).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: count == 0
+                        ? null
+                        : () {
+                            final includesToday = _selected.any(
+                                (s) => DateUtils.isSameDay(s, _today));
+                            if (widget.isCasualLeave &&
+                                includesToday &&
+                                _hasSpecialReason) {
+                              widget.onSpecialReasonChanged?.call(
+                                  _specialReasonController.text.trim());
+                            }
+                            Navigator.pop(context, _selected);
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1565C0),
+                      disabledBackgroundColor: Colors.grey.shade200,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: Text(
+                      count == 0
+                          ? (widget.singleSelect
+                              ? 'Select a date'
+                              : 'Select at least 1 day')
+                          : widget.singleSelect
+                              ? 'Confirm  ·  ${DateFormat('EEE, d MMM').format(_selected.first)}'
+                              : 'Confirm $count day${count == 1 ? '' : 's'}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: count == 0
+                            ? Colors.grey.shade400
+                            : Colors.white,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
