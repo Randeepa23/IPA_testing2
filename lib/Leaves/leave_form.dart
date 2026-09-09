@@ -1675,20 +1675,20 @@ void _showSubmitConfirmation() {
   // ---------------- UI HELPERS (UI ONLY) ----------------
 
   /// Earliest selectable date — depends on leave type:
-  /// Annual Leave               → 6 days from today (must apply at least 6 days in advance).
+  /// Annual Leave               → today (no past).
   /// Casual Leave               → today (no past).
-  /// Medical Leave              → yesterday (can report next day after illness).
+  /// Medical Leave              → 3 days in the past (staff can apply with a grace period of 3 days).
   /// Others                     → 3 days in the past (retroactive half-day).
   DateTime _leavePickerFirstDate() {
     final today = DateUtils.dateOnly(DateTime.now());
     if (selectedLeaveType == 'Annual Leave') {
-      return today.add(const Duration(days: 6));
+      return today;
     }
     if (selectedLeaveType == 'Casual Leave') {
       return today;
     }
     if (selectedLeaveType == 'Medical Leave') {
-      return today.subtract(const Duration(days: 1));
+      return today.subtract(const Duration(days: 3));
     }
     return today.subtract(const Duration(days: 3));
   }
