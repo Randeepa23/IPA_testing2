@@ -293,14 +293,14 @@ Future<void> _submitForm() async {
   if (!isHalfDay && _selectedDates.isEmpty) return;
   if (isHalfDay && (fromDate == null || toDate == null)) return;
 
-  // Enforce minimum working days per leave type
+  // Enforce minimum days per leave type
   final totalDays = isHalfDay ? 1 : _selectedDates.length;
   final minDays = _minimumDays();
   if (totalDays < minDays) {
     TopBanner.show(
       context,
       title: 'Minimum Days Required',
-      message: '$selectedLeaveType requires at least $minDays working days (weekends excluded). Please adjust your dates.',
+      message: '$selectedLeaveType requires at least $minDays day${minDays == 1 ? '' : 's'}. Please adjust your dates.',
       icon: Icons.warning_amber_rounded,
       rightButtonText: 'OK',
       onRightTap: () {},
@@ -1776,14 +1776,10 @@ class _MultiSelectCalendarSheetState extends State<_MultiSelectCalendarSheet> {
     }
   }
 
-  bool _isWeekend(DateTime d) =>
-      d.weekday == DateTime.saturday || d.weekday == DateTime.sunday;
-
   bool _isBeforeFirst(DateTime d) =>
       DateUtils.dateOnly(d).isBefore(DateUtils.dateOnly(widget.firstDate));
 
   bool _isDateDisabled(DateTime d) {
-    if (_isWeekend(d)) return true;
     if (_isBeforeFirst(d)) return true;
     if (widget.isCasualLeave &&
         DateUtils.isSameDay(d, _today) &&
@@ -1828,7 +1824,7 @@ class _MultiSelectCalendarSheetState extends State<_MultiSelectCalendarSheet> {
       setState(() {
         DateTime fill = last.add(const Duration(days: 1));
         while (!fill.isAfter(key)) {
-          if (!_isWeekend(fill)) _selected.add(DateUtils.dateOnly(fill));
+          _selected.add(DateUtils.dateOnly(fill));
           fill = fill.add(const Duration(days: 1));
         }
       });
@@ -1836,7 +1832,7 @@ class _MultiSelectCalendarSheetState extends State<_MultiSelectCalendarSheet> {
       setState(() {
         DateTime fill = key;
         while (fill.isBefore(first)) {
-          if (!_isWeekend(fill)) _selected.add(DateUtils.dateOnly(fill));
+          _selected.add(DateUtils.dateOnly(fill));
           fill = fill.add(const Duration(days: 1));
         }
       });
@@ -1886,7 +1882,7 @@ class _MultiSelectCalendarSheetState extends State<_MultiSelectCalendarSheet> {
                   children: [
                     const SizedBox(width: 48),
                     Text(
-                      widget.singleSelect ? 'Select Date' : 'Select Working Days',
+                      widget.singleSelect ? 'Select Date' : 'Select Leave Dates',
                       style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
@@ -1913,8 +1909,8 @@ class _MultiSelectCalendarSheetState extends State<_MultiSelectCalendarSheet> {
                 const SizedBox(height: 4),
                 Text(
                   widget.singleSelect
-                      ? 'Tap a working day to select your half day date'
-                      : 'Tap a date to start · extend forward or backward · weekends auto-skipped',
+                      ? 'Tap a date to select your half day date'
+                      : 'Tap a date to start · extend forward or backward',
                   style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
                   textAlign: TextAlign.center,
                 ),
@@ -1952,7 +1948,6 @@ class _MultiSelectCalendarSheetState extends State<_MultiSelectCalendarSheet> {
                 // day-of-week headers
                 Row(
                   children: _dayLabels.map((label) {
-                    final isWeekendCol = label == 'Sa' || label == 'Su';
                     return Expanded(
                       child: Center(
                         child: Text(
@@ -1960,9 +1955,7 @@ class _MultiSelectCalendarSheetState extends State<_MultiSelectCalendarSheet> {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: isWeekendCol
-                                ? Colors.grey.shade300
-                                : Colors.grey.shade600,
+                            color: Colors.grey.shade600,
                           ),
                         ),
                       ),
