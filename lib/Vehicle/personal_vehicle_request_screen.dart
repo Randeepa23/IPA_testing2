@@ -152,6 +152,11 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
     return t.contains("car");
   }
 
+  bool _isCarOrCompactSuv(String? typeName) {
+    final t = (typeName ?? "").trim().toLowerCase();
+    return t.contains("car") || t.contains("suv") || t.contains("compact");
+  }
+
   @override
   void initState() {
     super.initState();
@@ -316,6 +321,16 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
         context,
         title: "Request Failed",
         message: "For this slot, only Car type vehicles are allowed.",
+        icon: Icons.error,
+        isSuccess: false,
+      );
+      return;
+    }
+    if (!_selectedSlot!.carOnly && !_isCarOrCompactSuv(vehicleTypeName)) {
+      TopBanner.show(
+        context,
+        title: "Request Failed",
+        message: "For this slot, only Car and Compact Luxury SUVs are allowed.",
         icon: Icons.error,
         isSuccess: false,
       );
@@ -492,8 +507,11 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
           .map((e) => AvailableVehicleOption.fromJson(Map<String, dynamic>.from(e)))
           .where((v) => v.id > 0 && v.regNo.isNotEmpty)
           .where((v) {
-            if (!carOnly) return true;
-            return _isCarTypeForFreeAttempt(v.vehicleTypeName);
+            if (_selectedSlot == null) return true;
+            if (_selectedSlot!.carOnly) {
+              return _isCarTypeForFreeAttempt(v.vehicleTypeName);
+            }
+            return _isCarOrCompactSuv(v.vehicleTypeName);
           })
           .toList();
 
@@ -510,7 +528,7 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
         _availableVehicleError = list.isEmpty
             ? (carOnly
                   ? "No available Car type vehicles for selected dates."
-                  : "No available vehicles for selected dates.")
+                  : "No available Car or Compact Luxury SUVs for selected dates.")
             : null;
         _isLoadingAvailableVehicles = false;
       });
@@ -1349,7 +1367,9 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
             ],
           ),
           const SizedBox(height: 10),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
             children: [
               _slotInfoPill(
                 icon: Icons.calendar_month_outlined,
@@ -1357,10 +1377,9 @@ class _PersonalVehicleRequestScreenState extends State<PersonalVehicleRequestScr
                 bg: const Color(0xFFE8F0FE),
                 fg: const Color(0xFF1565C0),
               ),
-              const SizedBox(width: 8),
               _slotInfoPill(
                 icon: Icons.directions_car_outlined,
-                label: slot.carOnly ? "Car only" : "All vehicles",
+                label: slot.carOnly ? "Car only" : "Car and Compact Luxury SUV",
                 bg: slot.carOnly
                     ? const Color(0xFFFFF3E0)
                     : const Color(0xFFE8F5E9),
